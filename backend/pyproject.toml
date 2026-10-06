@@ -1,0 +1,15 @@
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
+[tool.importlinter]
+root_package = "app"
+
+[[tool.importlinter.contracts]]
+name = "Core never depends on feature modules"
+type = "forbidden"
+source_modules = ["app.core"]
+forbidden_modules = ["app.modules"]
