@@ -13,3 +13,5 @@ name = "Core never depends on feature modules"
 type = "forbidden"
 source_modules = ["app.core"]
 forbidden_modules = ["app.modules"]
+[tool.ruff.lint.isort]
+known-third-party = ["alembic"]
