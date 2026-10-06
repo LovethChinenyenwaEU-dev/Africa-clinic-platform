@@ -2,6 +2,12 @@
 line-length = 100
 target-version = "py312"
 
+[tool.ruff.lint]
+select = ["E4", "E7", "E9", "F", "I", "UP", "BLE"]
+
+[tool.ruff.lint.isort]
+known-third-party = ["alembic"]
+
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 
@@ -13,5 +19,3 @@ name = "Core never depends on feature modules"
 type = "forbidden"
 source_modules = ["app.core"]
 forbidden_modules = ["app.modules"]
-[tool.ruff.lint.isort]
-known-third-party = ["alembic"]
