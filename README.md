@@ -1,4 +1,5 @@
 # Africa-first Clinic Platform
+![CI](https://github.com/LovethChinenyenwaEU-dev/Africa-clinic-platform/actions/workflows/ci.yml/badge.svg)
 
 > An offline-first clinic management, telemedicine, and patient-record system built for Nigerian clinics, designed to keep working when the internet and power don't.
 
