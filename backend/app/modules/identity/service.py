@@ -36,10 +36,9 @@ def create_staff(
     except ValueError:
         raise InvalidRoleError(f"Unknown role: {role}") from None
 
-    clean_email = normalise_email(email)
-    existing = session.exec(select(Staff).where(Staff.email == clean_email)).first()
-    if existing is not None:
+    if email_is_taken(session, email):
         raise EmailAlreadyUsedError("A staff member with this email already exists.")
+    clean_email = normalise_email(email)
 
     staff = Staff(
         tenant_id=tenant_id,
@@ -52,3 +51,8 @@ def create_staff(
     session.commit()
     session.refresh(staff)
     return staff
+
+def email_is_taken(session: Session, email: str) -> bool:
+    """Say whether a staff member already uses this email."""
+    clean_email = normalise_email(email)
+    return session.exec(select(Staff).where(Staff.email == clean_email)).first() is not None
