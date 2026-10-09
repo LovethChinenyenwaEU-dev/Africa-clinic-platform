@@ -1,5 +1,7 @@
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
+DEFAULT_SECRET_KEY = "dev-only-secret-change-me-before-real-use-0123456789"
+
 
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
@@ -7,7 +9,7 @@ class Settings(BaseSettings):
     database_url: str = "postgresql+psycopg://clinic:clinic@localhost:5432/clinic"
     redis_url: str = "redis://localhost:6379/0"
     environment: str = "development"
-    secret_key: str = "change-me-before-any-real-use"
+    secret_key: str = DEFAULT_SECRET_KEY
     cors_origins: str = "http://localhost:3000"
 
     @property

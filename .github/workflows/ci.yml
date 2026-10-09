@@ -46,7 +46,7 @@ jobs:
       DATABASE_URL: postgresql+psycopg://clinic:clinic@localhost:5432/clinic
       REDIS_URL: redis://localhost:6379/0
       ENVIRONMENT: test
-      SECRET_KEY: ci-only-not-a-secret
+      SECRET_KEY: ci-only-secret-not-for-real-use-0123456789
     steps:
       - uses: actions/checkout@v4
 
