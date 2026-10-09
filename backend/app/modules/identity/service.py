@@ -3,7 +3,8 @@ import uuid
 from sqlmodel import Session, select
 
 from app.modules.identity.models import Role, Staff
-from app.modules.identity.passwords import check_password_rules, hash_password
+from app.modules.identity.passwords import check_password_rules, hash_password, verify_password
+from app.modules.identity.tokens import create_access_token
 
 
 class EmailAlreadyUsedError(Exception):
@@ -56,3 +57,34 @@ def email_is_taken(session: Session, email: str) -> bool:
     """Say whether a staff member already uses this email."""
     clean_email = normalise_email(email)
     return session.exec(select(Staff).where(Staff.email == clean_email)).first() is not None
+
+class InvalidCredentialsError(Exception):
+    """Wrong email or password, or the account is switched off."""
+
+
+# A smoothie of a throwaway password, used to keep timing the same (explained below).
+_DUMMY_HASH = hash_password("a-password-nobody-uses")
+
+
+def authenticate(session: Session, *, email: str, password: str) -> Staff:
+    """Return the staff member if the email and password are right."""
+    staff = session.exec(select(Staff).where(Staff.email == normalise_email(email))).first()
+
+    if staff is None:
+        verify_password(password, _DUMMY_HASH)
+        raise InvalidCredentialsError("Invalid email or password.")
+
+    password_ok = verify_password(password, staff.password_hash)
+    if not password_ok or not staff.is_active:
+        raise InvalidCredentialsError("Invalid email or password.")
+    return staff
+
+
+def login(session: Session, *, email: str, password: str) -> str:
+    """Check the password and hand back a wristband (access token)."""
+    staff = authenticate(session, email=email, password=password)
+    return create_access_token(
+        staff_id=staff.id,
+        tenant_id=staff.tenant_id,
+        role=staff.role,
+    )
