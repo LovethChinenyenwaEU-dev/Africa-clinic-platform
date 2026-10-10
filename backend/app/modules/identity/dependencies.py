@@ -1,3 +1,5 @@
+from typing import Annotated
+
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlmodel import Session
@@ -37,3 +39,4 @@ def get_current_staff(
     if staff is None or not staff.is_active or staff.tenant_id != claims.tenant_id:
         raise _not_authenticated()
     return staff
+CurrentStaff = Annotated[Staff, Depends(get_current_staff)]
