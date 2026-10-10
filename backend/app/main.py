@@ -4,6 +4,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import text
 from sqlalchemy.exc import SQLAlchemyError
 
+import app.model_registry  # noqa: F401
 from app.api import api_router
 from app.core.config import settings
 from app.core.db import engine
