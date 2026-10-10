@@ -1,3 +1,4 @@
+from collections.abc import Callable
 from typing import Annotated
 
 from fastapi import Depends, HTTPException, status
@@ -6,6 +7,7 @@ from sqlmodel import Session
 
 from app.core.db import get_session
 from app.modules.identity.models import Staff
+from app.modules.identity.permissions import Capability, role_has
 from app.modules.identity.tokens import InvalidTokenError, decode_access_token
 
 bearer_scheme = HTTPBearer(auto_error=False)
@@ -39,4 +41,23 @@ def get_current_staff(
     if staff is None or not staff.is_active or staff.tenant_id != claims.tenant_id:
         raise _not_authenticated()
     return staff
+
+
 CurrentStaff = Annotated[Staff, Depends(get_current_staff)]
+
+
+def require(capability: Capability) -> Callable[..., Staff]:
+    """Build a guard that needs one capability.
+
+    Use it as: dependencies=[Depends(require(Capability.BRANCH_WRITE))]
+    """
+
+    def guard(current_staff: CurrentStaff) -> Staff:
+        if not role_has(current_staff.role, capability):
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="You do not have permission to do this.",
+            )
+        return current_staff
+
+    return guard
