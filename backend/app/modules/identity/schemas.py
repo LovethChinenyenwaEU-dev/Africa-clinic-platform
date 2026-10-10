@@ -1,4 +1,6 @@
-from pydantic import BaseModel, Field
+import uuid
+
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class LoginRequest(BaseModel):
@@ -13,3 +15,15 @@ class TokenResponse(BaseModel):
 
     access_token: str
     token_type: str = "bearer"
+
+
+class MeResponse(BaseModel):
+    """What we are willing to say about the logged-in person. No password_hash, ever."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    id: uuid.UUID
+    tenant_id: uuid.UUID
+    email: str
+    full_name: str
+    role: str
