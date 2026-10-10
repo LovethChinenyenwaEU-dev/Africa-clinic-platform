@@ -1,9 +1,6 @@
-import uuid
-
 import pytest
-from sqlmodel import Session, col, select
+from sqlmodel import select
 
-from app.core.db import engine
 from app.modules.identity.models import Role, Staff
 from app.modules.identity.passwords import WeakPasswordError, verify_password
 from app.modules.identity.service import EmailAlreadyUsedError
@@ -11,28 +8,6 @@ from app.modules.tenancy.models import Tenant
 from app.provisioning import provision_clinic
 
 GOOD_PASSWORD = "a-long-enough-password"
-
-
-@pytest.fixture
-def run_id():
-    """A unique label so each test only touches its own fake data."""
-    return uuid.uuid4().hex[:12]
-
-
-@pytest.fixture
-def session(run_id):
-    with Session(engine) as session:
-        yield session
-
-        session.rollback()
-        staff_query = select(Staff).where(col(Staff.email).endswith(f"@{run_id}.example.com"))
-        for staff in session.exec(staff_query).all():
-            session.delete(staff)
-        session.commit()
-        tenant_query = select(Tenant).where(col(Tenant.name).contains(run_id))
-        for tenant in session.exec(tenant_query).all():
-            session.delete(tenant)
-        session.commit()
 
 
 def test_provision_creates_a_clinic_and_its_admin(session, run_id):
