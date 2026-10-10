@@ -5,7 +5,7 @@ from sqlmodel import Session, col, select
 
 from app.core.db import engine
 from app.modules.identity.models import Staff
-from app.modules.tenancy.models import Tenant
+from app.modules.tenancy.models import Branch, Tenant
 
 
 @pytest.fixture
@@ -25,7 +25,14 @@ def session(run_id):
         for staff in session.exec(staff_query).all():
             session.delete(staff)
         session.commit()
+
         tenant_query = select(Tenant).where(col(Tenant.name).contains(run_id))
-        for tenant in session.exec(tenant_query).all():
+        tenants = session.exec(tenant_query).all()
+        for tenant in tenants:
+            branch_query = select(Branch).where(Branch.tenant_id == tenant.id)
+            for branch in session.exec(branch_query).all():
+                session.delete(branch)
+        session.commit()
+        for tenant in tenants:
             session.delete(tenant)
         session.commit()
