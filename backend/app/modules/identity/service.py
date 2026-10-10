@@ -1,7 +1,8 @@
 import uuid
 
-from sqlmodel import Session, select
+from sqlmodel import Session, col, select
 
+from app.core.tenant_scope import get_in_tenant, tenant_select
 from app.modules.identity.models import Role, Staff
 from app.modules.identity.passwords import check_password_rules, hash_password, verify_password
 from app.modules.identity.tokens import create_access_token
@@ -15,9 +16,27 @@ class InvalidRoleError(ValueError):
     """Raised when the role is not one of the allowed job titles."""
 
 
+class InvalidCredentialsError(Exception):
+    """Wrong email or password, or the account is switched off."""
+
+
+class StaffNotFoundError(Exception):
+    """No staff member with this ID in this clinic."""
+
+
+class LastAdminError(Exception):
+    """Switching this person off would leave the clinic with no active admin."""
+
+
 def normalise_email(email: str) -> str:
     """Remove stray spaces and capital letters so 'Ada@X.com' equals 'ada@x.com'."""
     return email.strip().lower()
+
+
+def email_is_taken(session: Session, email: str) -> bool:
+    """Say whether a staff member already uses this email."""
+    clean_email = normalise_email(email)
+    return session.exec(select(Staff).where(Staff.email == clean_email)).first() is not None
 
 
 def create_staff(
@@ -53,16 +72,59 @@ def create_staff(
     session.refresh(staff)
     return staff
 
-def email_is_taken(session: Session, email: str) -> bool:
-    """Say whether a staff member already uses this email."""
-    clean_email = normalise_email(email)
-    return session.exec(select(Staff).where(Staff.email == clean_email)).first() is not None
 
-class InvalidCredentialsError(Exception):
-    """Wrong email or password, or the account is switched off."""
+def list_staff(session: Session, *, tenant_id: uuid.UUID) -> list[Staff]:
+    """Every staff member of this clinic, and no other clinic's."""
+    statement = tenant_select(Staff, tenant_id).order_by(col(Staff.full_name))
+    return list(session.exec(statement).all())
 
 
-# A smoothie of a throwaway password, used to keep timing the same (explained below).
+def get_staff_in_tenant(
+    session: Session,
+    *,
+    tenant_id: uuid.UUID,
+    staff_id: uuid.UUID,
+) -> Staff | None:
+    """One staff member, but only if they belong to this clinic."""
+    row = get_in_tenant(session, Staff, tenant_id=tenant_id, row_id=staff_id)
+    return row if isinstance(row, Staff) else None
+
+
+def _active_admin_count(session: Session, tenant_id: uuid.UUID) -> int:
+    statement = (
+        tenant_select(Staff, tenant_id)
+        .where(col(Staff.role) == Role.ADMIN.value)
+        .where(col(Staff.is_active).is_(True))
+    )
+    return len(session.exec(statement).all())
+
+
+def set_staff_active(
+    session: Session,
+    *,
+    tenant_id: uuid.UUID,
+    staff_id: uuid.UUID,
+    active: bool,
+) -> Staff:
+    """Switch a staff member on or off. We switch people off; we never delete them."""
+    staff = get_staff_in_tenant(session, tenant_id=tenant_id, staff_id=staff_id)
+    if staff is None:
+        raise StaffNotFoundError("Staff member not found.")
+
+    switching_off_an_active_admin = (
+        not active and staff.is_active and staff.role == Role.ADMIN.value
+    )
+    if switching_off_an_active_admin and _active_admin_count(session, tenant_id) <= 1:
+        raise LastAdminError("A clinic must keep at least one active admin.")
+
+    staff.is_active = active
+    session.add(staff)
+    session.commit()
+    session.refresh(staff)
+    return staff
+
+
+# A smoothie of a throwaway password, used to keep timing the same.
 _DUMMY_HASH = hash_password("a-password-nobody-uses")
 
 
