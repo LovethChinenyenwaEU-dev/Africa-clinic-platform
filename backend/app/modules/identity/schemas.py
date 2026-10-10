@@ -27,3 +27,22 @@ class MeResponse(BaseModel):
     email: str
     full_name: str
     role: str
+class StaffCreate(BaseModel):
+    """The form an admin fills in to add a staff member. No clinic box: it comes from the guard."""
+
+    email: str = Field(min_length=3, max_length=254)
+    full_name: str = Field(min_length=1, max_length=120)
+    role: str = Field(min_length=1, max_length=30)
+    password: str = Field(min_length=1, max_length=128)
+
+
+class StaffResponse(BaseModel):
+    """What we say about a staff member. No password_hash, ever."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    id: uuid.UUID
+    email: str
+    full_name: str
+    role: str
+    is_active: bool
