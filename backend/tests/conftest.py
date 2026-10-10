@@ -5,6 +5,7 @@ from sqlmodel import Session, col, select
 
 from app.core.db import engine
 from app.modules.identity.models import Staff
+from app.modules.patients.models import Patient
 from app.modules.tenancy.models import Branch, Tenant
 
 
@@ -21,13 +22,20 @@ def session(run_id):
         yield session
 
         session.rollback()
+        tenants = session.exec(select(Tenant).where(col(Tenant.name).contains(run_id))).all()
+        tenant_ids = [tenant.id for tenant in tenants]
+
+        if tenant_ids:
+            patient_query = select(Patient).where(col(Patient.tenant_id).in_(tenant_ids))
+            for patient in session.exec(patient_query).all():
+                session.delete(patient)
+            session.commit()
+
         staff_query = select(Staff).where(col(Staff.email).endswith(f"@{run_id}.example.com"))
         for staff in session.exec(staff_query).all():
             session.delete(staff)
         session.commit()
 
-        tenant_query = select(Tenant).where(col(Tenant.name).contains(run_id))
-        tenants = session.exec(tenant_query).all()
         for tenant in tenants:
             branch_query = select(Branch).where(Branch.tenant_id == tenant.id)
             for branch in session.exec(branch_query).all():
