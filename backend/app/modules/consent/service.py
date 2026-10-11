@@ -1,9 +1,10 @@
 import uuid
+from dataclasses import dataclass
 from datetime import UTC, datetime
 
 from sqlmodel import Session, col
 
-from app.core.tenant_scope import tenant_select
+from app.core.tenant_scope import get_in_tenant, tenant_select
 from app.modules.audit.service import AuditAction, add_audit_event
 from app.modules.consent.models import Consent, ConsentPurpose, ConsentText, GrantedBy
 from app.modules.patients.service import PatientNotFoundError, patient_exists
@@ -178,3 +179,64 @@ def revoke_consent(
     session.commit()
     session.refresh(consent)
     return consent
+
+@dataclass(frozen=True)
+class ConsentSummary:
+    """A consent in the shape a screen needs, including which wording version was agreed to."""
+
+    id: uuid.UUID
+    patient_id: uuid.UUID
+    purpose: str
+    wording_version: int
+    granted_by: str
+    granted_at: datetime
+    revoked_at: datetime | None
+
+
+def summarise_consent(
+    session: Session, *, tenant_id: uuid.UUID, consent: Consent
+) -> ConsentSummary:
+    """Look up the exact wording this consent points at, and report its version number."""
+    text = get_in_tenant(session, ConsentText, tenant_id=tenant_id, row_id=consent.consent_text_id)
+    if not isinstance(text, ConsentText):
+        raise LookupError("The wording this consent points at is missing.")
+    return ConsentSummary(
+        id=consent.id,
+        patient_id=consent.patient_id,
+        purpose=consent.purpose,
+        wording_version=text.version,
+        granted_by=consent.granted_by,
+        granted_at=consent.granted_at,
+        revoked_at=consent.revoked_at,
+    )
+
+
+def list_patient_consents(
+    session: Session,
+    *,
+    tenant_id: uuid.UUID,
+    actor_id: uuid.UUID,
+    patient_id: uuid.UUID,
+) -> list[ConsentSummary]:
+    """A patient's whole consent history, newest first. Viewing it is noted in the diary."""
+    if not patient_exists(session, tenant_id=tenant_id, patient_id=patient_id):
+        raise PatientNotFoundError("Patient not found.")
+
+    add_audit_event(
+        session,
+        tenant_id=tenant_id,
+        actor_id=actor_id,
+        action=AuditAction.CONSENT_VIEW,
+        patient_id=patient_id,
+    )
+    session.commit()
+
+    statement = (
+        tenant_select(Consent, tenant_id)
+        .where(col(Consent.patient_id) == patient_id)
+        .order_by(col(Consent.granted_at).desc())
+    )
+    return [
+        summarise_consent(session, tenant_id=tenant_id, consent=consent)
+        for consent in session.exec(statement).all()
+    ]
