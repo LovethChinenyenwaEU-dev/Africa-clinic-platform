@@ -15,6 +15,7 @@ class AuditAction(StrEnum):
     PATIENT_SEARCH = "patient.search"
     CONSENT_GRANT = "consent.grant"
     CONSENT_REVOKE = "consent.revoke"
+    CONSENT_VIEW = "consent.view"
 
 def add_audit_event(
     session: Session,
