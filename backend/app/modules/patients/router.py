@@ -58,7 +58,7 @@ def register_patient(
         ) from None
     except (InvalidPatientError, InvalidPhoneError) as error:
         raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status_code=422,
             detail=str(error),
         ) from None
 
@@ -83,7 +83,7 @@ def search_my_patients(
         )
     except InvalidPatientError as error:
         raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status_code=422,
             detail=str(error),
         ) from None
 

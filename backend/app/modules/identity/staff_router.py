@@ -57,7 +57,7 @@ def add_staff(
         )
     except (WeakPasswordError, InvalidRoleError) as error:
         raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status_code=422,
             detail=str(error),
         ) from None
     except EmailAlreadyUsedError:
