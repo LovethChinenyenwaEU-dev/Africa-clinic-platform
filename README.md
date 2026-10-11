@@ -112,7 +112,7 @@ docker compose up --build
 
 - [x] W1 Foundation: repo, Docker Compose, CI
 - [x] W2 Tenants, branches, staff, roles, auth- [ ] W3 Patients: registration, duplicate warning, consent
-- [ ] W4 Appointments and queue
+- [x] W3 Patients: registration, duplicate warning, consent
 - [ ] W5 Reminders via job queue and one SMS/WhatsApp adapter
 - [ ] W6 Encounters, records, audit log
 - [ ] W7 Staff web app screens

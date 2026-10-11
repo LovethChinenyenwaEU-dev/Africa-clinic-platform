@@ -34,10 +34,11 @@ Routers, repositories and models are internal to their module.
 
 ## Known limits (to fix later)
 
-- No limit on login attempts yet (Redis is the planned tool).
-- Two admins switching each other off at the same instant could slip past the last-admin check; needs a database lock.
-- The clinic and its first admin are created in two saves; one transaction would be safer.
-- New staff get a password chosen by the admin; add "change on first login".
+ - New staff get a password chosen by the admin; add "change on first login".
 - Emails are unique across all clinics and are not yet checked for shape.
 - Tenant isolation is one lock (our query helpers). A second lock inside the database (row-level security) is planned.
 - HTTPS and secret management are deployment tasks, not done yet.
+- Consent is recorded but no feature refuses to work without it yet (reminders and teleconsults must check `has_active_consent`).
+- Patients cannot be edited yet; edits will write `patient.update` diary lines.
+- Failed lookups of another clinic's IDs are not logged as security events.
+- The app has not yet been run end to end in a browser.
