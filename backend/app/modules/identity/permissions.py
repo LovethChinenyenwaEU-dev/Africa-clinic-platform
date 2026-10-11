@@ -12,21 +12,33 @@ class Capability(StrEnum):
     STAFF_MANAGE = "staff:manage"
     PATIENT_READ = "patient:read"
     PATIENT_WRITE = "patient:write"
+    CONSENT_TEXT_READ = "consent_text:read"
+    CONSENT_TEXT_WRITE = "consent_text:write"
+    CONSENT_READ = "consent:read"
+    CONSENT_WRITE = "consent:write"
 
 
 _EVERYONE = frozenset({Capability.BRANCH_READ})
 _ADMIN_ONLY = frozenset(
-    {Capability.BRANCH_WRITE, Capability.STAFF_READ, Capability.STAFF_MANAGE}
+    {
+        Capability.BRANCH_WRITE,
+        Capability.STAFF_READ,
+        Capability.STAFF_MANAGE,
+        Capability.CONSENT_TEXT_WRITE,
+    }
 )
+_WORDING_READERS = frozenset({Capability.CONSENT_TEXT_READ})
 _PATIENT_READERS = frozenset({Capability.PATIENT_READ})
 _PATIENT_REGISTRARS = _PATIENT_READERS | {Capability.PATIENT_WRITE}
+_CONSENT_RECORDERS = frozenset({Capability.CONSENT_READ, Capability.CONSENT_WRITE})
+_FRONT_LINE = _EVERYONE | _PATIENT_REGISTRARS | _CONSENT_RECORDERS | _WORDING_READERS
 
 # The one table that says who may do what. Change a rule here, nowhere else.
 ROLE_CAPABILITIES: dict[Role, frozenset[Capability]] = {
-    Role.ADMIN: _EVERYONE | _ADMIN_ONLY,
-    Role.FRONT_DESK: _EVERYONE | _PATIENT_REGISTRARS,
-    Role.NURSE: _EVERYONE | _PATIENT_REGISTRARS,
-    Role.DOCTOR: _EVERYONE | _PATIENT_REGISTRARS,
+    Role.ADMIN: _EVERYONE | _ADMIN_ONLY | _WORDING_READERS,
+    Role.FRONT_DESK: _FRONT_LINE,
+    Role.NURSE: _FRONT_LINE,
+    Role.DOCTOR: _FRONT_LINE,
     Role.BILLING: _EVERYONE | _PATIENT_READERS,
 }
 
