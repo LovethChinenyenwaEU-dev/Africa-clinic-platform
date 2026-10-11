@@ -10,20 +10,24 @@ class Capability(StrEnum):
     BRANCH_WRITE = "branch:write"
     STAFF_READ = "staff:read"
     STAFF_MANAGE = "staff:manage"
+    PATIENT_READ = "patient:read"
+    PATIENT_WRITE = "patient:write"
 
 
 _EVERYONE = frozenset({Capability.BRANCH_READ})
 _ADMIN_ONLY = frozenset(
     {Capability.BRANCH_WRITE, Capability.STAFF_READ, Capability.STAFF_MANAGE}
 )
+_PATIENT_READERS = frozenset({Capability.PATIENT_READ})
+_PATIENT_REGISTRARS = _PATIENT_READERS | {Capability.PATIENT_WRITE}
 
 # The one table that says who may do what. Change a rule here, nowhere else.
 ROLE_CAPABILITIES: dict[Role, frozenset[Capability]] = {
     Role.ADMIN: _EVERYONE | _ADMIN_ONLY,
-    Role.FRONT_DESK: _EVERYONE,
-    Role.NURSE: _EVERYONE,
-    Role.DOCTOR: _EVERYONE,
-    Role.BILLING: _EVERYONE,
+    Role.FRONT_DESK: _EVERYONE | _PATIENT_REGISTRARS,
+    Role.NURSE: _EVERYONE | _PATIENT_REGISTRARS,
+    Role.DOCTOR: _EVERYONE | _PATIENT_REGISTRARS,
+    Role.BILLING: _EVERYONE | _PATIENT_READERS,
 }
 
 
