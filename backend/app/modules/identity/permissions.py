@@ -16,6 +16,7 @@ class Capability(StrEnum):
     CONSENT_TEXT_WRITE = "consent_text:write"
     CONSENT_READ = "consent:read"
     CONSENT_WRITE = "consent:write"
+    AUDIT_READ = "audit:read"
 
 
 _EVERYONE = frozenset({Capability.BRANCH_READ})
@@ -25,6 +26,7 @@ _ADMIN_ONLY = frozenset(
         Capability.STAFF_READ,
         Capability.STAFF_MANAGE,
         Capability.CONSENT_TEXT_WRITE,
+        Capability.AUDIT_READ,
     }
 )
 _WORDING_READERS = frozenset({Capability.CONSENT_TEXT_READ})
