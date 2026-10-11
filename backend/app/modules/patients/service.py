@@ -17,6 +17,8 @@ EARLIEST_BIRTH_DATE = date(1900, 1, 1)
 
 class InvalidPatientError(ValueError):
     """The patient details are not acceptable."""
+class PatientNotFoundError(Exception):
+    """No patient with this ID in this clinic."""
 
 
 @dataclass(frozen=True)
@@ -173,3 +175,6 @@ def search_patients(
         statement = statement.where(col(Patient.full_name).icontains(text, autoescape=True))
     statement = statement.order_by(col(Patient.full_name)).limit(MAX_SEARCH_RESULTS)
     return list(session.exec(statement).all())
+def patient_exists(session: Session, *, tenant_id: uuid.UUID, patient_id: uuid.UUID) -> bool:
+    """Yes or no. No personal information leaves, so no diary line is needed."""
+    return get_in_tenant(session, Patient, tenant_id=tenant_id, row_id=patient_id) is not None
