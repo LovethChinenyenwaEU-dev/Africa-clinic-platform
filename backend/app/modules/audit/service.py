@@ -16,6 +16,7 @@ class AuditAction(StrEnum):
     CONSENT_GRANT = "consent.grant"
     CONSENT_REVOKE = "consent.revoke"
     CONSENT_VIEW = "consent.view"
+    AUDIT_VIEW = "audit.view"
 
 def add_audit_event(
     session: Session,
@@ -55,3 +56,30 @@ def list_audit_events(
         statement = statement.where(col(AuditEvent.patient_id) == patient_id)
     statement = statement.order_by(col(AuditEvent.occurred_at).desc()).limit(limit)
     return list(session.exec(statement).all())
+
+MAX_AUDIT_PAGE = 200
+
+
+def view_audit_log(
+    session: Session,
+    *,
+    tenant_id: uuid.UUID,
+    actor_id: uuid.UUID,
+    patient_id: uuid.UUID | None = None,
+    limit: int = 50,
+) -> list[AuditEvent]:
+    """Read the diary. Reading the diary is itself written in the diary."""
+    add_audit_event(
+        session,
+        tenant_id=tenant_id,
+        actor_id=actor_id,
+        action=AuditAction.AUDIT_VIEW,
+        patient_id=patient_id,
+    )
+    session.commit()
+    return list_audit_events(
+        session,
+        tenant_id=tenant_id,
+        patient_id=patient_id,
+        limit=min(limit, MAX_AUDIT_PAGE),
+    )
