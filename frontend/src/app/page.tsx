@@ -1,22 +1,22 @@
-export const dynamic = "force-dynamic";
+import { redirect } from "next/navigation";
 
-async function getApiStatus(): Promise<string> {
-  try {
-    const res = await fetch(`${process.env.API_INTERNAL_URL}/health/ready`, {
-      cache: "no-store",
-    });
-    return res.ok ? "connected" : "unavailable";
-  } catch {
-    return "unavailable";
-  }
-}
+import { ROLE_LABELS } from "@/features/identity/roles";
+import { SignOutButton } from "@/features/identity/SignOutButton";
+import { getCurrentUser } from "@/lib/server/current-user";
 
 export default async function Home() {
-  const status = await getApiStatus();
+  const user = await getCurrentUser();
+  if (!user) {
+    redirect("/login");
+  }
+
   return (
-    <main style={{ padding: 32, fontFamily: "system-ui, sans-serif" }}>
+    <main className="page">
       <h1>Clinic Platform</h1>
-      <p>API status: {status}</p>
+      <p>
+        Signed in as {user.full_name} ({ROLE_LABELS[user.role]})
+      </p>
+      <SignOutButton />
     </main>
   );
 }
