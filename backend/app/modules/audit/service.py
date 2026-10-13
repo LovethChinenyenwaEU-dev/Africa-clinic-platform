@@ -18,6 +18,12 @@ class AuditAction(StrEnum):
     CONSENT_VIEW = "consent.view"
     AUDIT_VIEW = "audit.view"
     APPOINTMENT_CREATE = "appointment.create"
+    APPOINTMENT_CHECK_IN = "appointment.check_in"
+    APPOINTMENT_START = "appointment.start"
+    APPOINTMENT_COMPLETE = "appointment.complete"
+    APPOINTMENT_CANCEL = "appointment.cancel"
+    APPOINTMENT_NO_SHOW = "appointment.no_show"
+    APPOINTMENT_RESCHEDULE = "appointment.reschedule"
 
 def add_audit_event(
     session: Session,
