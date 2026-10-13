@@ -1,6 +1,7 @@
 import uuid
 
 import pytest
+from sqlalchemy import delete
 from sqlmodel import Session, col, select
 
 from app.core.db import engine
@@ -8,7 +9,7 @@ from app.modules.consent.models import Consent, ConsentText
 from app.modules.identity.models import Staff
 from app.modules.notifications.models import Reminder
 from app.modules.patients.models import Patient
-from app.modules.records.models import Encounter
+from app.modules.records.models import Encounter, VitalSigns
 from app.modules.scheduling.models import Appointment
 from app.modules.tenancy.models import Branch, Tenant
 
@@ -31,10 +32,18 @@ def session(run_id):
 
         if tenant_ids:
             # Order matters: each table points at the next, so we clear them one at a time.
-            for model in (Reminder, Encounter, Appointment, Consent, ConsentText, Patient):
-                rows = session.exec(select(model).where(col(model.tenant_id).in_(tenant_ids)))
-                for row in rows.all():
-                    session.delete(row)
+            # One DELETE per table, so rows that point at each other (a vitals correction
+            # and the set it replaces) go together.
+            for model in (
+                Reminder,
+                VitalSigns,
+                Encounter,
+                Appointment,
+                Consent,
+                ConsentText,
+                Patient,
+            ):
+                session.execute(delete(model).where(col(model.tenant_id).in_(tenant_ids)))
                 session.commit()
 
         staff_query = select(Staff).where(col(Staff.email).endswith(f"@{run_id}.example.com"))
