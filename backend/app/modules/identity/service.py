@@ -89,6 +89,18 @@ def get_staff_in_tenant(
     row = get_in_tenant(session, Staff, tenant_id=tenant_id, row_id=staff_id)
     return row if isinstance(row, Staff) else None
 
+CLINICIAN_ROLES = frozenset({Role.DOCTOR.value, Role.NURSE.value})
+
+
+def is_active_clinician(
+    session: Session,
+    *,
+    tenant_id: uuid.UUID,
+    staff_id: uuid.UUID,
+) -> bool:
+    """Yes or no: an active doctor or nurse of this clinic. No personal details leave."""
+    staff = get_staff_in_tenant(session, tenant_id=tenant_id, staff_id=staff_id)
+    return staff is not None and staff.is_active and staff.role in CLINICIAN_ROLES
 
 def _active_admin_count(session: Session, tenant_id: uuid.UUID) -> int:
     statement = (
