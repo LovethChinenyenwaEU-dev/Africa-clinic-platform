@@ -17,6 +17,8 @@ class Capability(StrEnum):
     CONSENT_READ = "consent:read"
     CONSENT_WRITE = "consent:write"
     AUDIT_READ = "audit:read"
+    APPOINTMENT_READ = "appointment:read"
+    APPOINTMENT_WRITE = "appointment:write"
 
 
 _EVERYONE = frozenset({Capability.BRANCH_READ})
@@ -33,7 +35,10 @@ _WORDING_READERS = frozenset({Capability.CONSENT_TEXT_READ})
 _PATIENT_READERS = frozenset({Capability.PATIENT_READ})
 _PATIENT_REGISTRARS = _PATIENT_READERS | {Capability.PATIENT_WRITE}
 _CONSENT_RECORDERS = frozenset({Capability.CONSENT_READ, Capability.CONSENT_WRITE})
-_FRONT_LINE = _EVERYONE | _PATIENT_REGISTRARS | _CONSENT_RECORDERS | _WORDING_READERS
+_SCHEDULERS = frozenset({Capability.APPOINTMENT_READ, Capability.APPOINTMENT_WRITE})
+_FRONT_LINE = (
+    _EVERYONE | _PATIENT_REGISTRARS | _CONSENT_RECORDERS | _WORDING_READERS | _SCHEDULERS
+)
 
 # The one table that says who may do what. Change a rule here, nowhere else.
 ROLE_CAPABILITIES: dict[Role, frozenset[Capability]] = {
