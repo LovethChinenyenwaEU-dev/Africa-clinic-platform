@@ -30,6 +30,11 @@ class AuditAction(StrEnum):
     APPOINTMENT_RESCHEDULE = "appointment.reschedule"
     QUEUE_VIEW = "queue.view"
     REMINDER_SEND = "reminder.send"
+    ENCOUNTER_CREATE = "encounter.create"
+    ENCOUNTER_CLOSE = "encounter.close"
+    ENCOUNTER_ENTERED_IN_ERROR = "encounter.entered_in_error"
+    ENCOUNTER_VIEW = "encounter.view"
+    ENCOUNTER_LIST = "encounter.list"
 
 def add_audit_event(
     session: Session,
