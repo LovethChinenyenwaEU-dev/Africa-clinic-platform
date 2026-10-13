@@ -24,6 +24,7 @@ class AuditAction(StrEnum):
     APPOINTMENT_CANCEL = "appointment.cancel"
     APPOINTMENT_NO_SHOW = "appointment.no_show"
     APPOINTMENT_RESCHEDULE = "appointment.reschedule"
+    QUEUE_VIEW = "queue.view"
 
 def add_audit_event(
     session: Session,
