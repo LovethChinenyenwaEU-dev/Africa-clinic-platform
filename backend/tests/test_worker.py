@@ -1,4 +1,4 @@
-from datetime import date, timedelta
+from datetime import timedelta
 
 import pytest
 import redis
@@ -13,8 +13,8 @@ from app.modules.notifications.adapters import (
     make_adapter,
 )
 from app.modules.notifications.models import Reminder
-from app.modules.patients.service import create_patient
 from app.worker import HEARTBEAT_KEY, run_once
+from tests.notification_helpers import patient_who_agreed_to_reminders
 from tests.scheduling_helpers import NOW, book, build_clinic
 
 VISIT = NOW + timedelta(days=3)
@@ -46,14 +46,8 @@ def test_the_null_adapter_accepts_messages_without_keeping_them():
 
 def test_one_tick_sends_due_reminders_and_records_a_heartbeat(session, run_id, redis_client):
     clinic = build_clinic(session, run_id, "w")
-    patient = create_patient(
-        session,
-        tenant_id=clinic["tenant"].id,
-        actor_id=clinic["desk"].id,
-        full_name="Test Patient Worker",
-        date_of_birth=date(1985, 1, 1),
-        sex="male",
-        phone="0803 000 0002",
+    patient = patient_who_agreed_to_reminders(
+        session, clinic, name="Test Patient Worker", phone="0803 000 0002"
     )
     book(session, clinic, patient_id=patient.id, starts_at=VISIT)
     adapter = FakeAdapter()
