@@ -111,8 +111,9 @@ docker compose up --build
 ## Roadmap (12-week MVP)
 
 - [x] W1 Foundation: repo, Docker Compose, CI
-- [x] W2 Tenants, branches, staff, roles, auth- [ ] W3 Patients: registration, duplicate warning, consent
+- [x] W2 Tenants, branches, staff, roles, auth
 - [x] W3 Patients: registration, duplicate warning, consent
+- [x] W4 Scheduling: appointments, walk-in queue, check-in, no-show
 - [ ] W5 Reminders via job queue and one SMS/WhatsApp adapter
 - [ ] W6 Encounters, records, audit log
 - [ ] W7 Staff web app screens
