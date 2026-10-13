@@ -46,6 +46,14 @@ class NotEncounterOwnerError(Exception):
     """Only the clinician who opened the encounter may sign it off."""
 
 
+class EncounterNotOpenError(Exception):
+    """New clinical entries can only go into an open encounter."""
+
+
+class NotCurrentVersionError(Exception):
+    """Only the newest version can be changed; this one was already replaced."""
+
+
 def _require_clinician(session: Session, *, tenant_id: uuid.UUID, actor_id: uuid.UUID) -> None:
     if not is_active_clinician(session, tenant_id=tenant_id, staff_id=actor_id):
         raise NotAClinicianError("Only an active doctor or nurse can do this.")

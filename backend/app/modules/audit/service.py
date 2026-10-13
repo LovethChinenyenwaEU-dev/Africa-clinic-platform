@@ -38,6 +38,15 @@ class AuditAction(StrEnum):
     VITALS_RECORD = "vitals.record"
     VITALS_CORRECT = "vitals.correct"
     VITALS_VIEW = "vitals.view"
+    ALLERGY_RECORD = "allergy.record"
+    ALLERGY_REVISE = "allergy.revise"
+    ALLERGY_VIEW = "allergy.view"
+    PROBLEM_RECORD = "problem.record"
+    PROBLEM_REVISE = "problem.revise"
+    PROBLEM_VIEW = "problem.view"
+    NOTE_WRITE = "note.write"
+    NOTE_AMEND = "note.amend"
+    NOTE_VIEW = "note.view"
 
 def add_audit_event(
     session: Session,

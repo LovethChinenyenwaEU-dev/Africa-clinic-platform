@@ -14,24 +14,21 @@ from sqlmodel import Session, col
 from app.core.tenant_scope import get_in_tenant, tenant_select
 from app.modules.audit.service import AuditAction, add_audit_event
 from app.modules.records.models import Encounter, VitalSigns
-from app.modules.records.service import EncounterNotFoundError, _require_clinician
-from app.modules.records.statuses import EncounterStatus, VitalsStatus
+from app.modules.records.service import (
+    EncounterNotFoundError,
+    EncounterNotOpenError,
+    NotCurrentVersionError,
+    _require_clinician,
+)
+from app.modules.records.statuses import EncounterStatus, VersionStatus
 
 
 class InvalidVitalsError(ValueError):
     """The readings are missing, impossible, or too precise."""
 
 
-class EncounterNotOpenError(Exception):
-    """New vitals can only go into an open encounter."""
-
-
 class VitalsNotFoundError(Exception):
     """No vitals with this ID in this clinic."""
-
-
-class NotCurrentVersionError(Exception):
-    """Only the current version can be corrected; this one was already replaced."""
 
 
 class NotVitalsAuthorError(Exception):
@@ -145,7 +142,7 @@ def record_vitals(
         tenant_id=tenant_id,
         encounter_id=encounter.id,
         patient_id=encounter.patient_id,
-        status=VitalsStatus.CURRENT.value,
+        status=VersionStatus.CURRENT.value,
         measured_at=taken,
         recorded_by_id=actor_id,
         recorded_at=current,
@@ -193,7 +190,7 @@ def correct_vitals(
     old = session.exec(statement).first()
     if old is None:
         raise VitalsNotFoundError("Vitals not found.")
-    if old.status != VitalsStatus.CURRENT.value:
+    if old.status != VersionStatus.CURRENT.value:
         raise NotCurrentVersionError("These vitals were already corrected; correct the newest.")
 
     encounter = _encounter(session, tenant_id=tenant_id, encounter_id=old.encounter_id)
@@ -204,13 +201,13 @@ def correct_vitals(
             "Only whoever recorded these vitals, or the encounter's owner, can correct them."
         )
 
-    old.status = VitalsStatus.SUPERSEDED.value
+    old.status = VersionStatus.SUPERSEDED.value
     corrected = VitalSigns(
         id=correction_id or uuid.uuid4(),
         tenant_id=tenant_id,
         encounter_id=old.encounter_id,
         patient_id=old.patient_id,
-        status=VitalsStatus.CURRENT.value,
+        status=VersionStatus.CURRENT.value,
         replaces_id=old.id,
         measured_at=old.measured_at,  # the same measurement, recorded correctly
         recorded_by_id=actor_id,
@@ -253,6 +250,6 @@ def list_encounter_vitals(
         col(VitalSigns.encounter_id) == encounter_id
     )
     if not include_history:
-        statement = statement.where(col(VitalSigns.status) == VitalsStatus.CURRENT.value)
+        statement = statement.where(col(VitalSigns.status) == VersionStatus.CURRENT.value)
     statement = statement.order_by(col(VitalSigns.measured_at), col(VitalSigns.recorded_at))
     return list(session.exec(statement).all())
