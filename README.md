@@ -107,6 +107,7 @@ docker compose up --build
 - App: http://localhost:3000
 - API docs: http://localhost:8000/docs
 - Run tests: `docker compose exec api pytest`
+- Reminder worker: starts with the stack as the `worker` service. Watch it with `docker compose logs -f worker`. `SMS_PROVIDER=none` in `.env` means nothing is really sent.
 
 ## Roadmap (12-week MVP)
 
@@ -114,7 +115,7 @@ docker compose up --build
 - [x] W2 Tenants, branches, staff, roles, auth
 - [x] W3 Patients: registration, duplicate warning, consent
 - [x] W4 Scheduling: appointments, walk-in queue, check-in, no-show
-- [ ] W5 Reminders via job queue and one SMS/WhatsApp adapter
+- [x] W5 Reminders via job queue and one SMS/WhatsApp adapter (adapter interface done; real provider still to plug in)
 - [ ] W6 Encounters, records, audit log
 - [ ] W7 Staff web app screens
 - [ ] W8 Offline sync and conflict handling
