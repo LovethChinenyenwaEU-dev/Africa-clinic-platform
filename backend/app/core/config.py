@@ -11,6 +11,8 @@ class Settings(BaseSettings):
     environment: str = "development"
     secret_key: str = DEFAULT_SECRET_KEY
     cors_origins: str = "http://localhost:3000"
+    sms_provider: str = "none"  # "none" sends nothing; a real provider name comes later
+    reminder_interval_seconds: int = 30
 
     @property
     def cors_origin_list(self) -> list[str]:
