@@ -54,3 +54,22 @@ class FakeAdapter:
             raise ProviderError("fake provider failure", retryable=self.retryable)
         self.sent.append(message)
         return SendReceipt(provider_message_id=f"fake-{uuid.uuid4()}")
+
+
+class NullAdapter:
+    """Pretends every send worked and keeps nothing. For running the worker before
+    a real provider is set up, so no patient is ever messaged by accident."""
+
+    def send(self, message: OutgoingMessage) -> SendReceipt:
+        return SendReceipt(provider_message_id=f"none-{uuid.uuid4()}")
+
+
+class UnknownProviderError(ValueError):
+    """The configured SMS provider name is not one we have an adapter for."""
+
+
+def make_adapter(provider: str) -> MessageAdapter:
+    """Pick the adapter named in settings. A new provider is one more line here."""
+    if provider == "none":
+        return NullAdapter()
+    raise UnknownProviderError(f"No SMS adapter called {provider!r}.")
