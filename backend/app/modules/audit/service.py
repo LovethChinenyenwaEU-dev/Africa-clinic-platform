@@ -6,7 +6,6 @@ from sqlmodel import Session, col
 from app.core.tenant_scope import tenant_select
 from app.modules.audit.models import AuditEvent
 
-
 # The actor for things the platform does by itself, like sending a reminder.
 # No staff row has this ID, so a diary reader can always tell it apart from a person.
 SYSTEM_ACTOR_ID = uuid.UUID(int=0)
