@@ -7,6 +7,11 @@ from app.core.tenant_scope import tenant_select
 from app.modules.audit.models import AuditEvent
 
 
+# The actor for things the platform does by itself, like sending a reminder.
+# No staff row has this ID, so a diary reader can always tell it apart from a person.
+SYSTEM_ACTOR_ID = uuid.UUID(int=0)
+
+
 class AuditAction(StrEnum):
     """Every kind of thing we write in the diary. Add a new one only when a feature needs it."""
 
@@ -25,6 +30,7 @@ class AuditAction(StrEnum):
     APPOINTMENT_NO_SHOW = "appointment.no_show"
     APPOINTMENT_RESCHEDULE = "appointment.reschedule"
     QUEUE_VIEW = "queue.view"
+    REMINDER_SEND = "reminder.send"
 
 def add_audit_event(
     session: Session,
