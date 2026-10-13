@@ -19,6 +19,7 @@ class Capability(StrEnum):
     AUDIT_READ = "audit:read"
     APPOINTMENT_READ = "appointment:read"
     APPOINTMENT_WRITE = "appointment:write"
+    APPOINTMENT_CONSULT = "appointment:consult"
 
 
 _EVERYONE = frozenset({Capability.BRANCH_READ})
@@ -36,6 +37,7 @@ _PATIENT_READERS = frozenset({Capability.PATIENT_READ})
 _PATIENT_REGISTRARS = _PATIENT_READERS | {Capability.PATIENT_WRITE}
 _CONSENT_RECORDERS = frozenset({Capability.CONSENT_READ, Capability.CONSENT_WRITE})
 _SCHEDULERS = frozenset({Capability.APPOINTMENT_READ, Capability.APPOINTMENT_WRITE})
+_CLINICIANS = frozenset({Capability.APPOINTMENT_CONSULT})
 _FRONT_LINE = (
     _EVERYONE | _PATIENT_REGISTRARS | _CONSENT_RECORDERS | _WORDING_READERS | _SCHEDULERS
 )
@@ -44,11 +46,10 @@ _FRONT_LINE = (
 ROLE_CAPABILITIES: dict[Role, frozenset[Capability]] = {
     Role.ADMIN: _EVERYONE | _ADMIN_ONLY | _WORDING_READERS,
     Role.FRONT_DESK: _FRONT_LINE,
-    Role.NURSE: _FRONT_LINE,
-    Role.DOCTOR: _FRONT_LINE,
+    Role.NURSE: _FRONT_LINE | _CLINICIANS,
+    Role.DOCTOR: _FRONT_LINE | _CLINICIANS,
     Role.BILLING: _EVERYONE | _PATIENT_READERS,
 }
-
 
 def capabilities_for(role: str) -> frozenset[Capability]:
     """Everything this role may do. Unknown or forgotten roles get nothing."""
