@@ -1,13 +1,14 @@
-from datetime import date, timedelta
+from datetime import timedelta
 
 import pytest
 
 from app.core.tenant_scope import tenant_select
 from app.modules.audit.service import SYSTEM_ACTOR_ID, list_audit_events
+from app.modules.consent.service import revoke_consent
 from app.modules.notifications.adapters import FakeAdapter
 from app.modules.notifications.models import Reminder
 from app.modules.notifications.sender import MAX_ATTEMPTS, send_due_reminders
-from app.modules.patients.service import create_patient
+from tests.notification_helpers import patient_who_agreed_to_reminders
 from tests.scheduling_helpers import NOW, book, build_clinic
 
 VISIT = NOW + timedelta(days=3)
@@ -18,14 +19,8 @@ PHONE = "+2348030000001"  # clearly fake
 @pytest.fixture
 def clinic(session, run_id):
     clinic = build_clinic(session, run_id, "s")
-    clinic["reachable"] = create_patient(
-        session,
-        tenant_id=clinic["tenant"].id,
-        actor_id=clinic["desk"].id,
-        full_name="Test Patient Reachable",
-        date_of_birth=date(1985, 1, 1),
-        sex="male",
-        phone="0803 000 0001",
+    clinic["reachable"] = patient_who_agreed_to_reminders(
+        session, clinic, name="Test Patient Reachable", phone="0803 000 0001"
     )
     return clinic
 
@@ -139,7 +134,10 @@ def test_a_rejected_message_is_not_retried(session, clinic):
 def test_a_patient_without_a_phone_is_marked_failed_without_calling_the_provider(
     session, clinic
 ):
-    book(session, clinic, starts_at=VISIT)  # the default patient has no phone
+    no_phone = patient_who_agreed_to_reminders(
+        session, clinic, name="Test Patient No Phone", phone=None
+    )
+    book(session, clinic, patient_id=no_phone.id, starts_at=VISIT)
     adapter = FakeAdapter()
 
     result = run(session, clinic, adapter)
@@ -147,6 +145,38 @@ def test_a_patient_without_a_phone_is_marked_failed_without_calling_the_provider
     assert result.failed == 1
     assert adapter.sent == []
     assert the_reminder(session, clinic).last_error == "no_phone"
+
+
+def test_a_patient_who_never_agreed_gets_no_reminder(session, clinic):
+    book(session, clinic, starts_at=VISIT)  # the default patient never agreed to reminders
+    adapter = FakeAdapter()
+
+    result = run(session, clinic, adapter)
+
+    assert result.cancelled == 1
+    assert adapter.sent == []
+    reminder = the_reminder(session, clinic)
+    assert reminder.status == "cancelled"
+    assert reminder.last_error == "no_consent"
+    assert reminder.attempts == 0
+
+
+def test_consent_taken_back_after_booking_is_respected(session, clinic):
+    book_reachable(session, clinic)
+    revoke_consent(
+        session,
+        tenant_id=clinic["tenant"].id,
+        actor_id=clinic["desk"].id,
+        patient_id=clinic["reachable"].id,
+        purpose="reminders",
+    )
+    adapter = FakeAdapter()
+
+    result = run(session, clinic, adapter)
+
+    assert result.cancelled == 1
+    assert adapter.sent == []
+    assert the_reminder(session, clinic).last_error == "no_consent"
 
 
 def test_a_visit_that_is_no_longer_booked_gets_no_reminder(session, clinic):

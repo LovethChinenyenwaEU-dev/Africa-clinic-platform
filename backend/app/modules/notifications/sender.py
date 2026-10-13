@@ -13,6 +13,7 @@ from datetime import UTC, datetime, timedelta
 from sqlmodel import Session, col, select
 
 from app.modules.audit.service import SYSTEM_ACTOR_ID, AuditAction, add_audit_event
+from app.modules.consent.service import has_active_consent
 from app.modules.notifications.adapters import MessageAdapter, OutgoingMessage, ProviderError
 from app.modules.notifications.messages import reminder_text
 from app.modules.notifications.models import Reminder
@@ -29,6 +30,7 @@ RETRY_DELAYS = (
     timedelta(minutes=60),
 )
 BATCH_SIZE = 50
+REMINDER_CONSENT_PURPOSE = "reminders"  # one of the consent module's purposes
 
 
 @dataclass
@@ -69,6 +71,18 @@ def _send_one(
     if appointment is None or appointment.status != "booked" or appointment.starts_at <= now:
         reminder.status = ReminderStatus.CANCELLED.value
         reminder.last_error = "visit_not_upcoming"
+        return "cancelled"
+
+    # Checked now, not at booking, so consent taken back after booking is respected.
+    # Without consent we do not even look up the phone number.
+    if not has_active_consent(
+        session,
+        tenant_id=reminder.tenant_id,
+        patient_id=appointment.patient_id,
+        purpose=REMINDER_CONSENT_PURPOSE,
+    ):
+        reminder.status = ReminderStatus.CANCELLED.value
+        reminder.last_error = "no_consent"
         return "cancelled"
 
     phone = get_reminder_phone(
