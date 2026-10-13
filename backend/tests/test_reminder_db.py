@@ -6,7 +6,7 @@ from sqlalchemy.exc import IntegrityError
 
 from app.core.tenant_scope import tenant_select
 from app.modules.notifications.models import Reminder
-from tests.scheduling_helpers import START, book, build_clinic
+from tests.scheduling_helpers import START, build_clinic, walk_in
 
 DUE = START - timedelta(hours=24)
 
@@ -17,6 +17,8 @@ def clinic(session, run_id):
 
 
 def make_reminder(clinic, appointment, **changes):
+    """Built by hand to test the table itself. Walk-ins are used because they get no
+    automatic reminder, so the only reminders present are the ones a test adds."""
     values = {
         "tenant_id": clinic["tenant"].id,
         "appointment_id": appointment.id,
@@ -32,7 +34,7 @@ def stored(session, clinic):
 
 
 def test_reminder_roundtrip_starts_pending_with_no_attempts(session, clinic):
-    appointment = book(session, clinic)
+    appointment = walk_in(session, clinic)
     session.add(make_reminder(clinic, appointment))
     session.commit()
 
@@ -47,7 +49,7 @@ def test_reminder_roundtrip_starts_pending_with_no_attempts(session, clinic):
 
 
 def test_one_visit_cannot_get_two_reminders_on_the_same_channel(session, clinic):
-    appointment = book(session, clinic)
+    appointment = walk_in(session, clinic)
     session.add(make_reminder(clinic, appointment))
     session.commit()
 
@@ -58,7 +60,7 @@ def test_one_visit_cannot_get_two_reminders_on_the_same_channel(session, clinic)
 
 
 def test_one_visit_can_have_one_reminder_per_channel(session, clinic):
-    appointment = book(session, clinic)
+    appointment = walk_in(session, clinic)
     session.add(make_reminder(clinic, appointment, channel="sms"))
     session.add(make_reminder(clinic, appointment, channel="whatsapp"))
     session.commit()
@@ -68,7 +70,7 @@ def test_one_visit_can_have_one_reminder_per_channel(session, clinic):
 
 @pytest.mark.parametrize("missing", ["tenant_id", "appointment_id"])
 def test_every_link_must_point_at_something_real(session, clinic, missing):
-    appointment = book(session, clinic)
+    appointment = walk_in(session, clinic)
     session.add(make_reminder(clinic, appointment, **{missing: uuid.uuid4()}))
 
     with pytest.raises(IntegrityError):
