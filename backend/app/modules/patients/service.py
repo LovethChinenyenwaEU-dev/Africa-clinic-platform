@@ -178,3 +178,18 @@ def search_patients(
 def patient_exists(session: Session, *, tenant_id: uuid.UUID, patient_id: uuid.UUID) -> bool:
     """Yes or no. No personal information leaves, so no diary line is needed."""
     return get_in_tenant(session, Patient, tenant_id=tenant_id, row_id=patient_id) is not None
+
+
+def get_reminder_phone(
+    session: Session, *, tenant_id: uuid.UUID, patient_id: uuid.UUID
+) -> str | None:
+    """The phone number to send a reminder to, or None if the patient has none.
+
+    Only the number leaves, nothing else about the patient. It does not write a
+    diary line itself: the caller records the send, because that is the moment
+    the number is handed to an outside provider.
+    """
+    row = get_in_tenant(session, Patient, tenant_id=tenant_id, row_id=patient_id)
+    if not isinstance(row, Patient):
+        return None
+    return row.phone

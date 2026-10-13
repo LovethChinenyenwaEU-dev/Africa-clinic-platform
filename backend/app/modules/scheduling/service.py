@@ -3,7 +3,7 @@ from datetime import UTC, datetime, timedelta
 
 from sqlmodel import Session, col
 
-from app.core.tenant_scope import tenant_select
+from app.core.tenant_scope import get_in_tenant, tenant_select
 from app.modules.audit.service import AuditAction, add_audit_event
 from app.modules.identity.service import is_active_clinician
 from app.modules.notifications.service import schedule_reminder
@@ -217,3 +217,11 @@ def register_walk_in(
     session.commit()
     session.refresh(appointment)
     return appointment
+
+
+def get_appointment(
+    session: Session, *, tenant_id: uuid.UUID, appointment_id: uuid.UUID
+) -> Appointment | None:
+    """One appointment of this clinic, or None. IDs, codes and times only, so no diary line."""
+    row = get_in_tenant(session, Appointment, tenant_id=tenant_id, row_id=appointment_id)
+    return row if isinstance(row, Appointment) else None
