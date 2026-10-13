@@ -6,6 +6,7 @@ from sqlmodel import Session, col
 from app.core.tenant_scope import tenant_select
 from app.modules.audit.service import AuditAction, add_audit_event
 from app.modules.identity.service import is_active_clinician
+from app.modules.notifications.service import cancel_reminders, reschedule_reminders
 from app.modules.scheduling.models import Appointment
 from app.modules.scheduling.service import (
     ClinicianNotFoundError,
@@ -141,6 +142,7 @@ def cancel_appointment(
     )
 
     appointment.status = new_status.value
+    cancel_reminders(session, tenant_id=tenant_id, appointment_id=appointment.id)
     return _save(session, appointment, actor_id=actor_id, action=AuditAction.APPOINTMENT_CANCEL)
 
 
@@ -197,6 +199,13 @@ def reschedule_appointment(
 
     appointment.starts_at = new_start
     appointment.ends_at = new_end
+    reschedule_reminders(
+        session,
+        tenant_id=tenant_id,
+        appointment_id=appointment.id,
+        starts_at=new_start,
+        now=current,
+    )
     return _save(
         session, appointment, actor_id=actor_id, action=AuditAction.APPOINTMENT_RESCHEDULE
     )

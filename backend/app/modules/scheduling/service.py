@@ -6,6 +6,7 @@ from sqlmodel import Session, col
 from app.core.tenant_scope import tenant_select
 from app.modules.audit.service import AuditAction, add_audit_event
 from app.modules.identity.service import is_active_clinician
+from app.modules.notifications.service import schedule_reminder
 from app.modules.patients.service import PatientNotFoundError, patient_exists
 from app.modules.scheduling.models import Appointment
 from app.modules.scheduling.statuses import (
@@ -150,6 +151,14 @@ def book_appointment(
         created_by_id=actor_id,
     )
     session.add(appointment)
+    session.flush()  # the reminder points at the appointment, so the appointment goes in first
+    schedule_reminder(
+        session,
+        tenant_id=tenant_id,
+        appointment_id=appointment.id,
+        starts_at=starts_at,
+        now=current,
+    )
     add_audit_event(
         session,
         tenant_id=tenant_id,
