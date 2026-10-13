@@ -13,3 +13,8 @@ ALLOWED_MOVES: dict[EncounterStatus, frozenset[EncounterStatus]] = {
     EncounterStatus.CLOSED: frozenset(),
     EncounterStatus.ENTERED_IN_ERROR: frozenset(),
 }
+
+
+class VitalsStatus(StrEnum):
+    CURRENT = "current"  # the version to use
+    SUPERSEDED = "superseded"  # replaced by a correction; kept forever, numbers never changed

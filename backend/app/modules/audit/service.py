@@ -35,6 +35,9 @@ class AuditAction(StrEnum):
     ENCOUNTER_ENTERED_IN_ERROR = "encounter.entered_in_error"
     ENCOUNTER_VIEW = "encounter.view"
     ENCOUNTER_LIST = "encounter.list"
+    VITALS_RECORD = "vitals.record"
+    VITALS_CORRECT = "vitals.correct"
+    VITALS_VIEW = "vitals.view"
 
 def add_audit_event(
     session: Session,
