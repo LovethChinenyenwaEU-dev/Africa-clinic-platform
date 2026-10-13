@@ -37,6 +37,16 @@ class ClinicianNotFoundError(Exception):
 class SlotTakenError(Exception):
     """The clinician already has an appointment that overlaps this time."""
 
+def clean_start_time(starts_at: datetime, now: datetime) -> datetime:
+    """Check a requested start time and return it in UTC."""
+    if starts_at.tzinfo is None or starts_at.utcoffset() is None:
+        raise InvalidAppointmentError("The start time must include a time zone.")
+    start_utc = starts_at.astimezone(UTC)
+    if start_utc < now:
+        raise InvalidAppointmentError("An appointment cannot be booked in the past.")
+    if start_utc > now + timedelta(days=MAX_DAYS_AHEAD):
+        raise InvalidAppointmentError("An appointment cannot be booked more than a year ahead.")
+    return start_utc
 
 def _check_duration(minutes: int) -> None:
     if not MIN_DURATION_MINUTES <= minutes <= MAX_DURATION_MINUTES:
@@ -71,6 +81,7 @@ def _slot_is_taken(
     clinician_id: uuid.UUID,
     starts_at: datetime,
     ends_at: datetime,
+    ignore_id: uuid.UUID | None = None,
 ) -> bool:
     """Does an unfinished appointment of this clinician overlap [starts_at, ends_at)?"""
     unfinished = [status.value for status in ACTIVE_STATUSES]
@@ -80,10 +91,10 @@ def _slot_is_taken(
         .where(col(Appointment.status).in_(unfinished))
         .where(col(Appointment.starts_at) < ends_at)
         .where(col(Appointment.ends_at) > starts_at)
-        .limit(1)
     )
-    return session.exec(statement).first() is not None
-
+    if ignore_id is not None:
+        statement = statement.where(col(Appointment.id) != ignore_id)
+    return session.exec(statement.limit(1)).first() is not None
 
 def book_appointment(
     session: Session,
@@ -101,13 +112,7 @@ def book_appointment(
     """Book a visit ahead of time. The appointment and its diary line are saved together."""
     current = now or datetime.now(UTC)
 
-    if starts_at.tzinfo is None or starts_at.utcoffset() is None:
-        raise InvalidAppointmentError("The start time must include a time zone.")
-    starts_at = starts_at.astimezone(UTC)
-    if starts_at < current:
-        raise InvalidAppointmentError("An appointment cannot be booked in the past.")
-    if starts_at > current + timedelta(days=MAX_DAYS_AHEAD):
-        raise InvalidAppointmentError("An appointment cannot be booked more than a year ahead.")
+    starts_at = clean_start_time(starts_at, current)
     _check_duration(duration_minutes)
     try:
         visit_value = VisitType(visit_type).value
