@@ -5,6 +5,7 @@ import sys
 from sqlmodel import Session
 
 from app.core.db import engine
+from app.demo_data import DemoNotAllowedError, seed_demo
 from app.modules.identity.service import EmailAlreadyUsedError
 from app.provisioning import provision_clinic
 
@@ -34,6 +35,27 @@ def _create_clinic(args: argparse.Namespace) -> int:
     return 0
 
 
+def _seed_demo(args: argparse.Namespace) -> int:
+    print("Creates a demo clinic with clearly fake people. Development machines only.")
+    password = getpass.getpass("Password for every demo login (typing is hidden): ")
+    again = getpass.getpass("Type it again: ")
+    if password != again:
+        print("The two passwords did not match. Nothing was created.")
+        return 1
+
+    try:
+        with Session(engine) as session:
+            logins = seed_demo(session, password=password)
+    except (ValueError, EmailAlreadyUsedError, DemoNotAllowedError) as error:
+        print(f"Could not create the demo data: {error}")
+        return 1
+
+    print("Demo clinic created. Sign in with any of these (same password for all):")
+    for login in logins:
+        print(f"  {login.role:<11} {login.email}")
+    return 0
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog="app.cli", description="Clinic Platform admin tools")
     commands = parser.add_subparsers(dest="command", required=True)
@@ -43,9 +65,13 @@ def main(argv: list[str] | None = None) -> int:
     create.add_argument("--admin-name", required=True)
     create.add_argument("--admin-email", required=True)
 
+    commands.add_parser("seed-demo", help="Development only: a demo clinic with fake people")
+
     args = parser.parse_args(argv)
     if args.command == "create-clinic":
         return _create_clinic(args)
+    if args.command == "seed-demo":
+        return _seed_demo(args)
 
     parser.error(f"Unknown command: {args.command}")
     return 2
