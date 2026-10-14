@@ -60,6 +60,8 @@ services:
     environment:
       NEXT_PUBLIC_API_URL: http://localhost:8000
       API_INTERNAL_URL: http://api:8000
+      # Exact extra addresses allowed to sign in and write, read from .env (see .env.example).
+      TRUSTED_ORIGINS: ${TRUSTED_ORIGINS:-}
     volumes:
       - ./frontend:/app
       - /app/node_modules
