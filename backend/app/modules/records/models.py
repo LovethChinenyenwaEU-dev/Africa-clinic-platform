@@ -1,5 +1,5 @@
 import uuid
-from datetime import UTC, datetime
+from datetime import UTC, date, datetime
 from decimal import Decimal
 
 from sqlalchemy import Column, DateTime, Index, UniqueConstraint
@@ -74,4 +74,83 @@ class VitalSigns(SQLModel, table=True):
 
     measured_at: datetime = Field(sa_column=_time_column())  # when taken, maybe offline
     recorded_by_id: uuid.UUID = Field(foreign_key="staff.id")
+    recorded_at: datetime = Field(default_factory=utcnow, sa_column=_time_column())
+
+
+class Allergy(SQLModel, table=True):
+    """Something the patient reacts to. Belongs to the patient, so every visit sees it.
+
+    Never edited: a change is a new row that points at the one it replaces.
+    """
+
+    __table_args__ = (
+        Index("ix_allergy_tenant_patient_status", "tenant_id", "patient_id", "version_status"),
+    )
+
+    id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
+    tenant_id: uuid.UUID = Field(foreign_key="tenant.id", index=True)
+    patient_id: uuid.UUID = Field(foreign_key="patient.id")
+    encounter_id: uuid.UUID = Field(foreign_key="encounter.id")  # the visit it was recorded in
+    version_status: str  # current or superseded
+    replaces_id: uuid.UUID | None = Field(default=None, foreign_key="allergy.id")
+
+    substance: str  # what the patient reacts to, for example penicillin
+    reaction: str | None = None  # what happens, for example rash
+    severity: str  # see statuses.py
+    clinical_status: str  # see statuses.py
+
+    recorded_by_id: uuid.UUID = Field(foreign_key="staff.id")
+    recorded_at: datetime = Field(default_factory=utcnow, sa_column=_time_column())
+
+
+class Problem(SQLModel, table=True):
+    """A condition or diagnosis. Belongs to the patient, so every visit sees it.
+
+    Never edited: a change is a new row that points at the one it replaces.
+    """
+
+    __table_args__ = (
+        Index("ix_problem_tenant_patient_status", "tenant_id", "patient_id", "version_status"),
+    )
+
+    id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
+    tenant_id: uuid.UUID = Field(foreign_key="tenant.id", index=True)
+    patient_id: uuid.UUID = Field(foreign_key="patient.id")
+    encounter_id: uuid.UUID = Field(foreign_key="encounter.id")  # the visit it was recorded in
+    version_status: str  # current or superseded
+    replaces_id: uuid.UUID | None = Field(default=None, foreign_key="problem.id")
+
+    category: str  # see statuses.py
+    description: str  # in the clinician's words, for example uncomplicated malaria
+    code: str | None = None  # optional ICD-10 code, for example B54
+    clinical_status: str  # see statuses.py
+    onset_date: date | None = None
+
+    recorded_by_id: uuid.UUID = Field(foreign_key="staff.id")
+    recorded_at: datetime = Field(default_factory=utcnow, sa_column=_time_column())
+
+
+class ClinicalNote(SQLModel, table=True):
+    """A clinician's own words about a visit. The most sensitive text we hold.
+
+    Never edited: an amendment is a new row that points at the one it replaces,
+    and only the author may amend.
+    """
+
+    __tablename__ = "clinical_note"
+    __table_args__ = (
+        Index("ix_clinical_note_encounter_recorded_at", "encounter_id", "recorded_at"),
+    )
+
+    id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
+    tenant_id: uuid.UUID = Field(foreign_key="tenant.id", index=True)
+    encounter_id: uuid.UUID = Field(foreign_key="encounter.id")
+    patient_id: uuid.UUID = Field(foreign_key="patient.id")
+    version_status: str  # current or superseded
+    replaces_id: uuid.UUID | None = Field(default=None, foreign_key="clinical_note.id")
+
+    kind: str  # see statuses.py
+    body: str
+
+    recorded_by_id: uuid.UUID = Field(foreign_key="staff.id")  # the author
     recorded_at: datetime = Field(default_factory=utcnow, sa_column=_time_column())

@@ -20,6 +20,8 @@ class Capability(StrEnum):
     APPOINTMENT_READ = "appointment:read"
     APPOINTMENT_WRITE = "appointment:write"
     APPOINTMENT_CONSULT = "appointment:consult"
+    CLINICAL_READ = "clinical:read"
+    CLINICAL_WRITE = "clinical:write"
 
 
 _EVERYONE = frozenset({Capability.BRANCH_READ})
@@ -37,7 +39,10 @@ _PATIENT_READERS = frozenset({Capability.PATIENT_READ})
 _PATIENT_REGISTRARS = _PATIENT_READERS | {Capability.PATIENT_WRITE}
 _CONSENT_RECORDERS = frozenset({Capability.CONSENT_READ, Capability.CONSENT_WRITE})
 _SCHEDULERS = frozenset({Capability.APPOINTMENT_READ, Capability.APPOINTMENT_WRITE})
-_CLINICIANS = frozenset({Capability.APPOINTMENT_CONSULT})
+# Encounters, vitals, allergies, problems and notes: doctors and nurses only.
+_CLINICIANS = frozenset(
+    {Capability.APPOINTMENT_CONSULT, Capability.CLINICAL_READ, Capability.CLINICAL_WRITE}
+)
 _FRONT_LINE = (
     _EVERYONE | _PATIENT_REGISTRARS | _CONSENT_RECORDERS | _WORDING_READERS | _SCHEDULERS
 )

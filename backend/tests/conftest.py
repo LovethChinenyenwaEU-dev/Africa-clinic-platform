@@ -9,7 +9,7 @@ from app.modules.consent.models import Consent, ConsentText
 from app.modules.identity.models import Staff
 from app.modules.notifications.models import Reminder
 from app.modules.patients.models import Patient
-from app.modules.records.models import Encounter, VitalSigns
+from app.modules.records.models import Allergy, ClinicalNote, Encounter, Problem, VitalSigns
 from app.modules.scheduling.models import Appointment
 from app.modules.tenancy.models import Branch, Tenant
 
@@ -37,6 +37,9 @@ def session(run_id):
             for model in (
                 Reminder,
                 VitalSigns,
+                Allergy,
+                Problem,
+                ClinicalNote,
                 Encounter,
                 Appointment,
                 Consent,

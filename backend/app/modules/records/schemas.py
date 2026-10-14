@@ -1,0 +1,158 @@
+"""The forms the records endpoints accept and the answers they give.
+
+There is never a clinic box: the clinic always comes from the logged-in person.
+Every `id` in a form is optional: a device working offline sends the ID it made,
+so a retried request is recognised and changes nothing.
+
+Size limits here only stop huge payloads; the real rules live in the services.
+"""
+import uuid
+from datetime import date, datetime
+from decimal import Decimal
+
+from pydantic import BaseModel, ConfigDict, Field
+
+
+class OpenEncounter(BaseModel):
+    id: uuid.UUID | None = None
+    patient_id: uuid.UUID
+    appointment_id: uuid.UUID | None = None
+
+
+class EncounterResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: uuid.UUID
+    patient_id: uuid.UUID
+    appointment_id: uuid.UUID | None
+    clinician_id: uuid.UUID
+    status: str
+    opened_at: datetime
+    closed_at: datetime | None
+    closed_by_id: uuid.UUID | None
+
+
+class Readings(BaseModel):
+    systolic_mmhg: int | None = None
+    diastolic_mmhg: int | None = None
+    pulse_bpm: int | None = None
+    respiratory_rate: int | None = None
+    spo2_pct: int | None = None
+    temperature_c: Decimal | None = None
+    weight_kg: Decimal | None = None
+    height_cm: Decimal | None = None
+
+
+class RecordVitals(Readings):
+    id: uuid.UUID | None = None
+    measured_at: datetime | None = None  # when taken; must include a time zone
+
+
+class CorrectVitals(Readings):
+    id: uuid.UUID | None = None  # the ID of the correction
+
+
+class VitalsResponse(BaseModel):
+    """Decimals come back as text, for example "37.5", so no precision is lost."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    id: uuid.UUID
+    encounter_id: uuid.UUID
+    patient_id: uuid.UUID
+    status: str
+    replaces_id: uuid.UUID | None
+    systolic_mmhg: int | None
+    diastolic_mmhg: int | None
+    pulse_bpm: int | None
+    respiratory_rate: int | None
+    spo2_pct: int | None
+    temperature_c: Decimal | None
+    weight_kg: Decimal | None
+    height_cm: Decimal | None
+    measured_at: datetime
+    recorded_by_id: uuid.UUID
+    recorded_at: datetime
+
+
+class AllergyForm(BaseModel):
+    id: uuid.UUID | None = None
+    substance: str = Field(max_length=1000)
+    reaction: str | None = Field(default=None, max_length=2000)
+    severity: str = Field(default="unknown", max_length=20)
+    clinical_status: str = Field(default="active", max_length=20)
+
+
+class ReviseAllergy(AllergyForm):
+    encounter_id: uuid.UUID  # the open visit the change is made in
+
+
+class AllergyResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: uuid.UUID
+    patient_id: uuid.UUID
+    encounter_id: uuid.UUID
+    version_status: str
+    replaces_id: uuid.UUID | None
+    substance: str
+    reaction: str | None
+    severity: str
+    clinical_status: str
+    recorded_by_id: uuid.UUID
+    recorded_at: datetime
+
+
+class ProblemForm(BaseModel):
+    id: uuid.UUID | None = None
+    description: str = Field(max_length=2000)
+    category: str = Field(default="problem_list", max_length=30)
+    code: str | None = Field(default=None, max_length=20)
+    clinical_status: str = Field(default="active", max_length=20)
+    onset_date: date | None = None
+
+
+class ReviseProblem(ProblemForm):
+    encounter_id: uuid.UUID  # the open visit the change is made in
+
+
+class ProblemResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: uuid.UUID
+    patient_id: uuid.UUID
+    encounter_id: uuid.UUID
+    version_status: str
+    replaces_id: uuid.UUID | None
+    category: str
+    description: str
+    code: str | None
+    clinical_status: str
+    onset_date: date | None
+    recorded_by_id: uuid.UUID
+    recorded_at: datetime
+
+
+class WriteNote(BaseModel):
+    id: uuid.UUID | None = None
+    kind: str = Field(max_length=20)
+    body: str = Field(max_length=20_000)
+
+
+class AmendNote(BaseModel):
+    id: uuid.UUID | None = None  # the ID of the amendment
+    body: str = Field(max_length=20_000)
+
+
+class NoteResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: uuid.UUID
+    encounter_id: uuid.UUID
+    patient_id: uuid.UUID
+    version_status: str
+    replaces_id: uuid.UUID | None
+    kind: str
+    body: str
+    recorded_by_id: uuid.UUID
+    recorded_at: datetime
