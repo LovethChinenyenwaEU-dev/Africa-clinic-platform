@@ -191,6 +191,7 @@ def _add(
         actor_id=actor_id,
         action=action,
         patient_id=encounter.patient_id,
+        entity_id=entry.id,
     )
     session.commit()
     session.refresh(entry)
@@ -246,6 +247,7 @@ def _revise(
         actor_id=actor_id,
         action=action,
         patient_id=old.patient_id,
+        entity_id=revised.id,
     )
     session.commit()
     session.refresh(revised)

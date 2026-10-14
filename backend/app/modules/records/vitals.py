@@ -155,6 +155,7 @@ def record_vitals(
         actor_id=actor_id,
         action=AuditAction.VITALS_RECORD,
         patient_id=encounter.patient_id,
+        entity_id=vitals.id,
     )
     session.commit()
     session.refresh(vitals)
@@ -222,6 +223,7 @@ def correct_vitals(
         actor_id=actor_id,
         action=AuditAction.VITALS_CORRECT,
         patient_id=old.patient_id,
+        entity_id=corrected.id,
     )
     session.commit()
     session.refresh(corrected)
@@ -244,6 +246,7 @@ def list_encounter_vitals(
         actor_id=actor_id,
         action=AuditAction.VITALS_VIEW,
         patient_id=encounter.patient_id,
+        entity_id=encounter.id,
     )
     session.commit()
     statement = tenant_select(VitalSigns, tenant_id).where(

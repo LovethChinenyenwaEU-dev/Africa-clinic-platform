@@ -129,6 +129,7 @@ def open_encounter(
         actor_id=actor_id,
         action=AuditAction.ENCOUNTER_CREATE,
         patient_id=patient_id,
+        entity_id=encounter.id,
     )
     try:
         session.commit()
@@ -194,6 +195,7 @@ def _change_status(
         actor_id=actor_id,
         action=action,
         patient_id=encounter.patient_id,
+        entity_id=encounter.id,
     )
     session.commit()
     session.refresh(encounter)
@@ -258,6 +260,7 @@ def get_encounter(
         actor_id=actor_id,
         action=AuditAction.ENCOUNTER_VIEW,
         patient_id=found.patient_id,
+        entity_id=found.id,
     )
     session.commit()
     session.refresh(found)

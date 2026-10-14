@@ -100,6 +100,7 @@ def write_note(
         actor_id=actor_id,
         action=AuditAction.NOTE_WRITE,
         patient_id=encounter.patient_id,
+        entity_id=note.id,
     )
     session.commit()
     session.refresh(note)
@@ -163,6 +164,7 @@ def amend_note(
         actor_id=actor_id,
         action=AuditAction.NOTE_AMEND,
         patient_id=old.patient_id,
+        entity_id=amended.id,
     )
     session.commit()
     session.refresh(amended)
@@ -187,6 +189,7 @@ def list_encounter_notes(
         actor_id=actor_id,
         action=AuditAction.NOTE_VIEW,
         patient_id=encounter.patient_id,
+        entity_id=encounter.id,
     )
     session.commit()
     statement = tenant_select(ClinicalNote, tenant_id).where(
