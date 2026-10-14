@@ -1,80 +1,106 @@
-:root {
-  --text: #1a1a1a;
-  --border: #c9c9c9;
-  --accent: #1b5e8c;
-  --danger: #b00020;
+@import "tailwindcss";
+
+/* Our colours as Tailwind tokens, so screens can write bg-accent, text-danger... */
+@theme {
+  --color-ink: #1a1a1a;
+  --color-line: #c9c9c9;
+  --color-accent: #1b5e8c;
+  --color-danger: #b00020;
+  --color-focus: #f2a900;
+  --color-canvas: #f6f7f9;
 }
 
-* {
-  box-sizing: border-box;
+/*
+ * Everything below sits in a layer. Tailwind's utilities live in a later layer,
+ * so a utility on an element (p-2, text-sm...) always wins over these defaults.
+ * Unlayered CSS would silently beat every utility.
+ */
+@layer base {
+  body {
+    margin: 0;
+    font-family: system-ui, sans-serif;
+    color: var(--color-ink);
+    background: var(--color-canvas);
+    line-height: 1.5;
+  }
+
+  /* Tailwind resets headings to plain text; give them back a size. */
+  h1 {
+    font-size: 1.75rem;
+    font-weight: 700;
+    margin-bottom: 1rem;
+  }
+
+  h2 {
+    font-size: 1.25rem;
+    font-weight: 700;
+    margin-bottom: 0.75rem;
+  }
+
+  label {
+    font-weight: 600;
+  }
+
+  input,
+  select,
+  textarea {
+    padding: 0.6rem 0.75rem;
+    border: 1px solid var(--color-line);
+    border-radius: 0.375rem;
+    background: #fff;
+    font: inherit;
+  }
+
+  [aria-invalid="true"] {
+    border-color: var(--color-danger);
+  }
+
+  :focus-visible {
+    outline: 3px solid var(--color-focus);
+    outline-offset: 2px;
+  }
 }
 
-body {
-  margin: 0;
-  font-family: system-ui, sans-serif;
-  color: var(--text);
-  background: #f6f7f9;
-  line-height: 1.5;
-}
+@layer components {
+  .page {
+    max-width: 28rem;
+    margin: 0 auto;
+    padding: 3rem 1rem;
+  }
 
-.page {
-  max-width: 28rem;
-  margin: 0 auto;
-  padding: 3rem 1rem;
-}
+  .card {
+    display: grid;
+    gap: 1rem;
+    padding: 1.5rem;
+    background: #fff;
+    border: 1px solid var(--color-line);
+    border-radius: 0.5rem;
+  }
 
-.card {
-  display: grid;
-  gap: 1rem;
-  padding: 1.5rem;
-  background: #fff;
-  border: 1px solid var(--border);
-  border-radius: 0.5rem;
-}
+  .field {
+    display: grid;
+    gap: 0.25rem;
+  }
 
-.field {
-  display: grid;
-  gap: 0.25rem;
-}
+  .button {
+    padding: 0.65rem 1rem;
+    border: 0;
+    border-radius: 0.375rem;
+    background: var(--color-accent);
+    color: #fff;
+    font: inherit;
+    font-weight: 600;
+    cursor: pointer;
+  }
 
-label {
-  font-weight: 600;
-}
+  .button:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
 
-input {
-  padding: 0.6rem 0.75rem;
-  border: 1px solid var(--border);
-  border-radius: 0.375rem;
-  font: inherit;
-}
-
-input[aria-invalid="true"] {
-  border-color: var(--danger);
-}
-
-.button {
-  padding: 0.65rem 1rem;
-  border: 0;
-  border-radius: 0.375rem;
-  background: var(--accent);
-  color: #fff;
-  font: inherit;
-  font-weight: 600;
-  cursor: pointer;
-}
-
-.button:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-}
-
-.error {
-  margin: 0;
-  color: var(--danger);
-  font-size: 0.9rem;
-}
-
-:focus-visible {
-  outline: 3px solid #f2a900;
-  outline-offset: 2px;
+  .error {
+    margin: 0;
+    color: var(--color-danger);
+    font-size: 0.9rem;
+  }
 }
