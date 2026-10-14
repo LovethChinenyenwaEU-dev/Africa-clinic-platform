@@ -1,4 +1,5 @@
 import uuid
+from datetime import datetime
 from enum import StrEnum
 
 from sqlmodel import Session, col
@@ -56,21 +57,36 @@ def add_audit_event(
     action: AuditAction,
     patient_id: uuid.UUID | None = None,
     purpose: str | None = None,
+    entity_id: uuid.UUID | None = None,
 ) -> AuditEvent:
     """Add a diary line to the open transaction.
 
     It does NOT save. The caller saves once, together with the action itself, so
     the action and its diary line either both happen or neither does.
+    entity_id says exactly which record was touched (a note, a vitals set...).
     """
     event = AuditEvent(
         tenant_id=tenant_id,
         actor_id=actor_id,
         action=action.value,
         patient_id=patient_id,
+        entity_id=entity_id,
         purpose=purpose,
     )
     session.add(event)
     return event
+
+
+class InvalidAuditFilterError(ValueError):
+    """The date range for reading the diary does not make sense."""
+
+
+def _check_range(since: datetime | None, until: datetime | None) -> None:
+    for name, moment in (("since", since), ("until", until)):
+        if moment is not None and (moment.tzinfo is None or moment.utcoffset() is None):
+            raise InvalidAuditFilterError(f"{name} must include a time zone.")
+    if since is not None and until is not None and since >= until:
+        raise InvalidAuditFilterError("since must be earlier than until.")
 
 
 def list_audit_events(
@@ -78,12 +94,23 @@ def list_audit_events(
     *,
     tenant_id: uuid.UUID,
     patient_id: uuid.UUID | None = None,
+    staff_id: uuid.UUID | None = None,
+    since: datetime | None = None,
+    until: datetime | None = None,
     limit: int = 100,
 ) -> list[AuditEvent]:
-    """Newest first, only this clinic's lines."""
+    """Newest first, only this clinic's lines. since is inclusive, until is exclusive."""
+    _check_range(since, until)
+
     statement = tenant_select(AuditEvent, tenant_id)
     if patient_id is not None:
         statement = statement.where(col(AuditEvent.patient_id) == patient_id)
+    if staff_id is not None:
+        statement = statement.where(col(AuditEvent.actor_id) == staff_id)
+    if since is not None:
+        statement = statement.where(col(AuditEvent.occurred_at) >= since)
+    if until is not None:
+        statement = statement.where(col(AuditEvent.occurred_at) < until)
     statement = statement.order_by(col(AuditEvent.occurred_at).desc()).limit(limit)
     return list(session.exec(statement).all())
 
@@ -96,9 +123,16 @@ def view_audit_log(
     tenant_id: uuid.UUID,
     actor_id: uuid.UUID,
     patient_id: uuid.UUID | None = None,
+    staff_id: uuid.UUID | None = None,
+    since: datetime | None = None,
+    until: datetime | None = None,
     limit: int = 50,
 ) -> list[AuditEvent]:
-    """Read the diary. Reading the diary is itself written in the diary."""
+    """Read the diary. Reading the diary is itself written in the diary.
+
+    A bad date range is refused before anything is written or read.
+    """
+    _check_range(since, until)
     add_audit_event(
         session,
         tenant_id=tenant_id,
@@ -111,5 +145,8 @@ def view_audit_log(
         session,
         tenant_id=tenant_id,
         patient_id=patient_id,
+        staff_id=staff_id,
+        since=since,
+        until=until,
         limit=min(limit, MAX_AUDIT_PAGE),
     )
