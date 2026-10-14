@@ -30,6 +30,9 @@ export class ApiError extends Error {
   constructor(
     readonly kind: ApiFailure,
     message: string = API_MESSAGES[kind],
+    // The backend's raw `detail`, for screens that understand a structured answer
+    // (for example the possible-duplicate warning). Check it with Zod before use.
+    readonly detail: unknown = undefined,
   ) {
     super(message);
   }
@@ -69,7 +72,9 @@ async function send<T>(path: string, schema: z.ZodType<T>, init: RequestInit): P
   const body: unknown = await response.json().catch(() => null);
   if (!response.ok) {
     const kind = kindFor(response.status);
-    throw new ApiError(kind, messageFrom(body, kind));
+    const detail =
+      body && typeof body === "object" ? (body as { detail?: unknown }).detail : undefined;
+    throw new ApiError(kind, messageFrom(body, kind), detail);
   }
 
   const parsed = schema.safeParse(body);

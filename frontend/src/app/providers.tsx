@@ -22,6 +22,9 @@ export function Providers({ children }: { children: ReactNode }) {
           // A clinical write is never sent twice by accident; queries may retry once.
           mutations: { retry: false },
           queries: {
+            // Every read of patient data is written in the diary, so never re-read silently
+            // when the window regains focus. Screens that need live data (the queue) opt in.
+            refetchOnWindowFocus: false,
             retry: (count, error) => !(error instanceof ApiError) && count < 1,
           },
         },

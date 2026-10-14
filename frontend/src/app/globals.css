@@ -103,4 +103,38 @@
     color: var(--color-danger);
     font-size: 0.9rem;
   }
+
+  /* A quieter button for "Cancel", "Withdraw" and other second choices. */
+  .button-secondary {
+    padding: 0.6rem 1rem;
+    border: 1px solid var(--color-accent);
+    border-radius: 0.375rem;
+    background: #fff;
+    color: var(--color-accent);
+    font: inherit;
+    font-weight: 600;
+    cursor: pointer;
+  }
+
+  .button-secondary:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+
+  /* Something a person must read before going on, like a possible duplicate. */
+  .notice {
+    padding: 1rem;
+    border: 1px solid #e0b252;
+    border-left-width: 4px;
+    border-radius: 0.375rem;
+    background: #fff8e6;
+  }
+
+  .badge {
+    display: inline-block;
+    padding: 0.1rem 0.5rem;
+    border-radius: 999px;
+    font-size: 0.8rem;
+    font-weight: 600;
+  }
 }

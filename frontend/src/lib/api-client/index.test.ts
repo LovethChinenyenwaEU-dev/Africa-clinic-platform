@@ -93,3 +93,16 @@ describe("apiGet and apiPost", () => {
     expect((await failureOf(apiGet("/x", thing))).kind).toBe("unavailable");
   });
 });
+
+describe("ApiError.detail", () => {
+  it("carries the backend's structured detail for screens that understand it", async () => {
+    const warning = { message: "This patient may already be registered.", matches: [] };
+    fetchMock.mockResolvedValueOnce(answer({ detail: warning }, 409));
+
+    const error = await failureOf(apiPost("/patients", {}, thing));
+
+    expect(error.kind).toBe("conflict");
+    expect(error.detail).toEqual(warning);
+    expect(error.message).toBe(API_MESSAGES.conflict); // an object is never shown raw
+  });
+});
