@@ -1,0 +1,93 @@
+import { z } from "zod";
+
+const id = z.string().uuid();
+// Exact decimals arrive as text ("38.4") so no precision is lost on the way.
+const decimal = z.string().nullable();
+
+export const encounterSchema = z.object({
+  id,
+  patient_id: id,
+  appointment_id: id.nullable(),
+  clinician_id: id,
+  status: z.string(),
+  opened_at: z.string(),
+  closed_at: z.string().nullable(),
+  closed_by_id: id.nullable(),
+});
+export type Encounter = z.infer<typeof encounterSchema>;
+
+export const vitalsSchema = z.object({
+  id,
+  encounter_id: id,
+  patient_id: id,
+  status: z.string(), // current or superseded
+  replaces_id: id.nullable(),
+  systolic_mmhg: z.number().int().nullable(),
+  diastolic_mmhg: z.number().int().nullable(),
+  pulse_bpm: z.number().int().nullable(),
+  respiratory_rate: z.number().int().nullable(),
+  spo2_pct: z.number().int().nullable(),
+  temperature_c: decimal,
+  weight_kg: decimal,
+  height_cm: decimal,
+  measured_at: z.string(),
+  recorded_by_id: id,
+  recorded_at: z.string(),
+});
+export type Vitals = z.infer<typeof vitalsSchema>;
+
+export const READING_FIELDS = [
+  "systolic_mmhg",
+  "diastolic_mmhg",
+  "pulse_bpm",
+  "respiratory_rate",
+  "spo2_pct",
+  "temperature_c",
+  "weight_kg",
+  "height_cm",
+] as const;
+export type ReadingField = (typeof READING_FIELDS)[number];
+
+export const allergySchema = z.object({
+  id,
+  patient_id: id,
+  encounter_id: id,
+  version_status: z.string(),
+  replaces_id: id.nullable(),
+  substance: z.string(),
+  reaction: z.string().nullable(),
+  severity: z.string(),
+  clinical_status: z.string(),
+  recorded_by_id: id,
+  recorded_at: z.string(),
+});
+export type Allergy = z.infer<typeof allergySchema>;
+
+export const problemSchema = z.object({
+  id,
+  patient_id: id,
+  encounter_id: id,
+  version_status: z.string(),
+  replaces_id: id.nullable(),
+  category: z.string(),
+  description: z.string(),
+  code: z.string().nullable(),
+  clinical_status: z.string(),
+  onset_date: z.string().nullable(),
+  recorded_by_id: id,
+  recorded_at: z.string(),
+});
+export type Problem = z.infer<typeof problemSchema>;
+
+export const noteSchema = z.object({
+  id,
+  encounter_id: id,
+  patient_id: id,
+  version_status: z.string(),
+  replaces_id: id.nullable(),
+  kind: z.string(),
+  body: z.string(),
+  recorded_by_id: id,
+  recorded_at: z.string(),
+});
+export type Note = z.infer<typeof noteSchema>;
