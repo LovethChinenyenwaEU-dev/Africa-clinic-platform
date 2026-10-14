@@ -314,7 +314,7 @@ def test_no_show_needs_the_start_time_to_have_passed(client, session, run_id, cl
     assert on_time.json()["status"] == "no_show"
 
 
-def test_queue_orders_the_line_hides_names_and_stays_in_one_branch(
+def test_queue_orders_the_line_shows_names_only_and_stays_in_one_branch(
     client, session, run_id, clinics
 ):
     a = clinics["a"]
@@ -353,7 +353,11 @@ def test_queue_orders_the_line_hides_names_and_stays_in_one_branch(
     assert [entry["position"] for entry in entries] == [None, 1, 2, 3]
     assert str(not_arrived.id) not in response.text
     assert str(elsewhere.id) not in response.text
-    assert "Test Patient" not in response.text
+    # The name is shown so staff can call the patient; nothing else about them is.
+    assert {entry["patient_name"] for entry in entries} == {"Test Patient A"}
+    assert "1990-05-17" not in response.text
+    assert "date_of_birth" not in response.text
+    assert "phone" not in response.text
 
 
 def test_queue_is_clinic_walled_and_noted_in_the_diary_without_naming_anyone(
