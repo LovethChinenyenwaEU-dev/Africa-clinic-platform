@@ -116,12 +116,12 @@ docker compose up --build
 - [x] W3 Patients: registration, duplicate warning, consent
 - [x] W4 Scheduling: appointments, walk-in queue, check-in, no-show
 - [x] W5 Reminders via job queue and one SMS/WhatsApp adapter (adapter interface done; real provider still to plug in)
-- [ ] W6 Encounters, records, audit log
+- [x] W6 Encounters, records, audit log (vitals, allergies, problems, versioned notes; attachments, prescriptions and the patient summary moved to W9/W11)
 - [ ] W7 Staff web app screens
 - [ ] W8 Offline sync and conflict handling
-- [ ] W9 Teleconsult flow
+- [ ] W9 Teleconsult flow, prescriptions, clinician-approved patient summary
 - [ ] W10 Billing and one payment gateway
-- [ ] W11 FHIR export, dashboards, security pass
+- [ ] W11 FHIR export, dashboards, attachments, security pass
 - [ ] W12 Deploy, backup/restore test, demo
 
 Update the checkboxes as you finish each week.
