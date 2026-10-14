@@ -1,8 +1,10 @@
 "use client";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
+import { openRecord, startVisit } from "@/features/records/api";
 import { API_MESSAGES, ApiError } from "@/lib/api-client";
 import { formatTime, todayInLagos, waitedFor } from "@/lib/format";
 
@@ -73,8 +75,18 @@ const ACTIONS: Record<string, ActionButton[]> = {
   waiting: [{ action: "cancel", label: "Cancel", confirm: "Cancel this visit?" }],
 };
 
-export function QueueBoard() {
+export function QueueBoard({ canConsult }: { canConsult: boolean }) {
   const queryClient = useQueryClient();
+  const router = useRouter();
+
+  // Doctors and nurses: start the visit (or reopen its record) and go to the encounter.
+  const begin = useMutation({
+    mutationFn: (entry: DayEntry) =>
+      entry.status === "waiting"
+        ? startVisit(entry.appointment_id, entry.patient_id)
+        : openRecord(entry.appointment_id, entry.patient_id),
+    onSuccess: (encounter) => router.push(`/encounters/${encounter.id}`),
+  });
   const [branchId, setBranchId] = useState<string | null>(null);
   const [day, setDay] = useState(todayInLagos);
   const [form, setForm] = useState<"none" | "walk-in" | "book">("none");
@@ -251,9 +263,9 @@ export function QueueBoard() {
             {messageOf(dayList.error)}
           </p>
         )}
-        {change.isError && (
+        {(change.isError || begin.isError) && (
           <p role="alert" className="error">
-            {messageOf(change.error)}
+            {messageOf(change.error ?? begin.error)}
           </p>
         )}
         {dayList.data && dayList.data.length === 0 && <p>No visits on this day.</p>}
@@ -292,6 +304,19 @@ export function QueueBoard() {
                   </span>
                 ) : (
                   <span className="ml-auto flex flex-wrap gap-2">
+                    {canConsult && (entry.status === "waiting" || entry.status === "in_consult") && (
+                      <button
+                        type="button"
+                        className="button"
+                        disabled={begin.isPending}
+                        onClick={() => begin.mutate(entry)}
+                        aria-label={`${
+                          entry.status === "waiting" ? "Start visit" : "Open record"
+                        }: ${entry.patient_name}`}
+                      >
+                        {entry.status === "waiting" ? "Start visit" : "Open record"}
+                      </button>
+                    )}
                     {(ACTIONS[entry.status] ?? []).map((button) => (
                       <button
                         key={button.action}
