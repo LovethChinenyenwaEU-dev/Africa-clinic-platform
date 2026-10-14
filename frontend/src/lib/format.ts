@@ -49,3 +49,33 @@ export function ageFrom(isoDate: string, today: string = todayInLagos()): string
   );
   return `${days} day${days === 1 ? "" : "s"}`;
 }
+
+const TIME = new Intl.DateTimeFormat("en-GB", {
+  hour: "2-digit",
+  minute: "2-digit",
+  timeZone: CLINIC_TIME_ZONE,
+});
+
+/** A server moment as a Lagos clock time, for example "09:30". */
+export function formatTime(isoMoment: string): string {
+  return TIME.format(new Date(isoMoment));
+}
+
+const LOCAL_INPUT = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/;
+
+/**
+ * What a date-and-time box gives ("2026-11-02T09:00") read as Lagos time, sent with
+ * its time zone so the server never guesses. Nigeria has no daylight saving.
+ */
+export function lagosInputToIso(value: string): string {
+  if (!LOCAL_INPUT.test(value)) throw new RangeError(`Not a date and time: ${value}`);
+  return `${value}:00+01:00`;
+}
+
+/** "just now", "12 min" or "1 h 05 min": how long someone has been waiting. */
+export function waitedFor(isoMoment: string, now: Date = new Date()): string {
+  const minutes = Math.max(0, Math.floor((now.getTime() - new Date(isoMoment).getTime()) / 60_000));
+  if (minutes < 1) return "just now";
+  if (minutes < 60) return `${minutes} min`;
+  return `${Math.floor(minutes / 60)} h ${String(minutes % 60).padStart(2, "0")} min`;
+}

@@ -1,6 +1,14 @@
 import { describe, expect, it } from "vitest";
 
-import { ageFrom, formatDate, formatDateTime, todayInLagos } from "./format";
+import {
+  ageFrom,
+  formatDate,
+  formatDateTime,
+  formatTime,
+  lagosInputToIso,
+  todayInLagos,
+  waitedFor,
+} from "./format";
 
 describe("formatDate", () => {
   it("shows the exact calendar date, whatever the time zone", () => {
@@ -36,5 +44,34 @@ describe("ageFrom", () => {
     ["2026-10-14", "2026-10-14", "0 days"],
   ])("born %s, on %s: %s", (born, today, age) => {
     expect(ageFrom(born, today)).toBe(age);
+  });
+});
+
+describe("formatTime", () => {
+  it("shows the Lagos clock time", () => {
+    expect(formatTime("2026-11-02T08:30:00Z")).toBe("09:30");
+  });
+});
+
+describe("lagosInputToIso", () => {
+  it("adds the Lagos time zone so the server never guesses", () => {
+    expect(lagosInputToIso("2026-11-02T09:00")).toBe("2026-11-02T09:00:00+01:00");
+  });
+
+  it("refuses anything else", () => {
+    expect(() => lagosInputToIso("2026-11-02")).toThrow(RangeError);
+  });
+});
+
+describe("waitedFor", () => {
+  const now = new Date("2026-11-02T10:00:00Z");
+
+  it.each([
+    ["2026-11-02T09:59:30Z", "just now"],
+    ["2026-11-02T09:48:00Z", "12 min"],
+    ["2026-11-02T08:55:00Z", "1 h 05 min"],
+    ["2026-11-02T10:05:00Z", "just now"], // a device clock ahead never shows a negative wait
+  ])("since %s: %s", (since, expected) => {
+    expect(waitedFor(since, now)).toBe(expected);
   });
 });
