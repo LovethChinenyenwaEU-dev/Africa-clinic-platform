@@ -26,3 +26,14 @@ describe("navFor", () => {
     }
   });
 });
+
+describe("the encounter screen", () => {
+  it("opens for doctors and nurses only, and is never in the menu", () => {
+    expect(canOpen("doctor", "encounter")).toBe(true);
+    expect(canOpen("nurse", "encounter")).toBe(true);
+    for (const role of ["front_desk", "admin", "billing"] as const) {
+      expect(canOpen(role, "encounter")).toBe(false);
+    }
+    expect(labels("doctor")).not.toContain("Encounter");
+  });
+});

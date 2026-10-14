@@ -106,3 +106,13 @@ describe("ApiError.detail", () => {
     expect(error.message).toBe(API_MESSAGES.conflict); // an object is never shown raw
   });
 });
+
+describe("errorMessage", () => {
+  it("shows our own message, and a plain one for anything else", async () => {
+    const { errorMessage } = await import("./index");
+    expect(errorMessage(new ApiError("forbidden", "Only the author can amend."))).toBe(
+      "Only the author can amend.",
+    );
+    expect(errorMessage(new TypeError("internal details"))).toBe(API_MESSAGES.unavailable);
+  });
+});

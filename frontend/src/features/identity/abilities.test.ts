@@ -15,3 +15,13 @@ describe("can", () => {
     expect(can(role, "manage_appointments")).toBe(false);
   });
 });
+
+describe("run_consultation", () => {
+  it("is for doctors and nurses only", () => {
+    expect(can("doctor", "run_consultation")).toBe(true);
+    expect(can("nurse", "run_consultation")).toBe(true);
+    for (const role of ["front_desk", "admin", "billing"] as const) {
+      expect(can(role, "run_consultation")).toBe(false);
+    }
+  });
+});

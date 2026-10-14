@@ -7,18 +7,31 @@ import type { Role } from "./schemas";
  * It mirrors the backend's permissions; the backend stays the final word.
  */
 
-export type ScreenKey = "home" | "patients" | "queue" | "audit";
+export type ScreenKey = "home" | "patients" | "queue" | "encounter" | "audit";
 
-type Screen = { href: string; label: string; roles: readonly Role[] };
+// inMenu: false for screens reached from another screen (an encounter opens from the queue).
+type Screen = { href: string; label: string; roles: readonly Role[]; inMenu: boolean };
 
 const EVERYONE: readonly Role[] = ["admin", "front_desk", "nurse", "doctor", "billing"];
 
 export const SCREENS: Record<ScreenKey, Screen> = {
-  home: { href: "/", label: "Home", roles: EVERYONE },
+  home: { href: "/", label: "Home", roles: EVERYONE, inMenu: true },
   // Admins supervise through the diary and have no patient access (ADR-0003).
-  patients: { href: "/patients", label: "Patients", roles: ["front_desk", "nurse", "doctor", "billing"] },
-  queue: { href: "/queue", label: "Today's queue", roles: ["front_desk", "nurse", "doctor"] },
-  audit: { href: "/audit", label: "Audit log", roles: ["admin"] },
+  patients: {
+    href: "/patients",
+    label: "Patients",
+    roles: ["front_desk", "nurse", "doctor", "billing"],
+    inMenu: true,
+  },
+  queue: {
+    href: "/queue",
+    label: "Today's queue",
+    roles: ["front_desk", "nurse", "doctor"],
+    inMenu: true,
+  },
+  // The clinical record: doctors and nurses only, like the backend's clinical:read.
+  encounter: { href: "/encounters", label: "Encounter", roles: ["nurse", "doctor"], inMenu: false },
+  audit: { href: "/audit", label: "Audit log", roles: ["admin"], inMenu: true },
 };
 
 export type NavItem = { href: string; label: string };
@@ -30,6 +43,6 @@ export function canOpen(role: Role, screen: ScreenKey): boolean {
 /** The menu for one role, in a fixed order. */
 export function navFor(role: Role): NavItem[] {
   return (Object.keys(SCREENS) as ScreenKey[])
-    .filter((key) => canOpen(role, key))
+    .filter((key) => SCREENS[key].inMenu && canOpen(role, key))
     .map((key) => ({ href: SCREENS[key].href, label: SCREENS[key].label }));
 }

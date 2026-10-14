@@ -97,3 +97,8 @@ export function apiPost<T>(path: string, body: unknown, schema: z.ZodType<T>): P
     body: JSON.stringify(body ?? {}),
   });
 }
+
+/** The words to show a person for any failure, never anything raw. */
+export function errorMessage(error: unknown): string {
+  return error instanceof ApiError ? error.message : API_MESSAGES.unavailable;
+}
