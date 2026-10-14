@@ -92,6 +92,17 @@ def get_staff_in_tenant(
 CLINICIAN_ROLES = frozenset({Role.DOCTOR.value, Role.NURSE.value})
 
 
+def list_active_clinicians(session: Session, *, tenant_id: uuid.UUID) -> list[Staff]:
+    """Active doctors and nurses of this clinic, for choosing who sees a patient."""
+    statement = (
+        tenant_select(Staff, tenant_id)
+        .where(col(Staff.is_active).is_(True))
+        .where(col(Staff.role).in_(sorted(CLINICIAN_ROLES)))
+        .order_by(col(Staff.full_name))
+    )
+    return list(session.exec(statement).all())
+
+
 def is_active_clinician(
     session: Session,
     *,

@@ -46,3 +46,12 @@ class StaffResponse(BaseModel):
     full_name: str
     role: str
     is_active: bool
+
+class ClinicianResponse(BaseModel):
+    """A doctor or nurse to choose from. No email, no account details."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    id: uuid.UUID
+    full_name: str
+    role: str

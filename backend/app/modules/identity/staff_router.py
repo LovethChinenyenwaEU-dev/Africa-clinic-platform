@@ -7,13 +7,14 @@ from app.core.db import get_session
 from app.modules.identity.dependencies import CurrentStaff, require
 from app.modules.identity.passwords import WeakPasswordError
 from app.modules.identity.permissions import Capability
-from app.modules.identity.schemas import StaffCreate, StaffResponse
+from app.modules.identity.schemas import ClinicianResponse, StaffCreate, StaffResponse
 from app.modules.identity.service import (
     EmailAlreadyUsedError,
     InvalidRoleError,
     LastAdminError,
     StaffNotFoundError,
     create_staff,
+    list_active_clinicians,
     list_staff,
     set_staff_active,
 )
@@ -32,6 +33,19 @@ def list_my_staff(
 ):
     """The staff of the logged-in admin's own clinic."""
     return list_staff(session, tenant_id=current_staff.tenant_id)
+
+
+@router.get(
+    "/clinicians",
+    response_model=list[ClinicianResponse],
+    dependencies=[Depends(require(Capability.APPOINTMENT_READ))],
+)
+def list_my_clinicians(
+    current_staff: CurrentStaff,
+    session: Session = Depends(get_session),
+):
+    """Active doctors and nurses, for anyone who books visits. Names and roles only."""
+    return list_active_clinicians(session, tenant_id=current_staff.tenant_id)
 
 
 @router.post(

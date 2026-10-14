@@ -193,3 +193,16 @@ def get_reminder_phone(
     if not isinstance(row, Patient):
         return None
     return row.phone
+
+
+def patient_names(
+    session: Session, *, tenant_id: uuid.UUID, patient_ids: list[uuid.UUID]
+) -> dict[uuid.UUID, str]:
+    """Full names only, in one query, for a list staff may already see (the queue).
+
+    It writes no diary line itself: the screen that shows the list records the look.
+    """
+    if not patient_ids:
+        return {}
+    statement = tenant_select(Patient, tenant_id).where(col(Patient.id).in_(patient_ids))
+    return {patient.id: patient.full_name for patient in session.exec(statement).all()}
