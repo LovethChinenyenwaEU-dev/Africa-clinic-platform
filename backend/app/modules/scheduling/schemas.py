@@ -51,6 +51,7 @@ class QueueEntryResponse(BaseModel):
 
     appointment_id: uuid.UUID
     patient_id: uuid.UUID
+    patient_name: str
     clinician_id: uuid.UUID | None
     kind: str
     visit_type: str
@@ -59,3 +60,19 @@ class QueueEntryResponse(BaseModel):
     scheduled_at: datetime
     checked_in_at: datetime | None
     consult_started_at: datetime | None
+
+class DayEntryResponse(BaseModel):
+    """One visit on a branch's day list. The patient's name, and nothing else about them."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    appointment_id: uuid.UUID
+    patient_id: uuid.UUID
+    patient_name: str
+    clinician_id: uuid.UUID | None
+    kind: str
+    visit_type: str
+    status: str
+    starts_at: datetime
+    ends_at: datetime
+    checked_in_at: datetime | None

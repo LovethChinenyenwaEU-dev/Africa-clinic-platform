@@ -30,6 +30,7 @@ class AuditAction(StrEnum):
     APPOINTMENT_NO_SHOW = "appointment.no_show"
     APPOINTMENT_RESCHEDULE = "appointment.reschedule"
     QUEUE_VIEW = "queue.view"
+    APPOINTMENT_LIST = "appointment.list"
     REMINDER_SEND = "reminder.send"
     ENCOUNTER_CREATE = "encounter.create"
     ENCOUNTER_CLOSE = "encounter.close"

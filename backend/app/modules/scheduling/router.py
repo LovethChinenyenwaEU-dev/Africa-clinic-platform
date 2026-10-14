@@ -1,14 +1,16 @@
 import uuid
 from collections.abc import Callable
+from datetime import date
+from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlmodel import Session
 
 from app.core.db import get_session
 from app.modules.identity.dependencies import CurrentStaff, require
 from app.modules.identity.permissions import Capability
 from app.modules.patients.service import PatientNotFoundError
-from app.modules.scheduling.board import get_queue
+from app.modules.scheduling.board import get_day_list, get_queue
 from app.modules.scheduling.lifecycle import (
     AppointmentNotFoundError,
     ClinicianMismatchError,
@@ -23,6 +25,7 @@ from app.modules.scheduling.models import Appointment
 from app.modules.scheduling.schemas import (
     AppointmentResponse,
     BookAppointment,
+    DayEntryResponse,
     QueueEntryResponse,
     RescheduleAppointment,
     WalkInRegistration,
@@ -156,6 +159,30 @@ def read_queue(
             tenant_id=current_staff.tenant_id,
             actor_id=current_staff.id,
             branch_id=branch_id,
+        )
+    except KNOWN_ERRORS as error:
+        raise _http_error(error) from None
+
+
+@router.get(
+    "/day",
+    response_model=list[DayEntryResponse],
+    dependencies=[Depends(require(Capability.APPOINTMENT_READ))],
+)
+def read_day_list(
+    current_staff: CurrentStaff,
+    branch_id: uuid.UUID,
+    day: Annotated[date, Query(alias="date")],
+    session: Session = Depends(get_session),
+):
+    """Every visit at one branch on one day (Lagos time), in any status. Looking is logged."""
+    try:
+        return get_day_list(
+            session,
+            tenant_id=current_staff.tenant_id,
+            actor_id=current_staff.id,
+            branch_id=branch_id,
+            day=day,
         )
     except KNOWN_ERRORS as error:
         raise _http_error(error) from None
