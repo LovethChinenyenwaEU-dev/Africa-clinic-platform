@@ -2,7 +2,7 @@ import "server-only";
 
 import { z } from "zod";
 
-const REQUEST_TIMEOUT_MS = 10_000;
+export const REQUEST_TIMEOUT_MS = 10_000;
 
 /** The backend could not be reached, or sent something we did not expect. */
 export class BackendUnavailableError extends Error {}
@@ -14,7 +14,7 @@ export class BackendRejectedError extends Error {
   }
 }
 
-function apiBase(): string {
+export function apiBase(): string {
   const url = process.env.API_INTERNAL_URL;
   if (!url) {
     throw new BackendUnavailableError("API_INTERNAL_URL is not set.");
