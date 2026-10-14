@@ -1,4 +1,4 @@
-from datetime import date
+from datetime import UTC, date, datetime, timedelta
 
 import pytest
 from fastapi.testclient import TestClient
@@ -129,3 +129,46 @@ def test_limit_trims_the_answer(client, session, run_id, clinics):
 
     assert response.status_code == 200
     assert len(response.json()) == 1
+
+def test_admin_can_filter_the_diary_by_staff_member(client, session, run_id, clinics):
+    desk_id = str(clinics["desk"].id)
+
+    response = client.get(
+        EVENTS_URL, params={"staff_id": desk_id}, headers=headers_for(session, run_id, "admin")
+    )
+
+    assert response.status_code == 200
+    assert response.json()  # the desk registered the patient
+    assert {event["actor_id"] for event in response.json()} == {desk_id}
+
+
+def test_admin_can_filter_the_diary_by_time(client, session, run_id, clinics):
+    admin = headers_for(session, run_id, "admin")
+    now = datetime.now(UTC)
+
+    recent = client.get(
+        EVENTS_URL, params={"since": (now - timedelta(hours=1)).isoformat()}, headers=admin
+    )
+    long_ago = client.get(
+        EVENTS_URL, params={"until": (now - timedelta(days=30)).isoformat()}, headers=admin
+    )
+
+    assert recent.status_code == long_ago.status_code == 200
+    assert "patient.create" in [event["action"] for event in recent.json()]
+    assert long_ago.json() == []
+
+
+@pytest.mark.parametrize(
+    "params",
+    [
+        {"since": "2026-10-14T00:00:00"},  # no time zone
+        {"since": "2026-10-14T00:00:00+00:00", "until": "2026-10-13T00:00:00+00:00"},
+        {"staff_id": "not-an-id"},
+    ],
+)
+def test_bad_filters_get_422_and_are_not_logged(client, session, run_id, clinics, params):
+    response = client.get(EVENTS_URL, params=params, headers=headers_for(session, run_id, "admin"))
+
+    assert response.status_code == 422
+    events = list_audit_events(session, tenant_id=clinics["a"].id)
+    assert [event for event in events if event.action == "audit.view"] == []

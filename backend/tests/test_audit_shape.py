@@ -6,6 +6,7 @@ ALLOWED_COLUMNS = {
     "tenant_id",
     "actor_id",
     "patient_id",
+    "entity_id",
     "action",
     "purpose",
     "occurred_at",
