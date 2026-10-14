@@ -3,7 +3,13 @@ from decimal import Decimal
 import pytest
 
 from app.modules.records.models import VitalSigns
-from app.modules.records.vitals import InvalidVitalsError, VitalReadings, check_readings
+from app.modules.records.vitals import (
+    RANGES,
+    READING_NAMES,
+    InvalidVitalsError,
+    VitalReadings,
+    check_readings,
+)
 
 ALLOWED_COLUMNS = {
     "id",
@@ -72,3 +78,15 @@ def test_real_readings_are_accepted_even_when_abnormal(readings):
 def test_typing_mistakes_are_refused(readings):
     with pytest.raises(InvalidVitalsError):
         check_readings(readings)
+
+
+def test_messages_name_the_reading_the_way_staff_say_it():
+    with pytest.raises(InvalidVitalsError) as caught:
+        check_readings(VitalReadings(temperature_c=Decimal("370")))
+
+    assert str(caught.value) == "Temperature (°C) must be between 25 and 45."
+    assert "temperature_c" not in str(caught.value)
+
+
+def test_every_reading_has_a_staff_name():
+    assert set(READING_NAMES) == set(RANGES)

@@ -62,6 +62,18 @@ RANGES: dict[str, tuple[Decimal, Decimal, int]] = {
     "height_cm": (Decimal(20), Decimal(250), 1),
 }
 
+# How staff see each reading in a message, never the internal field name.
+READING_NAMES: dict[str, str] = {
+    "systolic_mmhg": "Systolic blood pressure (mmHg)",
+    "diastolic_mmhg": "Diastolic blood pressure (mmHg)",
+    "pulse_bpm": "Pulse (per minute)",
+    "respiratory_rate": "Breathing rate (per minute)",
+    "spo2_pct": "SpO2 (%)",
+    "temperature_c": "Temperature (°C)",
+    "weight_kg": "Weight (kg)",
+    "height_cm": "Height (cm)",
+}
+
 
 def check_readings(readings: VitalReadings) -> None:
     """Raise InvalidVitalsError if anything was clearly mistyped."""
@@ -74,10 +86,11 @@ def check_readings(readings: VitalReadings) -> None:
             continue
         lowest, highest, places = RANGES[name]
         number = Decimal(value).normalize()  # 37.50 counts as 37.5
+        label = READING_NAMES[name]
         if not lowest <= number <= highest:
-            raise InvalidVitalsError(f"{name} must be between {lowest} and {highest}.")
+            raise InvalidVitalsError(f"{label} must be between {lowest} and {highest}.")
         if -number.as_tuple().exponent > places:
-            raise InvalidVitalsError(f"{name} allows at most {places} decimal places.")
+            raise InvalidVitalsError(f"{label} allows at most {places} decimal places.")
 
     systolic, diastolic = readings.systolic_mmhg, readings.diastolic_mmhg
     if (systolic is None) != (diastolic is None):
