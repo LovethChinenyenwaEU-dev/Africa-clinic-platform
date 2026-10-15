@@ -1,0 +1,100 @@
+# How the build matches the product brief
+
+Checked on 15 Oct 2026, at the end of Week 7, against [product-brief.md](./product-brief.md).
+Every "built" item was confirmed in the code or tests; every "missing" item was searched for
+in the repository. Update this file when a gap is closed or a decision changes.
+
+**Legend:** ✅ built and tested · 🟡 partly built · ⬜ not built yet (planned week shown) · ⚠️ differs from the brief, decision needed
+
+## 1. Where the build differs from the brief
+
+| # | Brief says | What we built | Recommendation |
+|---|---|---|---|
+| D1 | Backend: "modular TypeScript service (or Go equivalent)" | ✅ **Decided 15 Oct 2026: keep Python + FastAPI**, recorded in [ADR-0004](./adr/0004-python-backend.md). The modular design matches (ADR-0001). | Done. |
+| D2 | "PostgreSQL with tenant and **row-level** isolation" (SRS §5.3 says the same) | 🟡 Isolation is enforced in the application (every query goes through `tenant_select`, with clinic-wall tests on every endpoint). There is **no PostgreSQL row-level security** yet. | Add Postgres RLS as a second wall in the **W11 security pass**. |
+| D3 | "**Tamper-evident** audit trail" | 🟡 The audit log is **append-only**: a database trigger refuses any change or delete (ADR-0003). Not yet tamper-*evident*: nothing would show if someone with database-owner rights edited a row. | Add a hash chain (each line stores a hash of the previous one) in **W11**. |
+
+## 2. MVP scope, line by line
+
+### Clinic administration
+| Item | Status | Where / plan |
+|---|---|---|
+| Multi-tenant clinics, branches | ✅ | `tenancy`, clinic-wall tests |
+| Users and roles (admin, front desk, nurse, doctor, billing) | ✅ | `identity`, one permission table |
+| Services and prices | ⬜ | Not on the roadmap. Needed for billing: **add to W10** |
+| Clinician schedules / availability | ⬜ | Not on the roadmap. Needed for teleconsult booking: **add to W9** |
+| Departments, escalation rules (onboarding) | ⬜ | Not on the roadmap. Escalation rules belong with teleconsult red flags: **W9** |
+| Patient registration, duplicate warnings | ✅ | Deterministic matching, human confirmation, never auto-merged |
+| Consent capture | ✅ | Versioned clinic wording, patient or caregiver, withdraw keeps history |
+| Audit log | ✅ | Append-only, reads logged, entity + staff/date filters, admin screen |
+| Admin **screens** for staff, branches and consent wording | ⬜ | The API exists; admins have no screens for these yet. **Add to W11** (or earlier if a pilot needs them) |
+
+### Appointments and queue
+| Item | Status | Where / plan |
+|---|---|---|
+| Front-desk booking, walk-ins, check-in, cancel, no-show | ✅ | Queue screen, confirmed final actions, Lagos-day list |
+| Rescheduling | 🟡 | Backend done and tested; **no button on the screen yet** |
+| Triage | ⬜ | PRD P-03 lists "triage status" as Must; not built. **Add to W9** with red-flag screening |
+| Reminders with retries, one SMS/WhatsApp provider | 🟡 | Queue, worker, retries, consent check all done; **real provider not plugged in** (fake/none only) |
+| Admin notification console | ⬜ | No screen showing sent/failed reminders yet. **Add to W11** |
+| No-show tracking | 🟡 | Marking ✅; the no-show **rate report** is planned for the W11 dashboards |
+| Online / phone booking by patients | ⬜ | Needs the patient web experience (see §4) |
+
+### Core longitudinal record
+| Item | Status | Where / plan |
+|---|---|---|
+| Demographics, encounters, vitals, problems/diagnoses, allergies, notes | ✅ | Versioned corrections, never overwritten (FR-R3) |
+| Attachments | ⬜ | W11 (needs object storage) |
+| Prescriptions | ⬜ | W9 |
+| Clinician-approved patient summary | ⬜ | W9 |
+| Offline draft/outbox sync | ⬜ | **W8**. Groundwork done: every write already carries a device-made ID |
+
+### Teleconsult, billing, interoperability, operations
+| Item | Status | Plan |
+|---|---|---|
+| Teleconsult (availability, intake, consent, chat, video, audio/text fallback, note, follow-up, referral) | ⬜ | W9 |
+| Billing (invoice, receipt, refunds, reconciliation, gateway + cash/transfer) | ⬜ | W10 |
+| FHIR-aligned export | ⬜ | W11. Names already follow FHIR where possible (Encounter, `entered_in_error`, problem-list vs encounter-diagnosis, ICD-10 codes) |
+| Retention settings, backup/restore, privacy/incident runbook | ⬜ | W11–W12 |
+| Dashboards (wait time, no-shows, completion, sync failures, revenue, record access) | ⬜ | W11 |
+
+## 3. Architecture and security items
+
+| Brief item | Status | Notes |
+|---|---|---|
+| Next.js staff web app | ✅ | Next.js 16, Tailwind 4; token kept in an httpOnly cookie behind a server pass-through |
+| PWA with IndexedDB outbox | ⬜ | W8 |
+| Background jobs, queue-backed notifications | ✅ | Worker + reminder table as the queue, Redis heartbeat |
+| Idempotency keys | 🟡 | Device-made IDs make every create safe to repeat. The `Idempotency-Key` header with stored responses (skill rule) comes in **W8** |
+| Adapters behind retryable interfaces | ✅ | SMS adapter with fake/none; video, payments, labs follow the same pattern later |
+| Short-lived tokens | ✅ | 30 minutes; a switched-off staff member is refused on their very next request |
+| MFA for privileged staff | ⬜ | SRS FR-T4 (Should). **W11** |
+| Device/session revocation | 🟡 | Switching a person off cuts all their sessions at once; revoking **one device** is not built. W8 introduces devices; revocation in **W11** |
+| Least-privilege RBAC | ✅ | Plus record-level rules (only the opener signs off, only the author amends) |
+| ABAC | ⬜ | Not planned for the MVP; the record-level rules cover today's needs |
+| Consent and purpose tracking | 🟡 | Consent purposes ✅. Audit lines have a `purpose` field, but staff are not asked "why" when opening a record |
+| Rate limits, circuit breakers | ⬜ | W11 |
+| PHI-minimised logs | ✅ | Logs carry IDs and counts only; tested where it matters (reminders, origin check) |
+| Structured logs, metrics, tracing, alerting | ⬜ | W11 |
+| Encryption at rest, KMS, secrets manager, IaC, staging/prod, canary, SBOM | ⬜ | W12 deployment |
+| Clinical safety: no autonomous diagnosis | ✅ | No AI anywhere; vitals ranges catch typing slips only, never judge |
+
+## 4. Gaps that were not on the roadmap
+
+**Update 15 Oct 2026:** items 1–3 were added to the README roadmap (W9, W10, W11) as recommended.
+
+1. **Patient web experience.** The brief and the MVP need patients to book online, do pre-consult intake, see a clinician-approved summary, and download or grant access to records. The roadmap has no week for it. **Recommendation:** build it in W9 together with teleconsult (intake and the summary need it), keeping it lightweight as the brief says.
+2. **Services, prices, schedules and triage** (see §2). **Recommendation:** schedules and triage in W9, services and prices in W10.
+3. **Admin screens and the notification console** (see §2). **Recommendation:** W11.
+4. **Orders, results, care plans** (DiagnosticReport, CarePlan in the brief's FHIR list). They are in the brief's workflows but not its MVP list; lab result import is a PRD "Could have". **Recommendation:** after the MVP.
+
+## 5. Verdict
+
+The build is **in line with the brief's intent and safety rules**: offline-first groundwork,
+consent-aware, versioned clinical history, append-only audit, least privilege, clinic isolation,
+adapters for external services, no AI. Weeks 1–7 match their roadmap items.
+
+Three points differ from the brief (D1 language, D2 database-level isolation, D3 tamper-evidence)
+and four groups of MVP items were missing from the roadmap (§4). None blocks Week 8.
+On 15 Oct 2026 D1 was decided (ADR-0004) and §4 items 1–3 were added to the roadmap;
+D2 and D3 are scheduled for the W11 security pass.
