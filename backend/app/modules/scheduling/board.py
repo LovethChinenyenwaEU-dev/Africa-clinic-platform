@@ -1,6 +1,6 @@
 import uuid
 from dataclasses import dataclass
-from datetime import date, datetime, time, timedelta, timezone
+from datetime import UTC, date, datetime, time, timedelta, timezone
 
 from sqlmodel import Session, col
 
@@ -31,10 +31,13 @@ class QueueEntry:
     kind: str
     visit_type: str
     status: str
-    position: int | None  # place in the waiting line; None while in consultation
+    position: int | None  # place in today's waiting line; None while in consultation
     scheduled_at: datetime
     checked_in_at: datetime | None
     consult_started_at: datetime | None
+    # A visit from an earlier Lagos day that was never finished or cancelled.
+    # It is shown apart, never silently hidden, so front desk can tidy it up.
+    from_earlier_day: bool
 
 
 @dataclass(frozen=True)
@@ -59,7 +62,9 @@ def _names_for(session: Session, tenant_id: uuid.UUID, rows) -> dict[uuid.UUID, 
     )
 
 
-def _queue_entry(row: Appointment, position: int | None, names: dict) -> QueueEntry:
+def _queue_entry(
+    row: Appointment, position: int | None, names: dict, *, earlier: bool = False
+) -> QueueEntry:
     return QueueEntry(
         appointment_id=row.id,
         patient_id=row.patient_id,
@@ -72,7 +77,13 @@ def _queue_entry(row: Appointment, position: int | None, names: dict) -> QueueEn
         scheduled_at=row.starts_at,
         checked_in_at=row.checked_in_at,
         consult_started_at=row.consult_started_at,
+        from_earlier_day=earlier,
     )
+
+
+def lagos_day(moment: datetime) -> date:
+    """The Lagos calendar day a moment falls on."""
+    return moment.astimezone(CLINIC_TIME).date()
 
 
 def _require_branch(session: Session, tenant_id: uuid.UUID, branch_id: uuid.UUID) -> None:
@@ -86,8 +97,14 @@ def get_queue(
     tenant_id: uuid.UUID,
     actor_id: uuid.UUID,
     branch_id: uuid.UUID,
+    now: datetime | None = None,
 ) -> list[QueueEntry]:
-    """Who is being seen and who is waiting at this branch. Looking is noted in the diary."""
+    """Who is being seen and who is waiting at this branch. Looking is noted in the diary.
+
+    Today's visits come first and only they get places in the line. Visits left open
+    from earlier days come last, marked from_earlier_day, so they can be tidied up.
+    """
+    today = lagos_day(now or datetime.now(UTC))
     _require_branch(session, tenant_id, branch_id)
 
     # One diary line per look. It records THAT the board was viewed, not each patient on it.
@@ -109,17 +126,23 @@ def get_queue(
     rows = session.exec(statement).all()
     names = _names_for(session, tenant_id, rows)
 
+    current = [row for row in rows if lagos_day(row.starts_at) >= today]
+    leftover = sorted(
+        (row for row in rows if lagos_day(row.starts_at) < today),
+        key=lambda row: (row.starts_at, str(row.id)),
+    )
     in_consult = sorted(
-        (row for row in rows if row.status == Status.IN_CONSULT.value),
+        (row for row in current if row.status == Status.IN_CONSULT.value),
         key=lambda row: (row.consult_started_at or row.starts_at, str(row.id)),
     )
     waiting = sorted(
-        (row for row in rows if row.status == Status.WAITING.value),
+        (row for row in current if row.status == Status.WAITING.value),
         key=lambda row: (row.checked_in_at or row.starts_at, str(row.id)),
     )
 
     entries = [_queue_entry(row, None, names) for row in in_consult]
     entries += [_queue_entry(row, place, names) for place, row in enumerate(waiting, start=1)]
+    entries += [_queue_entry(row, None, names, earlier=True) for row in leftover]
     return entries
 
 

@@ -60,6 +60,8 @@ class QueueEntryResponse(BaseModel):
     scheduled_at: datetime
     checked_in_at: datetime | None
     consult_started_at: datetime | None
+    from_earlier_day: bool  # left open from an earlier day: shown apart, never hidden
+
 
 class DayEntryResponse(BaseModel):
     """One visit on a branch's day list. The patient's name, and nothing else about them."""

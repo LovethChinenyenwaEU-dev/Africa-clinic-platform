@@ -11,7 +11,7 @@ from app.modules.identity.service import (
     login,
     set_staff_active,
 )
-from app.modules.scheduling.board import get_day_list
+from app.modules.scheduling.board import get_day_list, get_queue
 from app.modules.scheduling.lifecycle import cancel_appointment
 from app.modules.tenancy.service import create_branch
 from tests.scheduling_helpers import PASSWORD, book, build_clinic, walk_in
@@ -207,3 +207,43 @@ def test_people_who_do_not_book_visits_cannot_list_clinicians(
 
 def test_the_clinician_list_needs_a_token(client):
     assert client.get("/api/v1/staff/clinicians").status_code == 401
+
+
+QUEUE_NOW = datetime(2026, 11, 2, 9, 0, tzinfo=UTC)  # 10:00 on Monday in Lagos
+
+
+def queue(session, clinic):
+    return get_queue(
+        session,
+        tenant_id=clinic["tenant"].id,
+        actor_id=clinic["desk"].id,
+        branch_id=clinic["branch"].id,
+        now=QUEUE_NOW,
+    )
+
+
+def test_visits_left_open_from_earlier_days_come_last_without_a_place(session, clinics):
+    a = clinics["a"]
+    yesterday = walk_in(session, a, now=at(9, day=1))
+    early = walk_in(session, a, now=at(8, 0))
+    late = walk_in(session, a, now=at(8, 30))
+
+    entries = queue(session, a)
+
+    assert [entry.appointment_id for entry in entries] == [early.id, late.id, yesterday.id]
+    assert [entry.position for entry in entries] == [1, 2, None]
+    assert [entry.from_earlier_day for entry in entries] == [False, False, True]
+
+
+def test_lagos_midnight_decides_what_counts_as_today_on_the_queue(session, clinics):
+    a = clinics["a"]
+    # 23:30 UTC on Sunday is 00:30 on Monday in Lagos: today, not a leftover.
+    just_after_midnight = walk_in(session, a, now=at(23, 30, day=1))
+    # 22:30 UTC on Sunday is 23:30 on Sunday in Lagos: a leftover.
+    late_sunday = walk_in(session, a, now=at(22, 30, day=1))
+
+    entries = {entry.appointment_id: entry for entry in queue(session, a)}
+
+    assert entries[just_after_midnight.id].from_earlier_day is False
+    assert entries[just_after_midnight.id].position == 1
+    assert entries[late_sunday.id].from_earlier_day is True
