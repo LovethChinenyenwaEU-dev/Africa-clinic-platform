@@ -31,9 +31,13 @@ function check(request: Request): boolean {
   if (trustedOrigins().has(originUrl.origin)) {
     return true;
   }
+  // A proxy may leave either header holding our address: Codespaces, for one, rewrites
+  // Origin to localhost and keeps the real address in x-forwarded-host. Matching either
+  // stays safe, because a cross-site page cannot fake Origin: it is always the
+  // attacker's own site, which never equals our host.
   const forwarded = request.headers.get("x-forwarded-host")?.split(",")[0]?.trim();
-  const host = forwarded || request.headers.get("host");
-  return Boolean(host) && originUrl.host === host;
+  const ours = [forwarded, request.headers.get("host")].filter(Boolean);
+  return ours.includes(originUrl.host);
 }
 
 /** True only when the request clearly came from our own website. */

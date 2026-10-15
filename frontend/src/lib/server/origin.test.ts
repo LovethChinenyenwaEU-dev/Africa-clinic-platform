@@ -26,6 +26,27 @@ describe("isSameOrigin", () => {
     expect(isSameOrigin(request({ host: "localhost:3000" }))).toBe(false);
   });
 
+  it("accepts what the Codespaces proxy really sends: Origin rewritten to localhost", () => {
+    // Seen in the Codespace's log on 15 Oct 2026.
+    const fromCodespace = request({
+      origin: "https://localhost:3000",
+      host: "localhost:3000",
+      "x-forwarded-host": "effective-sniffle-abc-3000.app.github.dev",
+    });
+
+    expect(isSameOrigin(fromCodespace)).toBe(true);
+  });
+
+  it("still refuses another site behind the same proxy", () => {
+    const attack = request({
+      origin: "https://evil.example",
+      host: "localhost:3000",
+      "x-forwarded-host": "effective-sniffle-abc-3000.app.github.dev",
+    });
+
+    expect(isSameOrigin(attack)).toBe(false);
+  });
+
   it("refuses the Codespaces address until it is listed as trusted", () => {
     // The Codespaces proxy tells the app it is on localhost:3000.
     const fromCodespace = request({
