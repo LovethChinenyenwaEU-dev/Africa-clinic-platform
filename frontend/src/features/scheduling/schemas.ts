@@ -22,6 +22,7 @@ export const queueEntrySchema = z.object({
   scheduled_at: z.string(),
   checked_in_at: z.string().nullable(),
   consult_started_at: z.string().nullable(),
+  from_earlier_day: z.boolean(),
 });
 export type QueueEntry = z.infer<typeof queueEntrySchema>;
 

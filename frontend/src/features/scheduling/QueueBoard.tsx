@@ -4,9 +4,10 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
+import { ConfirmAction } from "@/components/ui/ConfirmAction";
 import { openRecord, startVisit } from "@/features/records/api";
 import { API_MESSAGES, ApiError } from "@/lib/api-client";
-import { formatTime, todayInLagos, waitedFor } from "@/lib/format";
+import { formatDateTime, formatTime, todayInLagos, waitedFor } from "@/lib/format";
 
 import {
   changeVisit,
@@ -81,7 +82,7 @@ export function QueueBoard({ canConsult }: { canConsult: boolean }) {
 
   // Doctors and nurses: start the visit (or reopen its record) and go to the encounter.
   const begin = useMutation({
-    mutationFn: (entry: DayEntry) =>
+    mutationFn: (entry: Pick<DayEntry, "appointment_id" | "patient_id" | "status">) =>
       entry.status === "waiting"
         ? startVisit(entry.appointment_id, entry.patient_id)
         : openRecord(entry.appointment_id, entry.patient_id),
@@ -124,8 +125,13 @@ export function QueueBoard({ canConsult }: { canConsult: boolean }) {
   const [confirming, setConfirming] = useState<{ id: string; button: ActionButton } | null>(null);
 
   const change = useMutation({
-    mutationFn: ({ entry, action }: { entry: DayEntry; action: VisitAction }) =>
-      changeVisit(entry.appointment_id, action),
+    mutationFn: ({
+      entry,
+      action,
+    }: {
+      entry: Pick<DayEntry, "appointment_id">;
+      action: VisitAction;
+    }) => changeVisit(entry.appointment_id, action),
     onSuccess: refresh,
     onSettled: () => setConfirming(null),
   });
@@ -148,6 +154,9 @@ export function QueueBoard({ canConsult }: { canConsult: boolean }) {
   }
 
   const people = clinicians.data ?? [];
+  // Today's line, and visits left open from earlier days (shown apart, never hidden).
+  const nowEntries = queue.data?.filter((entry) => !entry.from_earlier_day);
+  const leftovers = queue.data?.filter((entry) => entry.from_earlier_day) ?? [];
 
   return (
     <div className="grid gap-6">
@@ -216,10 +225,10 @@ export function QueueBoard({ canConsult }: { canConsult: boolean }) {
             {messageOf(queue.error)}
           </p>
         )}
-        {queue.data && queue.data.length === 0 && <p>Nobody is waiting.</p>}
-        {queue.data && queue.data.length > 0 && (
+        {nowEntries && nowEntries.length === 0 && <p>Nobody is waiting.</p>}
+        {nowEntries && nowEntries.length > 0 && (
           <ol className="grid gap-2">
-            {queue.data.map((entry) => (
+            {nowEntries.map((entry) => (
               <li
                 key={entry.appointment_id}
                 className="flex flex-wrap items-center gap-x-3 gap-y-1 border-t border-line pt-2"
@@ -241,6 +250,55 @@ export function QueueBoard({ canConsult }: { canConsult: boolean }) {
           </ol>
         )}
       </section>
+
+      {leftovers.length > 0 && (
+        <section aria-labelledby="leftover-heading" className="card notice">
+          <h2 id="leftover-heading" className="mb-0">
+            Still open from earlier days
+          </h2>
+          <p className="text-sm">
+            These visits were never finished or cancelled. Cancel the ones that did not happen;
+            a visit with a clinician must be finished by them.
+          </p>
+          <ul className="grid gap-2">
+            {leftovers.map((entry) => (
+              <li
+                key={entry.appointment_id}
+                className="flex flex-wrap items-center gap-x-3 gap-y-2 border-t border-line pt-2"
+              >
+                <span className="font-semibold">{entry.patient_name}</span>
+                <StatusBadge status={entry.status} />
+                <span className="text-sm">{formatDateTime(entry.scheduled_at)}</span>
+                <span className="ml-auto flex flex-wrap gap-2">
+                  {entry.status === "waiting" && (
+                    <ConfirmAction
+                      label="Cancel"
+                      question="Cancel this visit? This cannot be undone."
+                      pending={change.isPending}
+                      onConfirm={() => change.mutate({ entry, action: "cancel" })}
+                    />
+                  )}
+                  {entry.status === "in_consult" &&
+                    (canConsult ? (
+                      <button
+                        type="button"
+                        className="button"
+                        disabled={begin.isPending}
+                        onClick={() => begin.mutate(entry)}
+                      >
+                        Open record
+                      </button>
+                    ) : (
+                      <span className="text-sm">
+                        Ask {clinicianName(people, entry.clinician_id)} to finish this visit.
+                      </span>
+                    ))}
+                </span>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
 
       <section aria-labelledby="day-heading" className="card">
         <div className="flex flex-wrap items-end justify-between gap-3">
