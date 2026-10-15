@@ -17,8 +17,7 @@ function trustedOrigins(): Set<string> {
   return origins;
 }
 
-/** True only when the request clearly came from our own website. */
-export function isSameOrigin(request: Request): boolean {
+function check(request: Request): boolean {
   const origin = request.headers.get("origin");
   if (!origin) {
     return false;
@@ -35,4 +34,20 @@ export function isSameOrigin(request: Request): boolean {
   const forwarded = request.headers.get("x-forwarded-host")?.split(",")[0]?.trim();
   const host = forwarded || request.headers.get("host");
   return Boolean(host) && originUrl.host === host;
+}
+
+/** True only when the request clearly came from our own website. */
+export function isSameOrigin(request: Request): boolean {
+  const allowed = check(request);
+  if (!allowed && process.env.NODE_ENV !== "production") {
+    // Development only: say why, so a proxy that hides our address is easy to spot.
+    // Addresses only, never bodies, cookies or anything about a person.
+    console.warn("[origin-check] refused", {
+      origin: request.headers.get("origin"),
+      host: request.headers.get("host"),
+      forwardedHost: request.headers.get("x-forwarded-host"),
+      trusted: [...trustedOrigins()],
+    });
+  }
+  return allowed;
 }
