@@ -5,8 +5,9 @@ from sqlmodel import col, select
 
 from app.core.config import settings
 from app.core.tenant_scope import tenant_select
-from app.demo_data import DemoNotAllowedError, seed_demo
-from app.modules.identity.service import EmailAlreadyUsedError, login
+from app.demo_data import DemoNotAllowedError, reset_demo_passwords, seed_demo
+from app.modules.identity.passwords import WeakPasswordError, verify_password
+from app.modules.identity.service import EmailAlreadyUsedError, create_staff, login
 from app.modules.patients.models import Patient
 from app.modules.scheduling.models import Appointment
 from app.modules.tenancy.models import Tenant
@@ -77,3 +78,56 @@ def test_it_refuses_anywhere_but_development_and_test(session, run_id, monkeypat
     with pytest.raises(DemoNotAllowedError):
         seed(session, run_id)
     assert session.exec(select(Tenant).where(col(Tenant.name).contains(run_id))).all() == []
+
+
+NEW_PASSWORD = "another-long-enough-password"
+
+
+def test_reset_gives_every_demo_login_the_new_password(session, run_id):
+    logins = seed(session, run_id)
+
+    changed = reset_demo_passwords(
+        session, password=NEW_PASSWORD, email_domain=f"{run_id}.example.com"
+    )
+
+    assert changed == len(logins)
+    for entry in logins:
+        assert login(session, email=entry.email, password=NEW_PASSWORD)
+
+
+def test_reset_never_touches_anyone_outside_the_demo_domain(session, run_id):
+    seed(session, run_id)
+    tenant = demo_tenant(session, run_id)
+    real = create_staff(
+        session,
+        tenant_id=tenant.id,
+        email=f"real.person@{run_id}.example.com.ng",
+        full_name="Not A Demo Person",
+        role="doctor",
+        password=PASSWORD,
+    )
+
+    reset_demo_passwords(session, password=NEW_PASSWORD, email_domain=f"{run_id}.example.com")
+
+    session.refresh(real)
+    assert verify_password(PASSWORD, real.password_hash)
+    session.delete(real)
+    session.commit()
+
+
+def test_reset_refuses_a_weak_password_and_changes_nothing(session, run_id):
+    logins = seed(session, run_id)
+
+    with pytest.raises(WeakPasswordError):
+        reset_demo_passwords(session, password="short", email_domain=f"{run_id}.example.com")
+    assert login(session, email=logins[0].email, password=PASSWORD)
+
+
+def test_reset_refuses_anywhere_but_development_and_test(session, run_id, monkeypatch):
+    seed(session, run_id)
+    monkeypatch.setattr(settings, "environment", "production")
+
+    with pytest.raises(DemoNotAllowedError):
+        reset_demo_passwords(
+            session, password=NEW_PASSWORD, email_domain=f"{run_id}.example.com"
+        )

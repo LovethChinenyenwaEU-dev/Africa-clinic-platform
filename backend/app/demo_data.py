@@ -6,11 +6,12 @@ and every person it creates is called "Demo ..." with an example.com email.
 from dataclasses import dataclass
 from datetime import UTC, date, datetime, timedelta
 
-from sqlmodel import Session
+from sqlmodel import Session, col, select
 
 from app.core.config import settings
 from app.modules.consent.service import grant_consent, publish_consent_text
-from app.modules.identity.models import Role
+from app.modules.identity.models import Role, Staff
+from app.modules.identity.passwords import check_password_rules, hash_password
 from app.modules.identity.service import EmailAlreadyUsedError, create_staff, email_is_taken
 from app.modules.patients.service import create_patient
 from app.modules.scheduling.service import book_appointment, register_walk_in
@@ -44,6 +45,32 @@ class DemoNotAllowedError(Exception):
     """Demo data is only for development and test machines."""
 
 
+def _require_development() -> None:
+    if settings.environment not in ALLOWED_ENVIRONMENTS:
+        raise DemoNotAllowedError(
+            f"Demo data is only allowed when ENVIRONMENT is one of {ALLOWED_ENVIRONMENTS}."
+        )
+
+
+def reset_demo_passwords(
+    session: Session, *, password: str, email_domain: str = "demo.example.com"
+) -> int:
+    """Give every demo login a new password. Returns how many were changed.
+
+    Only accounts whose email ends in @<email_domain> are touched, so a real
+    staff member's login can never be changed this way.
+    """
+    _require_development()
+    check_password_rules(password)
+    statement = select(Staff).where(col(Staff.email).endswith(f"@{email_domain}"))
+    demo_staff = session.exec(statement).all()
+    for staff in demo_staff:
+        staff.password_hash = hash_password(password)
+        session.add(staff)
+    session.commit()
+    return len(demo_staff)
+
+
 @dataclass(frozen=True)
 class DemoLogin:
     role: str
@@ -59,10 +86,7 @@ def seed_demo(
     now: datetime | None = None,
 ) -> list[DemoLogin]:
     """Create a demo clinic with staff, fake patients and a visit or two. Returns the logins."""
-    if settings.environment not in ALLOWED_ENVIRONMENTS:
-        raise DemoNotAllowedError(
-            f"Demo data is only allowed when ENVIRONMENT is one of {ALLOWED_ENVIRONMENTS}."
-        )
+    _require_development()
     emails = [f"admin@{email_domain}"] + [f"{role}@{email_domain}" for role, _ in STAFF]
     if any(email_is_taken(session, email) for email in emails):
         raise EmailAlreadyUsedError("The demo clinic already exists.")
