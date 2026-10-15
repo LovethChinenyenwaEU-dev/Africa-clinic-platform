@@ -141,6 +141,13 @@ export function AuditLog() {
         </div>
       </form>
 
+      {staff.isError && (
+        <p role="alert" className="notice">
+          Staff names could not be loaded ({errorMessage(staff.error)}), so people are shown
+          by ID.
+        </p>
+      )}
+
       {events.isError && (
         <p role="alert" className="error">
           {errorMessage(events.error)}

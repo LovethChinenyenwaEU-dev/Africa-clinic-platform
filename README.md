@@ -106,8 +106,21 @@ docker compose up --build
 
 - App: http://localhost:3000
 - API docs: http://localhost:8000/docs
-- Run tests: `docker compose exec api pytest`
+- Run tests: `docker compose exec api pytest` (backend) and `docker compose exec web npm test` (frontend)
 - Reminder worker: starts with the stack as the `worker` service. Watch it with `docker compose logs -f worker`. `SMS_PROVIDER=none` in `.env` means nothing is really sent.
+
+### Try it with demo data (development only)
+
+```bash
+docker compose exec api python -m app.cli seed-demo
+```
+
+This creates a demo clinic with clearly fake patients and five logins (`admin`, `front_desk`, `nurse`, `doctor`, `billing` at `@demo.example.com`), all with the password you type. It refuses to run unless `ENVIRONMENT` is `development` or `test`. Forgot the password? `python -m app.cli reset-demo-passwords` changes it for the demo logins only.
+
+### Running in GitHub Codespaces
+
+- After the Codespace stops (for example the idle timeout), bring everything back with `docker compose up -d`.
+- After a new frontend package is added, refresh the web container's packages: `docker compose up -d --build --renew-anon-volumes web`.
 
 ## Roadmap (12-week MVP)
 
@@ -117,7 +130,7 @@ docker compose up --build
 - [x] W4 Scheduling: appointments, walk-in queue, check-in, no-show
 - [x] W5 Reminders via job queue and one SMS/WhatsApp adapter (adapter interface done; real provider still to plug in)
 - [x] W6 Encounters, records, audit log (vitals, allergies, problems, versioned notes; attachments, prescriptions and the patient summary moved to W9/W11)
-- [ ] W7 Staff web app screens
+- [x] W7 Staff web app screens (patients and consent, today's queue, encounter record, audit log)
 - [ ] W8 Offline sync and conflict handling
 - [ ] W9 Teleconsult flow, prescriptions, clinician-approved patient summary
 - [ ] W10 Billing and one payment gateway

@@ -43,7 +43,7 @@ function check(request: Request): boolean {
 /** True only when the request clearly came from our own website. */
 export function isSameOrigin(request: Request): boolean {
   const allowed = check(request);
-  if (!allowed && process.env.NODE_ENV !== "production") {
+  if (!allowed && process.env.NODE_ENV === "development") {
     // Development only: say why, so a proxy that hides our address is easy to spot.
     // Addresses only, never bodies, cookies or anything about a person.
     console.warn("[origin-check] refused", {
