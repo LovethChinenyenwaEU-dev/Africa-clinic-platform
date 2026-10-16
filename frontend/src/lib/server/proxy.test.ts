@@ -101,6 +101,24 @@ describe("forwardToBackend", () => {
     expect(init.headers["Content-Type"]).toBe("application/json");
   });
 
+  it("passes the Idempotency-Key on, and no other browser header", async () => {
+    signedIn();
+    fetchMock.mockResolvedValueOnce(answer({ id: ID }, 201));
+    const request = fakeRequest({ method: "POST", body: "{}" });
+    request.headers.set("idempotency-key", "11111111-aaaa-4bbb-8ccc-222222222222");
+    request.headers.set("cookie", "clinic_session=secret");
+
+    await forwardToBackend(request, ["encounters"]);
+
+    const [, init] = fetchMock.mock.calls[0];
+    expect(init.headers["Idempotency-Key"]).toBe("11111111-aaaa-4bbb-8ccc-222222222222");
+    expect(Object.keys(init.headers).sort()).toEqual([
+      "Authorization",
+      "Content-Type",
+      "Idempotency-Key",
+    ]);
+  });
+
   it("refuses writes that do not come from our own site", async () => {
     signedIn();
 

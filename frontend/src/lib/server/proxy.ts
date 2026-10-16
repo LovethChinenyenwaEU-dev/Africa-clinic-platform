@@ -69,6 +69,10 @@ export async function forwardToBackend(request: Request, segments: string[]): Pr
     }
   }
 
+  // The only browser header passed on: it lets the backend run a repeated write once
+  // (offline outbox replays). The backend checks its format.
+  const idempotencyKey = request.headers.get("idempotency-key");
+
   let answer: Response;
   try {
     const query = new URL(request.url).search;
@@ -77,6 +81,7 @@ export async function forwardToBackend(request: Request, segments: string[]): Pr
       headers: {
         Authorization: `Bearer ${token}`,
         ...(body !== undefined ? { "Content-Type": "application/json" } : {}),
+        ...(idempotencyKey ? { "Idempotency-Key": idempotencyKey } : {}),
       },
       body,
       cache: "no-store",
