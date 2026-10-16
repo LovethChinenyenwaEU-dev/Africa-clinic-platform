@@ -57,6 +57,24 @@ export function PatientDetails({
 
       <section className="card">
         <h1 className="mb-0">{person.full_name}</h1>
+        {person.review_status === "needs_review" && (
+          <p className="notice">
+            Registered offline, and may already be registered.{" "}
+            <Link href="/patients/review" className="text-accent underline">
+              Review it
+            </Link>{" "}
+            before relying on this record.
+          </p>
+        )}
+        {person.review_status === "duplicate" && person.duplicate_of_id && (
+          <p className="notice">
+            Checked: this patient was already registered. Use{" "}
+            <Link href={`/patients/${person.duplicate_of_id}`} className="text-accent underline">
+              the original record
+            </Link>
+            . This one is kept, with what was recorded on it.
+          </p>
+        )}
         <dl className="grid gap-x-6 gap-y-2 sm:grid-cols-[max-content_1fr]">
           <dt className="font-semibold">Date of birth</dt>
           <dd>

@@ -9,7 +9,14 @@ import { indexedDbStore, memoryStore } from "./store";
  */
 
 // The query keys whose data a delivered write can change; they are re-read after a send.
-export const SYNCED_QUERIES = ["vitals", "notes", "allergies", "problems", "encounter"];
+export const SYNCED_QUERIES = [
+  "vitals",
+  "notes",
+  "allergies",
+  "problems",
+  "encounter",
+  "review-queue",
+];
 
 const hasIndexedDb = () => typeof indexedDB !== "undefined";
 

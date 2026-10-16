@@ -1,12 +1,18 @@
+import { z } from "zod";
+
 import { ApiError, apiGet, apiPost } from "@/lib/api-client";
+import type { NewWrite } from "@/lib/sync/outbox";
 
 import {
   duplicateWarningSchema,
   patientListSchema,
   patientSchema,
+  reviewItemSchema,
   type DuplicateMatch,
   type Patient,
   type RegisterPayload,
+  type ReviewDecision,
+  type ReviewItem,
 } from "./schemas";
 
 export const MIN_SEARCH_LENGTH = 2;
@@ -49,4 +55,28 @@ export async function registerPatient(
     }
     throw error;
   }
+}
+
+/**
+ * A registration made with no network, for the device outbox. Nobody can answer the
+ * duplicate question offline, so the server saves it anyway and, if it looks like
+ * someone already registered, flags it for review. The ID is made here, so sending
+ * it twice registers one person.
+ */
+export function offlineRegistrationWrite(form: RegisterPayload): NewWrite {
+  return {
+    path: "/patients",
+    body: { id: crypto.randomUUID(), ...form, registered_offline: true },
+    label: "Patient registration",
+    encounterId: null,
+  };
+}
+
+/** Offline registrations that may be someone already registered. Opening it is in the diary. */
+export function getReviewQueue(): Promise<ReviewItem[]> {
+  return apiGet("/patients/review-queue", z.array(reviewItemSchema));
+}
+
+export function decideReview(patientId: string, decision: ReviewDecision): Promise<Patient> {
+  return apiPost(`/patients/${encodeURIComponent(patientId)}/review`, decision, patientSchema);
 }

@@ -9,9 +9,10 @@ Roadmap: [README](./README.md#roadmap-12-week-mvp) · Brief: [docs/product-brief
 
 ---
 
-## 16 Oct 2026 (Fri): Week 8 Steps 1–7b
+## 16 Oct 2026 (Fri): Week 8 Steps 1–7c
 
 **Done**
+- Week 8 Step 7c: **registering patients offline.** With no network the form saves the registration on the device (or offers to, if the network drops mid-send), and the outbox sends it with its own ID and `registered_offline`. The server never refuses it as a possible duplicate (nobody could answer the question offline): it saves it and flags it `needs_review`. Front desk opens "Registrations to review", compares with the possible matches, and decides "Someone new" or "Same person as …". Nothing is merged or deleted: a duplicate points at the original. Every look and decision is in the audit log. Migration 0016.
 - Week 8 Step 7b: **the app opens with no network.** A service worker (`public/sw.js`) keeps the app's own files and the pages already opened on this device. Pages are fetched from the network first; if it fails, or takes more than 6 seconds (slow networks), the kept copy is shown, else a plain offline page. It never touches the API, writes, other sites, errors or redirects. Kept pages hold no patient data (screens load that in the browser), only the staff member's name, and are deleted at sign-out.
 - Week 8 Step 7a: **offline reads.** A small copy of what the person last read is kept on the device: today's queue and visit list, branches, clinicians, and the encounters opened on this device (current vitals and notes, allergies, problems, and that patient's name and age). Never patient search, other patients, consent or audit. The copy is put back on screen when the app opens, so an encounter opened earlier still shows offline, with a notice that it is the saved copy. It is deleted at sign-out, after 24 hours, and when someone else signs in on the device. The device database moved to version 2 (outbox + reads).
 - Week 8 Step 6: **the encounter screen writes through the outbox.** Vitals, allergies, problems and notes (and their corrections) are saved on the device first and sent from there, with the device's time on new vitals and notes. A header badge says "All saved", "N waiting to sync", "Offline", "Sign in again to send N" or "N not saved", and opens the list (refused ones show the server's reason and can be dismissed). The encounter shows what is still on the device and holds sign-off until it is sent. Sign-out is refused while anything is waiting or refused-but-not-dismissed. Each write belongs to the person who made it: after an expired session, someone else signing in on the device never sends it under their name. Opening and signing off an encounter stay online-only.
@@ -32,11 +33,13 @@ Roadmap: [README](./README.md#roadmap-12-week-mvp) · Brief: [docs/product-brief
 **Broke, and fixed**
 - *A proxy test used a header value with a line break:* real `Headers` objects refuse those before our code runs, so the test would have failed for the wrong reason. Replaced with a plain malformed value.
 
-**Finished:** Week 8 Steps 1–7a (green in the Codespace). Step 7b written, awaiting its Codespace run and a manual offline test.
+**Finished:** Week 8 Steps 1–7b (green in the Codespace). Step 7c written, awaiting its Codespace run (needs `alembic upgrade head`).
 
 **Pending:** as on 15 Oct. The conflict screen itself comes in Step 8 (the backend is ready).
 
-**Next:** Step 7c, offline patient registration with a "needs review" step.
+**Next:** Step 8, the conflict screen (choose between two versions, using the Step 3 endpoints) and an offline chaos test.
+
+**Pending (new):** merging a duplicate patient's visits into the original record (W11, with the admin screens).
 
 **Known limit:** new vitals carry the device's clock. A device clock more than 5 minutes fast is refused ("in the future"); the reason shows in the sync list.
 

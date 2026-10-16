@@ -2,7 +2,14 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { ApiError } from "@/lib/api-client";
 
-import { getPatient, registerPatient, searchPatients } from "./api";
+import {
+  decideReview,
+  getPatient,
+  getReviewQueue,
+  offlineRegistrationWrite,
+  registerPatient,
+  searchPatients,
+} from "./api";
 import { registerFormSchema } from "./schemas";
 
 const fetchMock = vi.fn();
@@ -12,6 +19,8 @@ const PATIENT = {
   date_of_birth: "1990-05-17",
   sex: "female",
   phone: "+2348031234567",
+  review_status: null,
+  duplicate_of_id: null,
 };
 const OTHER_ID = "22222222-2222-4222-8222-222222222222";
 const FORM = {
@@ -114,5 +123,47 @@ describe("registerFormSchema", () => {
     [{ phone: "0".repeat(41) }],
   ])("refuses %j", (change) => {
     expect(registerFormSchema.safeParse({ ...good, ...change }).success).toBe(false);
+  });
+});
+
+describe("offline registration and review", () => {
+  it("queues an offline registration with its own ID and the offline flag", () => {
+    const first = offlineRegistrationWrite(FORM);
+    const second = offlineRegistrationWrite(FORM);
+
+    expect(first).toMatchObject({
+      path: "/patients",
+      body: { ...FORM, registered_offline: true },
+      label: "Patient registration",
+      encounterId: null,
+    });
+    expect((first.body as { id: string }).id).not.toBe((second.body as { id: string }).id);
+    expect(first.label).not.toContain(FORM.full_name); // the label never carries the name
+  });
+
+  it("reads the review list, and treats an older patient answer as not flagged", async () => {
+    const { review_status: _status, duplicate_of_id: _of, ...older } = PATIENT;
+    const flagged = { ...PATIENT, id: OTHER_ID, review_status: "needs_review" };
+    fetchMock.mockResolvedValueOnce(
+      answer([{ patient: flagged, matches: [{ patient: older, reason: "same_phone" }] }]),
+    );
+
+    const [item] = await getReviewQueue();
+
+    expect(fetchMock.mock.calls[0][0]).toBe("/api/backend/patients/review-queue");
+    expect(item.patient.review_status).toBe("needs_review");
+    expect(item.matches[0].patient.review_status).toBeNull();
+  });
+
+  it("sends the decision", async () => {
+    fetchMock.mockResolvedValueOnce(answer({ ...PATIENT, review_status: "duplicate" }));
+
+    await decideReview(OTHER_ID, { decision: "duplicate", duplicate_of: PATIENT.id });
+
+    expect(fetchMock.mock.calls[0][0]).toBe(`/api/backend/patients/${OTHER_ID}/review`);
+    expect(JSON.parse(fetchMock.mock.calls[0][1].body)).toEqual({
+      decision: "duplicate",
+      duplicate_of: PATIENT.id,
+    });
   });
 });

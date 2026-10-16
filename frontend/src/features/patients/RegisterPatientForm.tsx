@@ -5,11 +5,12 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, type FormEvent } from "react";
 
+import { useSync } from "@/features/sync/SyncProvider";
 import { API_MESSAGES, ApiError } from "@/lib/api-client";
 import { errorsByField } from "@/lib/form-errors";
 import { todayInLagos } from "@/lib/format";
 
-import { registerPatient, type RegisterResult } from "./api";
+import { offlineRegistrationWrite, registerPatient, type RegisterResult } from "./api";
 import { DUPLICATE_REASON_LABELS, SEX_LABELS } from "./labels";
 import { SEXES, registerFormSchema, type RegisterPayload } from "./schemas";
 
@@ -25,7 +26,10 @@ export function RegisterPatientForm() {
   const [form, setForm] = useState<FormState>(EMPTY);
   const [errors, setErrors] = useState<Partial<Record<Field, string>>>({});
   // The checked form waiting for the person's answer to "is this someone new?".
-  const [pending, setPending] = useState<RegisterPayload | null>(null);
+  const [pending, setPending] = useState<RegisterPayload   // Registered with no network: kept on this device and sent when it returns.
+  const [savedOnDevice, setSavedOnDevice] = useState(false);
+  const { online, queue } = useSync();
+| null>(null);
 
   const register = useMutation({
     mutationFn: ({ payload, confirmed }: { payload: RegisterPayload; confirmed: boolean }) =>
@@ -52,8 +56,22 @@ export function RegisterPatientForm() {
     }
     setErrors({});
     setPending(parsed.data);
+    if (!online) {
+      void saveOnDevice(parsed.data);
+      return;
+    }
     register.mutate({ payload: parsed.data, confirmed: false });
   }
+
+  async function saveOnDevice(payload: RegisterPayload) {
+    await queue(offlineRegistrationWrite(payload));
+    register.reset();
+    setPending(null);
+    setForm(EMPTY);
+    setSavedOnDevice(true);
+  }
+
+  const networkFailed = register.error instanceof ApiError && register.error.kind === "unavailable";
 
   function confirmNewPerson() {
     if (pending) register.mutate({ payload: pending, confirmed: true });
@@ -69,6 +87,19 @@ export function RegisterPatientForm() {
   return (
     <section className="grid max-w-xl gap-6">
       <h1 className="mb-0">Register a patient</h1>
+
+      {!online && !savedOnDevice && (
+        <p className="notice">
+          Offline. The registration will be kept on this device and sent when the network
+          returns. If the patient may already be registered, front desk will be asked to check.
+        </p>
+      )}
+      {savedOnDevice && (
+        <p role="status" className="notice">
+          Saved on this device. The patient will be registered when the network returns (see the
+          sync badge at the top). You can register another patient below.
+        </p>
+      )}
 
       <form className="card" onSubmit={handleSubmit} noValidate>
         {/* Locked while the duplicate question is open, so what is confirmed is what was checked. */}
@@ -155,6 +186,17 @@ export function RegisterPatientForm() {
         {failure && (
           <p role="alert" className="error">
             {failure}
+          </p>
+        )}
+        {networkFailed && pending && (
+          <p>
+            <button
+              className="button-secondary"
+              type="button"
+              onClick={() => void saveOnDevice(pending)}
+            >
+              Save on this device instead
+            </button>
           </p>
         )}
 

@@ -30,3 +30,8 @@ def test_viewing_needs_a_token():
 def test_garbage_token_is_refused():
     response = client.post(URL, json=BODY, headers={"Authorization": "Bearer nonsense"})
     assert response.status_code == 401
+
+def test_the_review_doors_need_a_token():
+    assert client.get(f"{URL}/review-queue").status_code == 401
+    decision = {"decision": "new_person"}
+    assert client.post(f"{URL}/{uuid.uuid4()}/review", json=decision).status_code == 401

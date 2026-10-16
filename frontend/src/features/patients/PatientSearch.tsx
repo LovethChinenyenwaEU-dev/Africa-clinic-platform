@@ -45,9 +45,14 @@ export function PatientSearch({ canRegister }: { canRegister: boolean }) {
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h1 className="mb-0">Patients</h1>
         {canRegister && (
-          <Link href="/patients/new" className="button">
-            Register a patient
-          </Link>
+          <div className="flex flex-wrap gap-3">
+            <Link href="/patients/review" className="button-secondary">
+              Registrations to review
+            </Link>
+            <Link href="/patients/new" className="button">
+              Register a patient
+            </Link>
+          </div>
         )}
       </div>
 

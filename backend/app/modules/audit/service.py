@@ -19,6 +19,8 @@ class AuditAction(StrEnum):
     PATIENT_CREATE = "patient.create"
     PATIENT_VIEW = "patient.view"
     PATIENT_SEARCH = "patient.search"
+    PATIENT_REVIEW_LIST = "patient.review_list"  # opened the list of registrations to review
+    PATIENT_REVIEW = "patient.review"  # decided: someone new, or already registered
     CONSENT_GRANT = "consent.grant"
     CONSENT_REVOKE = "consent.revoke"
     CONSENT_VIEW = "consent.view"

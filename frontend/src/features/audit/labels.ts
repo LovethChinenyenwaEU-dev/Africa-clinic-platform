@@ -3,6 +3,8 @@ export const ACTION_LABELS: Record<string, string> = {
   "patient.create": "Registered a patient",
   "patient.view": "Opened a patient",
   "patient.search": "Searched for patients",
+  "patient.review_list": "Viewed registrations to review",
+  "patient.review": "Decided on an offline registration",
   "consent.grant": "Recorded consent",
   "consent.revoke": "Withdrew consent",
   "consent.view": "Viewed consent",
@@ -47,7 +49,7 @@ export function describeAction(action: string): string {
 
 // Reads are the lines an investigation usually looks for ("who looked at this?").
 export function isRead(action: string): boolean {
-  return /\.(view|list|search)$/.test(action);
+  return /[._](view|list|search)$/.test(action); // patient.review_list counts too
 }
 
 // The platform's own actor (the reminder worker). No staff row has this ID.

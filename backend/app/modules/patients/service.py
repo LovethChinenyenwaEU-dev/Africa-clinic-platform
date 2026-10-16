@@ -7,7 +7,7 @@ from sqlmodel import Session, col
 
 from app.core.tenant_scope import get_in_tenant, tenant_select
 from app.modules.audit.service import AuditAction, add_audit_event
-from app.modules.patients.models import Patient, Sex
+from app.modules.patients.models import Patient, ReviewStatus, Sex
 from app.modules.patients.phone import InvalidPhoneError, normalise_phone
 
 MIN_SEARCH_LENGTH = 2
@@ -74,8 +74,21 @@ def create_patient(
     sex: str,
     phone: str | None = None,
     confirmed_not_duplicate: bool = False,
+    patient_id: uuid.UUID | None = None,
+    registered_offline: bool = False,
 ) -> Patient:
-    """Register a patient. The patient and the diary line are saved together or not at all."""
+    """Register a patient. The patient and the diary line are saved together or not at all.
+
+    patient_id may come from the device: sending the same one again changes nothing.
+    registered_offline: the form was filled with no network, so nobody could answer
+    the duplicate question. A possible duplicate is then saved anyway and flagged
+    needs_review, rather than refused: the person is at the desk being seen.
+    """
+    if patient_id is not None:
+        existing = get_in_tenant(session, Patient, tenant_id=tenant_id, row_id=patient_id)
+        if isinstance(existing, Patient):
+            return existing
+
     clean_name = " ".join(full_name.split())
     if not clean_name:
         raise InvalidPatientError("Patient name cannot be empty.")
@@ -91,6 +104,7 @@ def create_patient(
 
     clean_phone = normalise_phone(phone) if phone and phone.strip() else None
 
+    review_status = None
     if not confirmed_not_duplicate:
         matches = find_possible_duplicates(
             session,
@@ -99,16 +113,20 @@ def create_patient(
             date_of_birth=date_of_birth,
             phone=clean_phone,
         )
-        if matches:
+        if matches and not registered_offline:
             raise PossibleDuplicateError(matches)
+        if matches:
+            review_status = ReviewStatus.NEEDS_REVIEW.value
 
     patient = Patient(
+        id=patient_id or uuid.uuid4(),
         tenant_id=tenant_id,
         full_name=clean_name,
         date_of_birth=date_of_birth,
         sex=sex_value,
         phone=clean_phone,
         created_by_id=actor_id,
+        review_status=review_status,
     )
     session.add(patient)
     add_audit_event(
@@ -206,3 +224,105 @@ def patient_names(
         return {}
     statement = tenant_select(Patient, tenant_id).where(col(Patient.id).in_(patient_ids))
     return {patient.id: patient.full_name for patient in session.exec(statement).all()}
+
+
+# Reviewing registrations made offline (Week 8)
+
+
+class NotWaitingForReviewError(Exception):
+    """This patient is not waiting for a duplicate review (never was, or already decided)."""
+
+
+@dataclass(frozen=True)
+class ReviewItem:
+    """A registration to review, with the people it may duplicate."""
+
+    patient: Patient
+    matches: list[tuple[Patient, str]]  # (possible original, reason)
+
+
+def list_for_review(
+    session: Session, *, tenant_id: uuid.UUID, actor_id: uuid.UUID
+) -> list[ReviewItem]:
+    """This clinic's offline registrations waiting for a person to decide, oldest first.
+
+    Names are shown so front desk can compare; looking at the list is in the diary.
+    """
+    add_audit_event(
+        session, tenant_id=tenant_id, actor_id=actor_id, action=AuditAction.PATIENT_REVIEW_LIST
+    )
+    session.commit()
+
+    waiting = session.exec(
+        tenant_select(Patient, tenant_id)
+        .where(col(Patient.review_status) == ReviewStatus.NEEDS_REVIEW.value)
+        .order_by(col(Patient.created_at))
+    ).all()
+    items = []
+    for patient in waiting:
+        found = find_possible_duplicates(
+            session,
+            tenant_id=tenant_id,
+            full_name=patient.full_name,
+            date_of_birth=patient.date_of_birth,
+            phone=patient.phone,
+        )
+        others = [match for match in found if match.patient_id != patient.id]
+        rows = {
+            row.id: row
+            for row in session.exec(
+                tenant_select(Patient, tenant_id).where(
+                    col(Patient.id).in_([match.patient_id for match in others])
+                )
+            ).all()
+        }
+        items.append(
+            ReviewItem(
+                patient=patient,
+                matches=[(rows[m.patient_id], m.reason) for m in others if m.patient_id in rows],
+            )
+        )
+    return items
+
+
+def review_patient(
+    session: Session,
+    *,
+    tenant_id: uuid.UUID,
+    actor_id: uuid.UUID,
+    patient_id: uuid.UUID,
+    duplicate_of: uuid.UUID | None,
+) -> Patient:
+    """Decide on an offline registration: someone new (duplicate_of None), or already
+    registered as duplicate_of. Nothing is merged or deleted; visits already made under
+    this record stay on it, and staff use the original from now on."""
+    statement = (
+        tenant_select(Patient, tenant_id).where(col(Patient.id) == patient_id).with_for_update()
+    )
+    patient = session.exec(statement).first()
+    if patient is None:
+        raise PatientNotFoundError("Patient not found.")
+    if patient.review_status != ReviewStatus.NEEDS_REVIEW.value:
+        raise NotWaitingForReviewError("This registration is not waiting for review.")
+
+    if duplicate_of is None:
+        patient.review_status = ReviewStatus.CONFIRMED_NEW.value
+    else:
+        if duplicate_of == patient.id:
+            raise InvalidPatientError("A patient cannot be a duplicate of themselves.")
+        if not patient_exists(session, tenant_id=tenant_id, patient_id=duplicate_of):
+            raise PatientNotFoundError("Patient not found.")
+        patient.review_status = ReviewStatus.DUPLICATE.value
+        patient.duplicate_of_id = duplicate_of
+
+    session.add(patient)
+    add_audit_event(
+        session,
+        tenant_id=tenant_id,
+        actor_id=actor_id,
+        action=AuditAction.PATIENT_REVIEW,
+        patient_id=patient.id,
+    )
+    session.commit()
+    session.refresh(patient)
+    return patient

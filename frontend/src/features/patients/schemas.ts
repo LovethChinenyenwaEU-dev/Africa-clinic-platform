@@ -11,6 +11,10 @@ export const patientSchema = z.object({
   date_of_birth: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
   sex: z.string(),
   phone: z.string().nullable(),
+  // Registered offline while a possible duplicate existed: needs_review, then
+  // confirmed_new or duplicate (of duplicate_of_id). Null for normal registrations.
+  review_status: z.string().nullable().default(null),
+  duplicate_of_id: z.string().uuid().nullable().default(null),
 });
 export type Patient = z.infer<typeof patientSchema>;
 
@@ -47,3 +51,13 @@ export const duplicateWarningSchema = z.object({
     .min(1),
 });
 export type DuplicateMatch = z.infer<typeof duplicateWarningSchema>["matches"][number];
+
+// An offline registration waiting for a person to decide, with who it may duplicate.
+export const reviewItemSchema = z.object({
+  patient: patientSchema,
+  matches: z.array(z.object({ patient: patientSchema, reason: z.enum(DUPLICATE_REASONS) })),
+});
+export type ReviewItem = z.infer<typeof reviewItemSchema>;
+export type ReviewDecision =
+  | { decision: "new_person" }
+  | { decision: "duplicate"; duplicate_of: string };
