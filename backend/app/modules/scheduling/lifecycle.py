@@ -17,6 +17,7 @@ from app.modules.scheduling.service import (
 )
 from app.modules.scheduling.statuses import AppointmentStatus as Status
 from app.modules.scheduling.transitions import InvalidMoveError, check_move
+from app.modules.telehealth.readiness import require_safe_teleconsult
 
 
 class AppointmentNotFoundError(Exception):
@@ -73,6 +74,7 @@ def check_in(
     new_status = check_move(
         appointment.status, Status.WAITING.value, starts_at=appointment.starts_at, now=current
     )
+    require_safe_teleconsult(session, appointment)
 
     appointment.status = new_status.value
     appointment.checked_in_at = current
@@ -97,6 +99,7 @@ def start_consultation(
         raise ClinicianNotFoundError("Only an active doctor or nurse can run a consultation.")
     if appointment.clinician_id not in (None, actor_id):
         raise ClinicianMismatchError("This visit belongs to another clinician.")
+    require_safe_teleconsult(session, appointment)
 
     appointment.clinician_id = actor_id
     appointment.status = new_status.value

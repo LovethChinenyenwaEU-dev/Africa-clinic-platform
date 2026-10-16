@@ -10,8 +10,16 @@ from app.modules.idempotency.models import IdempotencyRecord
 from app.modules.identity.models import Staff
 from app.modules.notifications.models import Reminder
 from app.modules.patients.models import Patient
-from app.modules.records.models import Allergy, ClinicalNote, Encounter, Problem, VitalSigns
-from app.modules.scheduling.models import Appointment
+from app.modules.records.models import (
+    Allergy,
+    ClinicalNote,
+    Encounter,
+    Prescription,
+    Problem,
+    VitalSigns,
+)
+from app.modules.scheduling.models import Appointment, Availability, Triage
+from app.modules.telehealth.models import TeleconsultIntake
 from app.modules.tenancy.models import Branch, Tenant
 
 
@@ -38,6 +46,10 @@ def session(run_id):
             for model in (
                 IdempotencyRecord,
                 Reminder,
+                TeleconsultIntake,
+                Triage,
+                Availability,
+                Prescription,
                 VitalSigns,
                 Allergy,
                 Problem,

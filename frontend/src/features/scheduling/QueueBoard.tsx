@@ -6,6 +6,7 @@ import { useEffect, useState } from "react";
 
 import { ConfirmAction } from "@/components/ui/ConfirmAction";
 import { openRecord, startVisit } from "@/features/records/api";
+import { IntakeForm } from "@/features/telehealth/IntakeForm";
 import { API_MESSAGES, ApiError } from "@/lib/api-client";
 import { formatDateTime, formatTime, todayInLagos, waitedFor } from "@/lib/format";
 
@@ -84,6 +85,14 @@ const ACTIONS: Record<string, ActionButton[]> = {
   waiting: [{ action: "cancel", label: "Cancel", confirm: "Cancel this visit?" }],
 };
 
+// A remote visit checks in by its intake (the danger-sign screen), never by a button.
+function actionsFor(entry: Pick<DayEntry, "status" | "visit_type">): ActionButton[] {
+  const buttons = ACTIONS[entry.status] ?? [];
+  return entry.visit_type === "teleconsult"
+    ? buttons.filter((button) => button.action !== "check-in")
+    : buttons;
+}
+
 export function QueueBoard({ canConsult }: { canConsult: boolean }) {
   const queryClient = useQueryClient();
   const router = useRouter();
@@ -101,6 +110,8 @@ export function QueueBoard({ canConsult }: { canConsult: boolean }) {
   const [form, setForm] = useState<"none" | "walk-in" | "book">("none");
   // The visit whose triage form is open, if any.
   const [triaging, setTriaging] = useState<string | null>(null);
+  // The remote visit whose intake form is open, if any.
+  const [intakeFor, setIntakeFor] = useState<string | null>(null);
 
   const branches = useQuery({ queryKey: ["branches"], queryFn: getBranches });
   const clinicians = useQuery({ queryKey: ["clinicians"], queryFn: getClinicians });
@@ -248,6 +259,9 @@ export function QueueBoard({ canConsult }: { canConsult: boolean }) {
                 </span>
                 <span className="font-semibold">{entry.patient_name}</span>
                 <StatusBadge status={entry.status} />
+                {entry.visit_type === "teleconsult" && (
+                  <span className="badge bg-blue-100 text-blue-900">Remote</span>
+                )}
                 {entry.triage_level && (
                   <span className={`badge ${TRIAGE_STYLES[entry.triage_level] ?? ""}`}>
                     {TRIAGE_LABELS[entry.triage_level] ?? entry.triage_level}
@@ -379,6 +393,9 @@ export function QueueBoard({ canConsult }: { canConsult: boolean }) {
                 <span className="w-14 font-mono">{formatTime(entry.starts_at)}</span>
                 <span className="font-semibold">{entry.patient_name}</span>
                 <StatusBadge status={entry.status} />
+                {entry.visit_type === "teleconsult" && (
+                  <span className="badge bg-blue-100 text-blue-900">Remote</span>
+                )}
                 <span className="text-sm">{clinicianName(people, entry.clinician_id)}</span>
                 {confirming?.id === entry.appointment_id ? (
                   <span role="group" className="ml-auto flex flex-wrap items-center gap-2">
@@ -417,7 +434,19 @@ export function QueueBoard({ canConsult }: { canConsult: boolean }) {
                         {entry.status === "waiting" ? "Start visit" : "Open record"}
                       </button>
                     )}
-                    {(ACTIONS[entry.status] ?? []).map((button) => (
+                    {entry.visit_type === "teleconsult" &&
+                      entry.status === "booked" &&
+                      intakeFor !== entry.appointment_id && (
+                        <button
+                          type="button"
+                          className="button"
+                          onClick={() => setIntakeFor(entry.appointment_id)}
+                          aria-label={`Intake: ${entry.patient_name}`}
+                        >
+                          Intake
+                        </button>
+                      )}
+                    {actionsFor(entry).map((button) => (
                       <button
                         key={button.action}
                         type="button"
@@ -434,6 +463,21 @@ export function QueueBoard({ canConsult }: { canConsult: boolean }) {
                       </button>
                     ))}
                   </span>
+                )}
+                {intakeFor === entry.appointment_id && (
+                  <IntakeForm
+                    appointmentId={entry.appointment_id}
+                    patientId={entry.patient_id}
+                    patientName={entry.patient_name}
+                    onDone={() => {
+                      setIntakeFor(null);
+                      refresh();
+                    }}
+                    onCancel={() => {
+                      setIntakeFor(null);
+                      refresh();
+                    }}
+                  />
                 )}
               </li>
             ))}

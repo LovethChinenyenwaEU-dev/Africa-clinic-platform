@@ -38,6 +38,9 @@ class AuditAction(StrEnum):
     TRIAGE_VIEW = "triage.view"
     AVAILABILITY_ADD = "availability.add"  # a clinician published weekly hours
     AVAILABILITY_REMOVE = "availability.remove"
+    TELECONSULT_INTAKE = "teleconsult.intake"
+    TELECONSULT_ESCALATE = "teleconsult.escalate"  # danger sign: advised in-person care
+    TELECONSULT_INTAKE_VIEW = "teleconsult.intake_view"
     REMINDER_SEND = "reminder.send"
     ENCOUNTER_CREATE = "encounter.create"
     ENCOUNTER_CLOSE = "encounter.close"
