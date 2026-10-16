@@ -29,6 +29,7 @@ ALLOWED_COLUMNS = {
     "measured_at",
     "recorded_by_id",
     "recorded_at",
+    "synced_late",
 }
 
 

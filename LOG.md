@@ -9,9 +9,10 @@ Roadmap: [README](./README.md#roadmap-12-week-mvp) · Brief: [docs/product-brief
 
 ---
 
-## 16 Oct 2026 (Fri): Week 8 Steps 1–3
+## 16 Oct 2026 (Fri): Week 8 Steps 1–4
 
 **Done**
+- Week 8 Step 4: **late offline entries.** Vitals or a note taken on a device that was offline, before the doctor signed off, are accepted when they arrive after sign-off and marked `synced_late` (a "Synced late" badge on the encounter screen). Accepted only if the device time falls between the encounter opening and sign-off; an entry with no device time, or dated after sign-off, is still refused. Notes now keep the device's time (`written_at`) as well as the arrival time. Migration 0015.
 - Week 8 Step 3: **conflicting corrections are kept, never refused or overwritten** (FR-O4). If two devices correct the same vitals, note, allergy or problem, the second one is saved with status `conflict`, shown beside the current version, and a clinician chooses which to keep (`POST /vitals|notes|allergies|problems/{id}/resolve` with `keep: this|current`). The one not chosen goes into history; nothing is deleted, and the choice is in the audit log. Who may choose: vitals, whoever recorded either set or the encounter owner; notes, the author only; allergies and problems, any clinician.
 - Week 8 Step 1 (written on 15 Oct) confirmed in the Codespace: migration 0013 up and down, backend tests green, 156 frontend tests. A write sent twice with the same `Idempotency-Key` now happens once (the SRS acceptance test: 3 sends, 1 record).
 - Week 8 Step 2: every audit line records **which device** it came from (FR-A2). Each browser keeps a random device ID (not a fingerprint), sends it as `X-Device-Id`, the pass-through forwards it only if it is a proper UUID, and the admin audit log shows a Device column.
@@ -27,11 +28,11 @@ Roadmap: [README](./README.md#roadmap-12-week-mvp) · Brief: [docs/product-brief
 **Broke, and fixed**
 - *A proxy test used a header value with a line break:* real `Headers` objects refuse those before our code runs, so the test would have failed for the wrong reason. Replaced with a plain malformed value.
 
-**Finished:** Week 8 Steps 1–2 (green in the Codespace). Step 3 written, awaiting its Codespace run.
+**Finished:** Week 8 Steps 1–2 (green in the Codespace). Step 3 green. Step 4 written, awaiting its Codespace run (needs `alembic upgrade head`).
 
 **Pending:** as on 15 Oct. The conflict screen itself comes in Step 8 (the backend is ready).
 
-**Next:** Step 4, late offline entries: vitals and notes taken before sign-off but synced after it are accepted and marked "synced late".
+**Next:** Step 5, the device outbox (IndexedDB): writes made offline wait on the device and are sent, in order, when the network returns.
 
 ---
 

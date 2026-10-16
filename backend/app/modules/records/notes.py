@@ -13,8 +13,8 @@ from sqlmodel import Session, col
 
 from app.core.tenant_scope import get_in_tenant, tenant_select
 from app.modules.audit.service import AuditAction, add_audit_event
-from app.modules.records.chart import _working_encounter
 from app.modules.records.conflicts import SHOWN, new_version_status, resolve_conflict
+from app.modules.records.late import CLOCK_SKEW, is_late_entry
 from app.modules.records.models import ClinicalNote, Encounter
 from app.modules.records.service import (
     EncounterNotFoundError,
@@ -56,6 +56,16 @@ def clean_kind(kind: str) -> str:
         raise InvalidNoteError(f"Kind must be one of: {allowed}.") from None
 
 
+def _clean_written_at(moment: datetime | None, now: datetime) -> datetime:
+    if moment is None:
+        return now
+    if moment.tzinfo is None or moment.utcoffset() is None:
+        raise InvalidNoteError("The time written must include a time zone.")
+    if moment > now + CLOCK_SKEW:
+        raise InvalidNoteError("A note cannot be written in the future.")
+    return moment.astimezone(UTC)
+
+
 def _existing(session: Session, *, tenant_id: uuid.UUID, note_id: uuid.UUID | None):
     if note_id is None:
         return None
@@ -72,9 +82,14 @@ def write_note(
     kind: str,
     body: str,
     note_id: uuid.UUID | None = None,
+    written_at: datetime | None = None,
     now: datetime | None = None,
 ) -> ClinicalNote:
-    """Add a note to an open encounter. Any active clinician may write their own note."""
+    """Add a note to an open encounter. Any active clinician may write their own note.
+
+    written_at is the device's time, sent when the note was written offline. A note
+    written before sign-off is accepted after it, marked synced_late.
+    """
     current = now or datetime.now(UTC)
     _require_clinician(session, tenant_id=tenant_id, actor_id=actor_id)
     existing = _existing(session, tenant_id=tenant_id, note_id=note_id)
@@ -82,7 +97,15 @@ def write_note(
         return existing
 
     values = {"kind": clean_kind(kind), "body": clean_body(body)}
-    encounter = _working_encounter(session, tenant_id=tenant_id, encounter_id=encounter_id)
+    written = _clean_written_at(written_at, current)
+    encounter = get_in_tenant(session, Encounter, tenant_id=tenant_id, row_id=encounter_id)
+    if not isinstance(encounter, Encounter):
+        raise EncounterNotFoundError("Encounter not found.")
+    late = is_late_entry(
+        encounter,
+        taken_at=written if written_at is not None else None,  # no device time: written now
+        refusal="Entries can only be made in an open encounter.",
+    )
     note = ClinicalNote(
         id=note_id or uuid.uuid4(),
         tenant_id=tenant_id,
@@ -91,6 +114,8 @@ def write_note(
         version_status=VersionStatus.CURRENT.value,
         recorded_by_id=actor_id,
         recorded_at=current,
+        written_at=written,
+        synced_late=late,
         **values,
     )
     session.add(note)
@@ -159,6 +184,7 @@ def amend_note(
         body=new_body,
         recorded_by_id=actor_id,
         recorded_at=current,
+        written_at=current,  # amendments are allowed after sign-off, so never "late"
     )
     session.add(old)
     session.add(amended)

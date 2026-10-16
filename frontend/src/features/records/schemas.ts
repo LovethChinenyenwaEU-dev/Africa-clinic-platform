@@ -20,7 +20,7 @@ export const vitalsSchema = z.object({
   id,
   encounter_id: id,
   patient_id: id,
-  status: z.string(), // current or superseded
+  status: z.string(), // current, superseded or conflict
   replaces_id: id.nullable(),
   systolic_mmhg: z.number().int().nullable(),
   diastolic_mmhg: z.number().int().nullable(),
@@ -33,6 +33,7 @@ export const vitalsSchema = z.object({
   measured_at: z.string(),
   recorded_by_id: id,
   recorded_at: z.string(),
+  synced_late: z.boolean().default(false), // taken offline before sign-off, arrived after
 });
 export type Vitals = z.infer<typeof vitalsSchema>;
 
@@ -89,5 +90,7 @@ export const noteSchema = z.object({
   body: z.string(),
   recorded_by_id: id,
   recorded_at: z.string(),
+  written_at: z.string().optional(), // when written on the device
+  synced_late: z.boolean().default(false), // written offline before sign-off, arrived after
 });
 export type Note = z.infer<typeof noteSchema>;

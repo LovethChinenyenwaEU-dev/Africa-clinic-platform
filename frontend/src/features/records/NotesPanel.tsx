@@ -100,13 +100,22 @@ export function NotesPanel({ encounter, meId, nameOf }: RecordContext) {
               <p className="flex flex-wrap items-center gap-x-3 text-sm">
                 <span className="font-semibold">{NOTE_KIND_LABELS[note.kind] ?? note.kind}</span>
                 <span>
-                  {nameOf(note.recorded_by_id)}, {formatDateTime(note.recorded_at)}
+                  {nameOf(note.recorded_by_id)},{" "}
+                  {formatDateTime(note.written_at ?? note.recorded_at)}
                 </span>
                 {note.version_status === "superseded" && (
                   <span className="badge bg-gray-200 text-gray-800">Earlier wording</span>
                 )}
                 {note.replaces_id && note.version_status === "current" && (
                   <span className="badge bg-blue-100 text-blue-900">Amended</span>
+                )}
+                {note.synced_late && (
+                  <span
+                    className="badge bg-amber-100 text-amber-900"
+                    title={`Written before sign-off on a device that was offline; it arrived ${formatDateTime(note.recorded_at)}.`}
+                  >
+                    Synced late
+                  </span>
                 )}
               </p>
               {amending?.id === note.id ? (

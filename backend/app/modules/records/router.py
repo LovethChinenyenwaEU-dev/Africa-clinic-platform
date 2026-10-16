@@ -527,6 +527,7 @@ def add_note(
             kind=body.kind,
             body=body.body,
             note_id=body.id,
+            written_at=body.written_at,
         )
     except KNOWN_ERRORS as error:
         raise _http_error(error) from None

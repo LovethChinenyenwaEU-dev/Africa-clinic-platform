@@ -6,7 +6,7 @@ possible value is always accepted.
 """
 import uuid
 from dataclasses import asdict, dataclass
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, datetime
 from decimal import Decimal
 
 from sqlmodel import Session, col
@@ -14,6 +14,7 @@ from sqlmodel import Session, col
 from app.core.tenant_scope import get_in_tenant, tenant_select
 from app.modules.audit.service import AuditAction, add_audit_event
 from app.modules.records.conflicts import SHOWN, new_version_status, resolve_conflict
+from app.modules.records.late import CLOCK_SKEW, is_late_entry
 from app.modules.records.models import Encounter, VitalSigns
 from app.modules.records.service import (
     EncounterNotFoundError,
@@ -46,9 +47,6 @@ class VitalReadings:
     weight_kg: Decimal | None = None
     height_cm: Decimal | None = None
 
-
-# A device clock may run a little ahead of the server.
-CLOCK_SKEW = timedelta(minutes=5)
 
 # (lowest, highest, decimal places allowed). Wide human limits, newborn to adult.
 RANGES: dict[str, tuple[Decimal, Decimal, int]] = {
@@ -137,6 +135,7 @@ def record_vitals(
     """Add a set of vitals to an open encounter. Any active clinician may add.
 
     vitals_id may come from the device; sending the same one again changes nothing.
+    A set taken offline before sign-off is accepted after it, marked synced_late.
     """
     current = now or datetime.now(UTC)
     _require_clinician(session, tenant_id=tenant_id, actor_id=actor_id)
@@ -147,8 +146,11 @@ def record_vitals(
     check_readings(readings)
     taken = _clean_moment(measured_at, current)
     encounter = _encounter(session, tenant_id=tenant_id, encounter_id=encounter_id)
-    if encounter.status != EncounterStatus.OPEN.value:
-        raise EncounterNotOpenError("New vitals can only be added to an open encounter.")
+    late = is_late_entry(
+        encounter,
+        taken_at=taken if measured_at is not None else None,  # no device time: made now
+        refusal="New vitals can only be added to an open encounter.",
+    )
 
     vitals = VitalSigns(
         id=vitals_id or uuid.uuid4(),
@@ -159,6 +161,7 @@ def record_vitals(
         measured_at=taken,
         recorded_by_id=actor_id,
         recorded_at=current,
+        synced_late=late,
         **asdict(readings),
     )
     session.add(vitals)

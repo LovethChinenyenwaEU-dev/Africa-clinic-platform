@@ -39,6 +39,8 @@ ALLOWED_COLUMNS = {
     "body",
     "recorded_by_id",
     "recorded_at",
+    "written_at",
+    "synced_late",
 }
 
 

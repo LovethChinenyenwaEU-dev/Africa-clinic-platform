@@ -74,6 +74,7 @@ class VitalsResponse(BaseModel):
     measured_at: datetime
     recorded_by_id: uuid.UUID
     recorded_at: datetime
+    synced_late: bool
 
 
 class AllergyForm(BaseModel):
@@ -138,6 +139,7 @@ class WriteNote(BaseModel):
     id: uuid.UUID | None = None
     kind: str = Field(max_length=20)
     body: str = Field(max_length=20_000)
+    written_at: datetime | None = None  # when written on the device; must include a time zone
 
 
 class AmendNote(BaseModel):
@@ -166,3 +168,5 @@ class NoteResponse(BaseModel):
     body: str
     recorded_by_id: uuid.UUID
     recorded_at: datetime
+    written_at: datetime
+    synced_late: bool

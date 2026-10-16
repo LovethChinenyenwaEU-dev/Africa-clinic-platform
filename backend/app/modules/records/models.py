@@ -75,6 +75,8 @@ class VitalSigns(SQLModel, table=True):
     measured_at: datetime = Field(sa_column=_time_column())  # when taken, maybe offline
     recorded_by_id: uuid.UUID = Field(foreign_key="staff.id")
     recorded_at: datetime = Field(default_factory=utcnow, sa_column=_time_column())
+    # Taken before sign-off but reached the server after it (see late.py).
+    synced_late: bool = False
 
 
 class Allergy(SQLModel, table=True):
@@ -154,3 +156,7 @@ class ClinicalNote(SQLModel, table=True):
 
     recorded_by_id: uuid.UUID = Field(foreign_key="staff.id")  # the author
     recorded_at: datetime = Field(default_factory=utcnow, sa_column=_time_column())
+    # When the author wrote it on their device, maybe offline. recorded_at is when it arrived.
+    written_at: datetime = Field(default_factory=utcnow, sa_column=_time_column())
+    # Written before sign-off but reached the server after it (see late.py).
+    synced_late: bool = False

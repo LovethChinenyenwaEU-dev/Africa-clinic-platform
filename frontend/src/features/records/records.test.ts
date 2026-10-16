@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { addAllergy, recordVitals, signOff, startVisit } from "./api";
 import { EMPTY_READINGS, describeVitals, formFromVitals, readingsFromForm } from "./readings";
-import type { Encounter, Vitals } from "./schemas";
+import { vitalsSchema, type Encounter, type Vitals } from "./schemas";
 
 const fetchMock = vi.fn();
 const PATIENT = "11111111-1111-4111-8111-111111111111";
@@ -34,6 +34,7 @@ const VITALS: Vitals = {
   measured_at: "2026-11-02T08:05:00Z",
   recorded_by_id: ENCOUNTER.clinician_id,
   recorded_at: "2026-11-02T08:05:00Z",
+  synced_late: false,
 };
 
 function answer(body: unknown, status = 200) {
@@ -73,6 +74,16 @@ describe("readingsFromForm", () => {
 
   it("describes a set in one line", () => {
     expect(describeVitals(VITALS)).toBe("BP 120/80 mmHg · Pulse 88 /min · Temperature 37.5 °C");
+  });
+});
+
+describe("synced late", () => {
+  it("reads the late mark, and treats an answer without it as on time", () => {
+    const older: Record<string, unknown> = { ...VITALS };
+    delete older.synced_late;
+
+    expect(vitalsSchema.parse({ ...VITALS, synced_late: true }).synced_late).toBe(true);
+    expect(vitalsSchema.parse(older).synced_late).toBe(false);
   });
 });
 

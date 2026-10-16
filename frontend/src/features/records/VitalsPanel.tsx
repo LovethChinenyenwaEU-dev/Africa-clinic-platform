@@ -166,6 +166,14 @@ export function VitalsPanel({ encounter, meId, nameOf }: RecordContext) {
                   {set.replaces_id && set.status === "current" && (
                     <span className="badge bg-blue-100 text-blue-900">Correction</span>
                   )}
+                  {set.synced_late && (
+                    <span
+                      className="badge bg-amber-100 text-amber-900"
+                      title="Taken before sign-off on a device that was offline; it arrived afterwards."
+                    >
+                      Synced late
+                    </span>
+                  )}
                   <span className="text-sm">by {nameOf(set.recorded_by_id)}</span>
                   {canCorrect(set) && (
                     <button
