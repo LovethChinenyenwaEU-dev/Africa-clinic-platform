@@ -1,9 +1,10 @@
 "use client";
 
 import { MutationCache, QueryCache, QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { useState, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 
 import { ApiError } from "@/lib/api-client";
+import { registerServiceWorker } from "@/lib/sync/service-worker";
 
 // When any screen learns the session has ended, everyone goes back to sign in.
 function sendToLoginIfSignedOut(error: unknown) {
@@ -13,6 +14,9 @@ function sendToLoginIfSignedOut(error: unknown) {
 }
 
 export function Providers({ children }: { children: ReactNode }) {
+  // Lets the app open with no network (Week 8).
+  useEffect(registerServiceWorker, []);
+
   const [client] = useState(
     () =>
       new QueryClient({

@@ -6,6 +6,7 @@ import { useState } from "react";
 
 import { useSync } from "@/features/sync/SyncProvider";
 import { deviceReadCache } from "@/lib/sync/device-outbox";
+import { forgetSavedPages } from "@/lib/sync/service-worker";
 import { signOutBlock, syncView } from "@/lib/sync/summary";
 
 import { logout } from "./api";
@@ -21,6 +22,7 @@ export function SignOutButton() {
       await logout();
       // Patient data kept for offline use leaves the device with the person.
       await deviceReadCache().clear().catch(() => {});
+      await forgetSavedPages().catch(() => {});
     },
     onSuccess: () => {
       queryClient.clear(); // and none stays in this tab's memory
