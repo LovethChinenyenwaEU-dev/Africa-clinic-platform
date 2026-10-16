@@ -50,8 +50,17 @@ export function EncounterScreen({ encounterId, meId }: { encounterId: string; me
     onSuccess: refresh,
   });
 
-  if (encounter.isPending) return <p>Loading the encounter...</p>;
-  if (encounter.isError) {
+  if (encounter.isPending) {
+    return (
+      <p>
+        {sync.online
+          ? "Loading the encounter..."
+          : "Offline, and this encounter is not saved on this device. Open it again when the network returns."}
+      </p>
+    );
+  }
+  // With a copy saved on this device, a failed refresh still shows the copy.
+  if (encounter.isError && !encounter.data) {
     return (
       <section className="grid gap-3">
         <h1 className="mb-0">Could not open this encounter</h1>
@@ -63,7 +72,8 @@ export function EncounterScreen({ encounterId, meId }: { encounterId: string; me
     );
   }
 
-  const record = encounter.data;
+  const record = encounter.data!;
+  const fromDevice = encounter.isError || !sync.online;
   const nameOf = (staffId: string) =>
     staffId === meId
       ? "you"
@@ -114,6 +124,14 @@ export function EncounterScreen({ encounterId, meId }: { encounterId: string; me
               record.closed_at,
             )} by ${nameOf(record.closed_by_id)}`}
         </p>
+
+        {fromDevice && (
+          <p role="status" className="notice">
+            Showing the copy saved on this device at{" "}
+            {formatDateTime(new Date(encounter.dataUpdatedAt).toISOString())}. What you add is
+            kept here and sent when the network returns.
+          </p>
+        )}
 
         {signedOff && (
           <p role="status" className="notice">

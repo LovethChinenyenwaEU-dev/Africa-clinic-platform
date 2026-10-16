@@ -9,9 +9,10 @@ Roadmap: [README](./README.md#roadmap-12-week-mvp) · Brief: [docs/product-brief
 
 ---
 
-## 16 Oct 2026 (Fri): Week 8 Steps 1–6
+## 16 Oct 2026 (Fri): Week 8 Steps 1–7a
 
 **Done**
+- Week 8 Step 7a: **offline reads.** A small copy of what the person last read is kept on the device: today's queue and visit list, branches, clinicians, and the encounters opened on this device (current vitals and notes, allergies, problems, and that patient's name and age). Never patient search, other patients, consent or audit. The copy is put back on screen when the app opens, so an encounter opened earlier still shows offline, with a notice that it is the saved copy. It is deleted at sign-out, after 24 hours, and when someone else signs in on the device. The device database moved to version 2 (outbox + reads).
 - Week 8 Step 6: **the encounter screen writes through the outbox.** Vitals, allergies, problems and notes (and their corrections) are saved on the device first and sent from there, with the device's time on new vitals and notes. A header badge says "All saved", "N waiting to sync", "Offline", "Sign in again to send N" or "N not saved", and opens the list (refused ones show the server's reason and can be dismissed). The encounter shows what is still on the device and holds sign-off until it is sent. Sign-out is refused while anything is waiting or refused-but-not-dismissed. Each write belongs to the person who made it: after an expired session, someone else signing in on the device never sends it under their name. Opening and signing off an encounter stay online-only.
 - Week 8 Step 5: **the device outbox** (frontend, `src/lib/sync/`). A write made on the device is stored in IndexedDB first, then sent oldest-first with its own `Idempotency-Key`, so a re-send after a dropped connection is never recorded twice. No network: stop and keep everything in order. Session ended: keep everything untouched. Refused for good (403/404/409/422): kept, marked failed with the server's reason, and the rest carry on. Only one send runs at a time. Not yet connected to the screens (Step 6).
 - Week 8 Step 4: **late offline entries.** Vitals or a note taken on a device that was offline, before the doctor signed off, are accepted when they arrive after sign-off and marked `synced_late` (a "Synced late" badge on the encounter screen). Accepted only if the device time falls between the encounter opening and sign-off; an entry with no device time, or dated after sign-off, is still refused. Notes now keep the device's time (`written_at`) as well as the arrival time. Migration 0015.
@@ -30,11 +31,11 @@ Roadmap: [README](./README.md#roadmap-12-week-mvp) · Brief: [docs/product-brief
 **Broke, and fixed**
 - *A proxy test used a header value with a line break:* real `Headers` objects refuse those before our code runs, so the test would have failed for the wrong reason. Replaced with a plain malformed value.
 
-**Finished:** Week 8 Steps 1–5 (green in the Codespace). Step 6 written, awaiting its Codespace run and a manual offline test.
+**Finished:** Week 8 Steps 1–6 (green in the Codespace). Step 7a written, awaiting its Codespace run and a manual offline test.
 
 **Pending:** as on 15 Oct. The conflict screen itself comes in Step 8 (the backend is ready).
 
-**Next:** Step 7, offline reads (today's queue and open encounters kept on the device, wiped at sign-out and after 24 hours), a service worker so the app opens offline, and offline patient registration with review.
+**Next:** Step 7b, a service worker so the app itself opens with no network; then 7c, offline patient registration with a "needs review" step.
 
 **Known limit:** new vitals carry the device's clock. A device clock more than 5 minutes fast is refused ("in the future"); the reason shows in the sync list.
 

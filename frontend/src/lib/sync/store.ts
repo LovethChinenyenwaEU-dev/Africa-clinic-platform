@@ -9,6 +9,8 @@
  * sign-out is blocked while anything is still waiting (Week 8 decision).
  */
 
+import { OUTBOX, done, finished, openDatabase } from "./database";
+
 export type OutboxStatus = "pending" | "failed";
 
 export type OutboxItem = {
@@ -57,58 +59,22 @@ export function memoryStore(): OutboxStore {
   };
 }
 
-const DB_NAME = "clinic-offline";
-const DB_VERSION = 1;
-const OUTBOX = "outbox";
-
-function done<T>(request: IDBRequest<T>): Promise<T> {
-  return new Promise((resolve, reject) => {
-    request.onsuccess = () => resolve(request.result);
-    request.onerror = () => reject(request.error);
-  });
-}
-
-function finished(transaction: IDBTransaction): Promise<void> {
-  return new Promise((resolve, reject) => {
-    transaction.oncomplete = () => resolve();
-    transaction.onerror = () => reject(transaction.error);
-    transaction.onabort = () => reject(transaction.error);
-  });
-}
-
-function openDatabase(): Promise<IDBDatabase> {
-  const request = indexedDB.open(DB_NAME, DB_VERSION);
-  request.onupgradeneeded = () => {
-    const db = request.result;
-    if (!db.objectStoreNames.contains(OUTBOX)) {
-      // The key grows with every write, so reading in key order is arrival order,
-      // whatever the device clock says.
-      const store = db.createObjectStore(OUTBOX, { keyPath: "seq", autoIncrement: true });
-      store.createIndex("id", "id", { unique: true });
-    }
-  };
-  return done(request);
-}
-
 export function indexedDbStore(): OutboxStore {
-  let opening: Promise<IDBDatabase> | null = null;
-  const db = () => (opening ??= openDatabase());
-
   async function write(work: (store: IDBObjectStore) => void): Promise<void> {
-    const transaction = (await db()).transaction(OUTBOX, "readwrite");
+    const transaction = (await openDatabase()).transaction(OUTBOX, "readwrite");
     work(transaction.objectStore(OUTBOX));
     await finished(transaction);
   }
 
   return {
     async add(item) {
-      const transaction = (await db()).transaction(OUTBOX, "readwrite");
+      const transaction = (await openDatabase()).transaction(OUTBOX, "readwrite");
       const seq = await done(transaction.objectStore(OUTBOX).add(item));
       await finished(transaction);
       return { ...item, seq: Number(seq) };
     },
     async list() {
-      const transaction = (await db()).transaction(OUTBOX, "readonly");
+      const transaction = (await openDatabase()).transaction(OUTBOX, "readonly");
       return (await done(transaction.objectStore(OUTBOX).getAll())) as OutboxItem[];
     },
     async put(item) {

@@ -5,6 +5,7 @@ import { navFor } from "@/features/identity/navigation";
 import { ROLE_LABELS } from "@/features/identity/roles";
 import { SignOutButton } from "@/features/identity/SignOutButton";
 import { StaffNav } from "@/features/identity/StaffNav";
+import { OfflineReads } from "@/features/sync/OfflineReads";
 import { SyncIndicator } from "@/features/sync/SyncIndicator";
 import { SyncProvider } from "@/features/sync/SyncProvider";
 import { requireUser } from "@/lib/server/require-user";
@@ -32,7 +33,9 @@ export default async function StaffLayout({ children }: { children: ReactNode })
             </div>
           </div>
         </header>
-        <main className="mx-auto max-w-5xl px-4 py-6">{children}</main>
+        <main className="mx-auto max-w-5xl px-4 py-6">
+          <OfflineReads staffId={user.id}>{children}</OfflineReads>
+        </main>
       </div>
     </SyncProvider>
   );

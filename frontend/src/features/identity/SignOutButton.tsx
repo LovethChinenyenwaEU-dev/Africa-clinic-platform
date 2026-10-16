@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 
 import { useSync } from "@/features/sync/SyncProvider";
+import { deviceReadCache } from "@/lib/sync/device-outbox";
 import { signOutBlock, syncView } from "@/lib/sync/summary";
 
 import { logout } from "./api";
@@ -16,9 +17,13 @@ export function SignOutButton() {
   const [refusal, setRefusal] = useState<string | null>(null);
 
   const signOut = useMutation({
-    mutationFn: logout,
+    mutationFn: async () => {
+      await logout();
+      // Patient data kept for offline use leaves the device with the person.
+      await deviceReadCache().clear().catch(() => {});
+    },
     onSuccess: () => {
-      queryClient.clear(); // no patient data stays in this tab's memory
+      queryClient.clear(); // and none stays in this tab's memory
       router.replace("/login");
       router.refresh();
     },
