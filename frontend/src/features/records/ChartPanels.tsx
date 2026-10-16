@@ -4,15 +4,16 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState, type FormEvent } from "react";
 
 import { ConfirmAction } from "@/components/ui/ConfirmAction";
+import { useSync } from "@/features/sync/SyncProvider";
 import { errorMessage } from "@/lib/api-client";
 
 import {
-  addAllergy,
-  addProblem,
+  allergyRevisionWrite,
+  allergyWrite,
   getAllergies,
   getProblems,
-  reviseAllergy,
-  reviseProblem,
+  problemRevisionWrite,
+  problemWrite,
   type AllergyDetails,
   type ProblemDetails,
 } from "./api";
@@ -43,6 +44,7 @@ function problemDetails(problem: Problem, clinical_status: string): ProblemDetai
 
 export function AllergiesPanel({ encounter, nameOf }: RecordContext) {
   const queryClient = useQueryClient();
+  const { queue } = useSync();
   const key = ["allergies", encounter.patient_id];
   const allergies = useQuery({ queryKey: key, queryFn: () => getAllergies(encounter.patient_id) });
   const refresh = () => void queryClient.invalidateQueries({ queryKey: key });
@@ -51,12 +53,14 @@ export function AllergiesPanel({ encounter, nameOf }: RecordContext) {
   const [adding, setAdding] = useState(false);
   const add = useMutation({
     mutationFn: () =>
-      addAllergy(encounter.id, {
-        substance: form.substance,
-        reaction: form.reaction.trim() || null,
-        severity: form.severity,
-        clinical_status: "active",
-      }),
+      queue(
+        allergyWrite(encounter.id, {
+          substance: form.substance,
+          reaction: form.reaction.trim() || null,
+          severity: form.severity,
+          clinical_status: "active",
+        }),
+      ),
     onSuccess: () => {
       setAdding(false);
       setForm({ substance: "", reaction: "", severity: "unknown" });
@@ -65,7 +69,7 @@ export function AllergiesPanel({ encounter, nameOf }: RecordContext) {
   });
   const revise = useMutation({
     mutationFn: ({ allergy, status }: { allergy: Allergy; status: string }) =>
-      reviseAllergy(allergy.id, encounter.id, allergyDetails(allergy, status)),
+      queue(allergyRevisionWrite(allergy.id, encounter.id, allergyDetails(allergy, status))),
     onSuccess: refresh,
   });
 
@@ -195,6 +199,7 @@ export function AllergiesPanel({ encounter, nameOf }: RecordContext) {
 
 export function ProblemsPanel({ encounter, nameOf }: RecordContext) {
   const queryClient = useQueryClient();
+  const { queue } = useSync();
   const key = ["problems", encounter.patient_id];
   const problems = useQuery({ queryKey: key, queryFn: () => getProblems(encounter.patient_id) });
   const refresh = () => void queryClient.invalidateQueries({ queryKey: key });
@@ -204,13 +209,15 @@ export function ProblemsPanel({ encounter, nameOf }: RecordContext) {
   const [adding, setAdding] = useState(false);
   const add = useMutation({
     mutationFn: () =>
-      addProblem(encounter.id, {
-        description: form.description,
-        category: form.category,
-        code: form.code.trim() || null,
-        clinical_status: "active",
-        onset_date: null,
-      }),
+      queue(
+        problemWrite(encounter.id, {
+          description: form.description,
+          category: form.category,
+          code: form.code.trim() || null,
+          clinical_status: "active",
+          onset_date: null,
+        }),
+      ),
     onSuccess: () => {
       setAdding(false);
       setForm(empty);
@@ -219,7 +226,7 @@ export function ProblemsPanel({ encounter, nameOf }: RecordContext) {
   });
   const revise = useMutation({
     mutationFn: ({ problem, status }: { problem: Problem; status: string }) =>
-      reviseProblem(problem.id, encounter.id, problemDetails(problem, status)),
+      queue(problemRevisionWrite(problem.id, encounter.id, problemDetails(problem, status))),
     onSuccess: refresh,
   });
 

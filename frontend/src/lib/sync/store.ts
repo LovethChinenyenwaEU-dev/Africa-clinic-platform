@@ -17,6 +17,7 @@ export type OutboxItem = {
   path: string; // for example /encounters/{id}/vitals
   body: unknown;
   label: string; // plain words for the screen, never clinical text: "Vitals"
+  staffId: string; // who made it: only their own session ever sends it
   encounterId: string | null; // so a screen can show what is still waiting for it
   createdAt: string; // ISO time, on the device clock
   attempts: number;

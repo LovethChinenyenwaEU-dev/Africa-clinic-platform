@@ -8,6 +8,8 @@ import { ConfirmAction } from "@/components/ui/ConfirmAction";
 import { getPatient } from "@/features/patients/api";
 import { SEX_LABELS } from "@/features/patients/labels";
 import { getClinicians } from "@/features/scheduling/api";
+import { OutboxList } from "@/features/sync/OutboxList";
+import { useSync } from "@/features/sync/SyncProvider";
 import { errorMessage } from "@/lib/api-client";
 import { ageFrom, formatDate, formatDateTime } from "@/lib/format";
 
@@ -18,6 +20,7 @@ import { NotesPanel } from "./NotesPanel";
 import { VitalsPanel } from "./VitalsPanel";
 
 export function EncounterScreen({ encounterId, meId }: { encounterId: string; meId: string }) {
+  const sync = useSync();
   const queryClient = useQueryClient();
   const [signedOff, setSignedOff] = useState<SignOffResult | null>(null);
 
@@ -68,6 +71,10 @@ export function EncounterScreen({ encounterId, meId }: { encounterId: string; me
   const isOwner = record.clinician_id === meId;
   const isOpen = record.status === "open";
   const context = { encounter: record, meId, nameOf };
+  // Entries made here on this device and not yet on the server (or refused by it).
+  const onDevice = sync.items.filter(
+    (item) => item.encounterId === record.id && item.staffId === sync.staffId,
+  );
 
   return (
     <div className="grid gap-6">
@@ -122,7 +129,13 @@ export function EncounterScreen({ encounterId, meId }: { encounterId: string; me
           </p>
         )}
 
-        {isOpen && isOwner && (
+        {isOpen && isOwner && onDevice.length > 0 && (
+          <p className="notice">
+            Sign-off waits until the entries below have reached the server, so the record you
+            sign is complete.
+          </p>
+        )}
+        {isOpen && isOwner && onDevice.length === 0 && (
           <div className="flex flex-wrap gap-3">
             <ConfirmAction
               label="Sign off"
@@ -150,6 +163,22 @@ export function EncounterScreen({ encounterId, meId }: { encounterId: string; me
           </p>
         )}
       </section>
+
+      {onDevice.length > 0 && (
+        <section aria-labelledby="on-device-heading" className="card">
+          <h2 id="on-device-heading" className="mb-0">
+            Saved on this device
+          </h2>
+          <p className="text-sm">
+            {!onDevice.some((item) => item.status === "pending")
+              ? "The server could not accept these. Read why, then dismiss them."
+              : sync.online
+                ? "Sending to the server..."
+                : "Offline. They are kept here and sent when the network returns."}
+          </p>
+          <OutboxList items={onDevice} onDiscard={sync.discard} />
+        </section>
+      )}
 
       <AllergiesPanel {...context} />
       <VitalsPanel {...context} />

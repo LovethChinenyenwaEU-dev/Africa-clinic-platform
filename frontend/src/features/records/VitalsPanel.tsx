@@ -3,10 +3,11 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState, type FormEvent } from "react";
 
+import { useSync } from "@/features/sync/SyncProvider";
 import { errorMessage } from "@/lib/api-client";
 import { formatTime } from "@/lib/format";
 
-import { correctVitals, getVitals, recordVitals, type Readings } from "./api";
+import { getVitals, vitalsCorrectionWrite, vitalsWrite, type Readings } from "./api";
 import { READING_LABELS } from "./labels";
 import {
   EMPTY_READINGS,
@@ -89,6 +90,7 @@ function VitalsForm({
 
 export function VitalsPanel({ encounter, meId, nameOf }: RecordContext) {
   const queryClient = useQueryClient();
+  const { queue } = useSync();
   const [showHistory, setShowHistory] = useState(false);
   const [adding, setAdding] = useState(false);
   const [correcting, setCorrecting] = useState<Vitals | null>(null);
@@ -103,12 +105,12 @@ export function VitalsPanel({ encounter, meId, nameOf }: RecordContext) {
     void queryClient.invalidateQueries({ queryKey: ["vitals", encounter.id] });
   };
   const add = useMutation({
-    mutationFn: (readings: Readings) => recordVitals(encounter.id, readings),
+    mutationFn: (readings: Readings) => queue(vitalsWrite(encounter.id, readings)),
     onSuccess: done,
   });
   const correct = useMutation({
     mutationFn: ({ id, readings }: { id: string; readings: Readings }) =>
-      correctVitals(id, readings),
+      queue(vitalsCorrectionWrite(id, encounter.id, readings)),
     onSuccess: done,
   });
 

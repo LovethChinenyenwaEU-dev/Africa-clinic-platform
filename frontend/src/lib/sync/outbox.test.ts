@@ -6,6 +6,8 @@ import { Outbox, deliverByPost, retryDelaySeconds, type Deliver } from "./outbox
 import { memoryStore, type OutboxItem } from "./store";
 
 const ENCOUNTER = "33333333-3333-4333-8333-333333333333";
+const ME = "77777777-7777-4777-8777-777777777777";
+const SOMEONE_ELSE = "88888888-8888-4888-8888-888888888888";
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 
 function vitals(pulse: number) {
@@ -14,6 +16,7 @@ function vitals(pulse: number) {
     body: { pulse_bpm: pulse },
     label: "Vitals",
     encounterId: ENCOUNTER,
+    staffId: ME,
   };
 }
 
@@ -58,7 +61,7 @@ describe("flush", () => {
     await outbox.enqueue(vitals(80));
     await outbox.enqueue(vitals(90));
 
-    const result = await outbox.flush();
+    const result = await outbox.flush(ME);
 
     expect(result).toEqual({ sent: 2, failed: 0, stopped: null });
     expect(fakeServer.sent.map((item) => item.body)).toEqual([
@@ -74,14 +77,14 @@ describe("flush", () => {
     const first = await outbox.enqueue(vitals(80));
     await outbox.enqueue(vitals(90));
 
-    const offline = await outbox.flush();
+    const offline = await outbox.flush(ME);
 
     expect(offline).toEqual({ sent: 0, failed: 0, stopped: "offline" });
     expect(fakeServer.sent).toHaveLength(1); // the second was not tried out of order
     const waiting = await outbox.items();
     expect(waiting.map((item) => item.attempts)).toEqual([1, 0]);
 
-    const online = await outbox.flush();
+    const online = await outbox.flush(ME);
 
     expect(online).toEqual({ sent: 2, failed: 0, stopped: null });
     expect(fakeServer.sent[1].id).toBe(first.id); // same key: the server cannot do it twice
@@ -92,7 +95,7 @@ describe("flush", () => {
     const outbox = new Outbox(memoryStore(), fakeServer.deliver);
     await outbox.enqueue(vitals(80));
 
-    expect((await outbox.flush()).stopped).toBe("offline");
+    expect((await outbox.flush(ME)).stopped).toBe("offline");
     expect(await outbox.items()).toHaveLength(1);
   });
 
@@ -102,7 +105,7 @@ describe("flush", () => {
     await outbox.enqueue(vitals(80));
     await outbox.enqueue(vitals(90));
 
-    const result = await outbox.flush();
+    const result = await outbox.flush(ME);
 
     expect(result.stopped).toBe("signed_out");
     const waiting = await outbox.items();
@@ -117,14 +120,14 @@ describe("flush", () => {
     await outbox.enqueue(vitals(80));
     await outbox.enqueue(vitals(90));
 
-    const result = await outbox.flush();
+    const result = await outbox.flush(ME);
 
     expect(result).toEqual({ sent: 1, failed: 1, stopped: null });
     const [refused] = await outbox.items();
     expect(refused.status).toBe("failed");
     expect(refused.error).toBe(reason);
 
-    await outbox.flush();
+    await outbox.flush(ME);
 
     expect(fakeServer.sent).toHaveLength(2); // a refused write is not sent again by itself
   });
@@ -135,7 +138,7 @@ describe("flush", () => {
       const outbox = new Outbox(memoryStore(), server(new ApiError(kind)).deliver);
       await outbox.enqueue(vitals(80));
 
-      expect((await outbox.flush()).failed).toBe(1);
+      expect((await outbox.flush(ME)).failed).toBe(1);
     },
   );
 
@@ -147,8 +150,8 @@ describe("flush", () => {
     const outbox = new Outbox(memoryStore(), deliver);
     await outbox.enqueue(vitals(80));
 
-    const first = outbox.flush();
-    const second = outbox.flush();
+    const first = outbox.flush(ME);
+    const second = outbox.flush(ME);
     await vi.waitFor(() => expect(deliver).toHaveBeenCalledTimes(1));
     release();
 
@@ -162,11 +165,39 @@ describe("flush", () => {
     const stop = outbox.subscribe(listener);
 
     await outbox.enqueue(vitals(80));
-    await outbox.flush();
+    await outbox.flush(ME);
     stop();
     await outbox.enqueue(vitals(90));
 
     expect(listener).toHaveBeenCalledTimes(2); // queued, then sent; nothing after stop
+  });
+});
+
+describe("whose writes are sent", () => {
+  it("sends only the signed-in person's writes; someone else's wait for them", async () => {
+    fakeServer = server();
+    const outbox = new Outbox(memoryStore(), fakeServer.deliver);
+    await outbox.enqueue({ ...vitals(80), staffId: SOMEONE_ELSE });
+    await outbox.enqueue(vitals(90));
+
+    const result = await outbox.flush(ME);
+
+    expect(result.sent).toBe(1);
+    expect(fakeServer.sent.map((item) => item.staffId)).toEqual([ME]);
+    const [left] = await outbox.items();
+    expect(left.staffId).toBe(SOMEONE_ELSE);
+    expect(left.attempts).toBe(0);
+  });
+
+  it("lets a person dismiss a refused write after reading why", async () => {
+    const outbox = new Outbox(memoryStore(), server(new ApiError("invalid")).deliver);
+    await outbox.enqueue(vitals(80));
+    await outbox.flush(ME);
+    const [refused] = await outbox.items();
+
+    await outbox.discard(refused.seq);
+
+    expect(await outbox.items()).toEqual([]);
   });
 });
 

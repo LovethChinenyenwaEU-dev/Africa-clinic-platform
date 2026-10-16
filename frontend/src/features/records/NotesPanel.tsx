@@ -3,10 +3,11 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState, type FormEvent } from "react";
 
+import { useSync } from "@/features/sync/SyncProvider";
 import { errorMessage } from "@/lib/api-client";
 import { formatDateTime } from "@/lib/format";
 
-import { amendNote, getNotes, writeNote } from "./api";
+import { getNotes, noteAmendmentWrite, noteWrite } from "./api";
 import { NOTE_KIND_LABELS } from "./labels";
 import type { Note } from "./schemas";
 import type { RecordContext } from "./VitalsPanel";
@@ -27,6 +28,7 @@ function NoteText({ value, onChange, id }: { value: string; onChange: (v: string
 
 export function NotesPanel({ encounter, meId, nameOf }: RecordContext) {
   const queryClient = useQueryClient();
+  const { queue } = useSync();
   const [showHistory, setShowHistory] = useState(false);
   const [writing, setWriting] = useState(false);
   const [kind, setKind] = useState("history");
@@ -41,7 +43,7 @@ export function NotesPanel({ encounter, meId, nameOf }: RecordContext) {
   });
   const refresh = () => void queryClient.invalidateQueries({ queryKey: ["notes", encounter.id] });
   const write = useMutation({
-    mutationFn: () => writeNote(encounter.id, kind, body),
+    mutationFn: () => queue(noteWrite(encounter.id, kind, body)),
     onSuccess: () => {
       setWriting(false);
       setBody("");
@@ -49,7 +51,7 @@ export function NotesPanel({ encounter, meId, nameOf }: RecordContext) {
     },
   });
   const amend = useMutation({
-    mutationFn: (note: Note) => amendNote(note.id, amendBody),
+    mutationFn: (note: Note) => queue(noteAmendmentWrite(note.id, encounter.id, amendBody)),
     onSuccess: () => {
       setAmending(null);
       refresh();

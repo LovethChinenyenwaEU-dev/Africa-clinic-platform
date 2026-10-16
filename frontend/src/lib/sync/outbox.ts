@@ -28,6 +28,9 @@ export type NewWrite = {
   encounterId?: string | null;
 };
 
+// A write as the screen queues it, with who is making it.
+export type StaffWrite = NewWrite & { staffId: string };
+
 export type FlushResult = {
   sent: number;
   failed: number;
@@ -58,12 +61,13 @@ export class Outbox {
   ) {}
 
   /** Queue a write. It is safe on the device from this moment. */
-  async enqueue(write: NewWrite): Promise<OutboxItem> {
+  async enqueue(write: StaffWrite): Promise<OutboxItem> {
     const item = await this.store.add({
       id: crypto.randomUUID(),
       path: write.path,
       body: write.body,
       label: write.label,
+      staffId: write.staffId,
       encounterId: write.encounterId ?? null,
       createdAt: this.now().toISOString(),
       attempts: 0,
@@ -79,9 +83,13 @@ export class Outbox {
     return this.store.list();
   }
 
-  /** Send what is waiting. Calls made while a send is running share it. */
-  flush(): Promise<FlushResult> {
-    this.running ??= this.sendAll().finally(() => {
+  /**
+   * Send what this person queued. Someone else's writes are never sent under this
+   * session: they wait for their own author to sign in on this device again.
+   * Calls made while a send is running share it.
+   */
+  flush(staffId: string): Promise<FlushResult> {
+    this.running ??= this.sendAll(staffId).finally(() => {
       this.running = null;
     });
     return this.running;
@@ -97,9 +105,17 @@ export class Outbox {
     for (const listener of this.listeners) listener();
   }
 
-  private async sendAll(): Promise<FlushResult> {
+  /** Remove a write a person has looked at and let go (one the server refused). */
+  async discard(seq: number): Promise<void> {
+    await this.store.remove(seq);
+    this.changed();
+  }
+
+  private async sendAll(staffId: string): Promise<FlushResult> {
     const result: FlushResult = { sent: 0, failed: 0, stopped: null };
-    const waiting = (await this.store.list()).filter((item) => item.status === "pending");
+    const waiting = (await this.store.list()).filter(
+      (item) => item.status === "pending" && item.staffId === staffId,
+    );
 
     for (const item of waiting) {
       try {

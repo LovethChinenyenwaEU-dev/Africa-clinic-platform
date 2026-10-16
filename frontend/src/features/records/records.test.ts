@@ -1,6 +1,13 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import { addAllergy, recordVitals, signOff, startVisit } from "./api";
+import {
+  allergyWrite,
+  noteAmendmentWrite,
+  noteWrite,
+  signOff,
+  startVisit,
+  vitalsWrite,
+} from "./api";
 import { EMPTY_READINGS, describeVitals, formFromVitals, readingsFromForm } from "./readings";
 import { vitalsSchema, type Encounter, type Vitals } from "./schemas";
 
@@ -100,29 +107,44 @@ describe("records api", () => {
     expect(body.id).toMatch(/^[0-9a-f-]{36}$/);
   });
 
-  it("gives every new entry its own device ID", async () => {
-    fetchMock.mockImplementation(async () => answer(VITALS, 201));
+  it("gives every new entry its own device ID", () => {
+    const first = vitalsWrite(ENCOUNTER.id, { pulse_bpm: 88 });
+    const second = vitalsWrite(ENCOUNTER.id, { pulse_bpm: 88 });
 
-    await recordVitals(ENCOUNTER.id, { pulse_bpm: 88 });
-    await recordVitals(ENCOUNTER.id, { pulse_bpm: 88 });
-
-    const first = JSON.parse(fetchMock.mock.calls[0][1].body).id;
-    const second = JSON.parse(fetchMock.mock.calls[1][1].body).id;
-    expect(first).not.toBe(second);
+    expect((first.body as { id: string }).id).not.toBe((second.body as { id: string }).id);
   });
 
-  it("sends allergy details to the encounter they are recorded in", async () => {
-    fetchMock.mockImplementation(async () => answer({}, 500));
+  it("times new vitals and notes on the device, so a late arrival still counts", () => {
+    const taken = new Date("2026-10-16T09:30:00Z");
 
-    await expect(
-      addAllergy(ENCOUNTER.id, {
-        substance: "Penicillin",
-        reaction: null,
-        severity: "unknown",
-        clinical_status: "active",
-      }),
-    ).rejects.toThrow();
-    expect(fetchMock.mock.calls[0][0]).toBe(`/api/backend/encounters/${ENCOUNTER.id}/allergies`);
+    const vitals = vitalsWrite(ENCOUNTER.id, { pulse_bpm: 88 }, taken);
+    const note = noteWrite(ENCOUNTER.id, "history", "Fever.", taken);
+
+    expect(vitals).toMatchObject({
+      path: `/encounters/${ENCOUNTER.id}/vitals`,
+      body: { measured_at: "2026-10-16T09:30:00.000Z", pulse_bpm: 88 },
+      label: "Vitals",
+      encounterId: ENCOUNTER.id,
+    });
+    expect(note.body).toMatchObject({ written_at: "2026-10-16T09:30:00.000Z", kind: "history" });
+  });
+
+  it("labels every write in plain words, never with what was written", () => {
+    const details = {
+      substance: "Penicillin",
+      reaction: null,
+      severity: "unknown",
+      clinical_status: "active",
+    };
+
+    const allergy = allergyWrite(ENCOUNTER.id, details);
+    const amendment = noteAmendmentWrite("n1", ENCOUNTER.id, "Secret words");
+
+    expect(allergy.path).toBe(`/encounters/${ENCOUNTER.id}/allergies`);
+    expect(allergy.label).toBe("Allergy");
+    expect(amendment.label).toBe("Note amendment");
+    expect(amendment.label).not.toContain("Secret");
+    expect(amendment.encounterId).toBe(ENCOUNTER.id);
   });
 
   it("signs off, then completes the visit", async () => {

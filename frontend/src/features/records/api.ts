@@ -1,6 +1,7 @@
 import { z } from "zod";
 
 import { ApiError, apiGet, apiPost } from "@/lib/api-client";
+import type { NewWrite } from "@/lib/sync/outbox";
 
 import {
   allergySchema,
@@ -19,7 +20,12 @@ import {
 /*
  * Every new entry carries an ID made here, on the device. If the same request is
  * sent twice (a double tap, a retry), the backend recognises the ID and creates
- * nothing new. Offline sync (Week 8) relies on the same rule.
+ * nothing new.
+ *
+ * Clinical entries (vitals, allergies, problems, notes) are not sent from here:
+ * the functions below describe the write, and the screen queues it in the device
+ * outbox, which sends it now or when the network returns (Week 8). Opening and
+ * signing off an encounter stay online-only on purpose.
  */
 const newId = () => crypto.randomUUID();
 const q = encodeURIComponent;
@@ -84,20 +90,27 @@ export function getVitals(encounterId: string, includeHistory = false): Promise<
   );
 }
 
-export function recordVitals(encounterId: string, readings: Readings): Promise<Vitals> {
-  return apiPost(
-    `/encounters/${q(encounterId)}/vitals`,
-    { id: newId(), ...readings },
-    vitalsSchema,
-  );
+/** New vitals, timed by the device: if they reach the server after sign-off, they still count. */
+export function vitalsWrite(encounterId: string, readings: Readings, now = new Date()): NewWrite {
+  return {
+    path: `/encounters/${q(encounterId)}/vitals`,
+    body: { id: newId(), measured_at: now.toISOString(), ...readings },
+    label: "Vitals",
+    encounterId,
+  };
 }
 
-export function correctVitals(vitalsId: string, readings: Readings): Promise<Vitals> {
-  return apiPost(
-    `/vitals/${q(vitalsId)}/corrections`,
-    { id: newId(), ...readings },
-    vitalsSchema,
-  );
+export function vitalsCorrectionWrite(
+  vitalsId: string,
+  encounterId: string,
+  readings: Readings,
+): NewWrite {
+  return {
+    path: `/vitals/${q(vitalsId)}/corrections`,
+    body: { id: newId(), ...readings },
+    label: "Vitals correction",
+    encounterId,
+  };
 }
 
 // Allergies and problems (the patient's lists)
@@ -113,24 +126,26 @@ export function getAllergies(patientId: string): Promise<Allergy[]> {
   return apiGet(`/patients/${q(patientId)}/allergies`, z.array(allergySchema));
 }
 
-export function addAllergy(encounterId: string, details: AllergyDetails): Promise<Allergy> {
-  return apiPost(
-    `/encounters/${q(encounterId)}/allergies`,
-    { id: newId(), ...details },
-    allergySchema,
-  );
+export function allergyWrite(encounterId: string, details: AllergyDetails): NewWrite {
+  return {
+    path: `/encounters/${q(encounterId)}/allergies`,
+    body: { id: newId(), ...details },
+    label: "Allergy",
+    encounterId,
+  };
 }
 
-export function reviseAllergy(
+export function allergyRevisionWrite(
   allergyId: string,
   encounterId: string,
   details: AllergyDetails,
-): Promise<Allergy> {
-  return apiPost(
-    `/allergies/${q(allergyId)}/revisions`,
-    { id: newId(), encounter_id: encounterId, ...details },
-    allergySchema,
-  );
+): NewWrite {
+  return {
+    path: `/allergies/${q(allergyId)}/revisions`,
+    body: { id: newId(), encounter_id: encounterId, ...details },
+    label: "Allergy change",
+    encounterId,
+  };
 }
 
 export type ProblemDetails = {
@@ -145,24 +160,26 @@ export function getProblems(patientId: string): Promise<Problem[]> {
   return apiGet(`/patients/${q(patientId)}/problems`, z.array(problemSchema));
 }
 
-export function addProblem(encounterId: string, details: ProblemDetails): Promise<Problem> {
-  return apiPost(
-    `/encounters/${q(encounterId)}/problems`,
-    { id: newId(), ...details },
-    problemSchema,
-  );
+export function problemWrite(encounterId: string, details: ProblemDetails): NewWrite {
+  return {
+    path: `/encounters/${q(encounterId)}/problems`,
+    body: { id: newId(), ...details },
+    label: "Problem or diagnosis",
+    encounterId,
+  };
 }
 
-export function reviseProblem(
+export function problemRevisionWrite(
   problemId: string,
   encounterId: string,
   details: ProblemDetails,
-): Promise<Problem> {
-  return apiPost(
-    `/problems/${q(problemId)}/revisions`,
-    { id: newId(), encounter_id: encounterId, ...details },
-    problemSchema,
-  );
+): NewWrite {
+  return {
+    path: `/problems/${q(problemId)}/revisions`,
+    body: { id: newId(), encounter_id: encounterId, ...details },
+    label: "Problem change",
+    encounterId,
+  };
 }
 
 // Notes
@@ -174,10 +191,26 @@ export function getNotes(encounterId: string, includeHistory = false): Promise<N
   );
 }
 
-export function writeNote(encounterId: string, kind: string, body: string): Promise<Note> {
-  return apiPost(`/encounters/${q(encounterId)}/notes`, { id: newId(), kind, body }, noteSchema);
+/** A new note, timed by the device: if it reaches the server after sign-off, it still counts. */
+export function noteWrite(
+  encounterId: string,
+  kind: string,
+  body: string,
+  now = new Date(),
+): NewWrite {
+  return {
+    path: `/encounters/${q(encounterId)}/notes`,
+    body: { id: newId(), kind, body, written_at: now.toISOString() },
+    label: "Note",
+    encounterId,
+  };
 }
 
-export function amendNote(noteId: string, body: string): Promise<Note> {
-  return apiPost(`/notes/${q(noteId)}/amendments`, { id: newId(), body }, noteSchema);
+export function noteAmendmentWrite(noteId: string, encounterId: string, body: string): NewWrite {
+  return {
+    path: `/notes/${q(noteId)}/amendments`,
+    body: { id: newId(), body },
+    label: "Note amendment",
+    encounterId,
+  };
 }
