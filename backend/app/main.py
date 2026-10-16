@@ -8,6 +8,7 @@ import app.model_registry  # noqa: F401
 from app.api import api_router
 from app.core.config import settings
 from app.core.db import engine
+from app.modules.idempotency.middleware import IdempotencyMiddleware
 
 app = FastAPI(title="Clinic Platform API", version="0.1.0")
 
@@ -17,6 +18,8 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+# A write sent twice with the same Idempotency-Key happens once (FR-O3).
+app.add_middleware(IdempotencyMiddleware)
 
 
 app.include_router(api_router)

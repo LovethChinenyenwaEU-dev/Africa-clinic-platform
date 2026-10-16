@@ -22,6 +22,7 @@ from sqlmodel import Session
 import app.model_registry  # noqa: F401  (registers all module tables)
 from app.core.config import settings
 from app.core.db import engine
+from app.modules.idempotency.service import purge_old_records
 from app.modules.notifications.adapters import MessageAdapter, make_adapter
 from app.modules.notifications.sender import SendRun, send_due_reminders
 
@@ -41,6 +42,8 @@ def run_once(
     """One tick: send what is due, then record the heartbeat."""
     current = now or datetime.now(UTC)
     result = send_due_reminders(session, adapter=adapter, now=current, tenant_id=tenant_id)
+    # Remembered write answers can hold clinical text: keep them for a day only.
+    purge_old_records(session, now=current)
     redis_client.set(HEARTBEAT_KEY, current.isoformat())
     return result
 
