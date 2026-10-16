@@ -38,6 +38,7 @@ Roadmap: [README](./README.md#roadmap-12-week-mvp) · Brief: [docs/product-brief
 **Decisions**
 - Backend stays Python + FastAPI (the brief says TypeScript/Go): recorded in ADR-0004.
 - Roadmap extended from the brief review: patient web experience, schedules, triage (W9); services and prices (W10); admin screens, notification console, database row-level security, tamper-evident audit, MFA, device revocation (W11).
+- Week 8 offline rules: (1) minimal patient data on the device (today's queue and encounters open on it), wiped at sign-out (blocked while unsent writes remain) and after 24 hours; (2) vitals/notes taken before sign-off but synced after it are accepted and marked "synced late", with a notice to the doctor; (3) patient registration works offline, and a possible duplicate becomes a "needs review" item on sync.
 
 **Pending (carried forward)**
 - Real SMS provider adapter.
