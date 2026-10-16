@@ -5,6 +5,7 @@ from sqlmodel import Session, col, select
 from app.core.tenant_scope import get_in_tenant, tenant_select
 from app.modules.identity.models import Role, Staff
 from app.modules.identity.passwords import check_password_rules, hash_password, verify_password
+from app.modules.identity.permissions import Capability, role_has
 from app.modules.identity.tokens import create_access_token
 
 
@@ -112,6 +113,19 @@ def is_active_clinician(
     """Yes or no: an active doctor or nurse of this clinic. No personal details leave."""
     staff = get_staff_in_tenant(session, tenant_id=tenant_id, staff_id=staff_id)
     return staff is not None and staff.is_active and staff.role in CLINICIAN_ROLES
+
+
+def is_active_prescriber(
+    session: Session,
+    *,
+    tenant_id: uuid.UUID,
+    staff_id: uuid.UUID,
+) -> bool:
+    """Yes or no: an active member of this clinic whose role may prescribe (doctors)."""
+    staff = get_staff_in_tenant(session, tenant_id=tenant_id, staff_id=staff_id)
+    return (
+        staff is not None and staff.is_active and role_has(staff.role, Capability.PRESCRIBE)
+    )
 
 def _active_admin_count(session: Session, tenant_id: uuid.UUID) -> int:
     statement = (

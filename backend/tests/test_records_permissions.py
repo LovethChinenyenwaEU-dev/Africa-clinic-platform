@@ -17,3 +17,10 @@ def test_doctors_and_nurses_can_use_the_clinical_record(role, capability):
 def test_nobody_else_can_read_or_write_the_clinical_record(role, capability):
     """Admins supervise through the diary, not by reading notes (ADR-0003)."""
     assert not role_has(role.value, capability)
+
+
+def test_only_doctors_prescribe():
+    """Prescribing is a medical act. Nurses read prescriptions but do not write them."""
+    assert role_has(Role.DOCTOR.value, Capability.PRESCRIBE)
+    for role in (Role.NURSE, Role.FRONT_DESK, Role.ADMIN, Role.BILLING):
+        assert not role_has(role.value, Capability.PRESCRIBE)

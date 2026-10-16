@@ -17,9 +17,18 @@ import { getEncounter, markOpenedByMistake, signOff, type SignOffResult } from "
 import { AllergiesPanel, ProblemsPanel } from "./ChartPanels";
 import { ENCOUNTER_STATUS_LABELS } from "./labels";
 import { NotesPanel } from "./NotesPanel";
+import { PrescriptionsPanel } from "./PrescriptionsPanel";
 import { VitalsPanel } from "./VitalsPanel";
 
-export function EncounterScreen({ encounterId, meId }: { encounterId: string; meId: string }) {
+export function EncounterScreen({
+  encounterId,
+  meId,
+  canPrescribe,
+}: {
+  encounterId: string;
+  meId: string;
+  canPrescribe: boolean;
+}) {
   const sync = useSync();
   const queryClient = useQueryClient();
   const [signedOff, setSignedOff] = useState<SignOffResult | null>(null);
@@ -201,6 +210,7 @@ export function EncounterScreen({ encounterId, meId }: { encounterId: string; me
       <AllergiesPanel {...context} />
       <VitalsPanel {...context} />
       <ProblemsPanel {...context} />
+      <PrescriptionsPanel {...context} canPrescribe={canPrescribe} />
       <NotesPanel {...context} />
     </div>
   );

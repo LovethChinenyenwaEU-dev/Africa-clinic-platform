@@ -94,3 +94,24 @@ export const noteSchema = z.object({
   synced_late: z.boolean().default(false), // written offline before sign-off, arrived after
 });
 export type Note = z.infer<typeof noteSchema>;
+
+export const prescriptionSchema = z.object({
+  id,
+  encounter_id: id,
+  patient_id: id,
+  version_status: z.string(), // current, superseded or conflict
+  replaces_id: id.nullable(),
+  medicine: z.string(),
+  strength: z.string().nullable(),
+  dose: z.string(),
+  route: z.string(),
+  frequency: z.string(),
+  duration: z.string(),
+  instructions: z.string().nullable(),
+  clinical_status: z.string(), // active, stopped or entered_in_error
+  recorded_by_id: id,
+  recorded_at: z.string(),
+  written_at: z.string(),
+  synced_late: z.boolean().default(false),
+});
+export type Prescription = z.infer<typeof prescriptionSchema>;

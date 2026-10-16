@@ -7,11 +7,13 @@ import {
   allergySchema,
   encounterSchema,
   noteSchema,
+  prescriptionSchema,
   problemSchema,
   vitalsSchema,
   type Allergy,
   type Encounter,
   type Note,
+  type Prescription,
   type Problem,
   type ReadingField,
   type Vitals,
@@ -217,7 +219,7 @@ export function noteAmendmentWrite(noteId: string, encounterId: string, body: st
 
 // Conflicts (two devices changed the same thing; Week 8)
 
-export type ConflictKind = "vitals" | "notes" | "allergies" | "problems";
+export type ConflictKind = "vitals" | "notes" | "allergies" | "problems" | "prescriptions";
 export type Keep = "this" | "current";
 
 /**
@@ -227,4 +229,64 @@ export type Keep = "this" | "current";
  */
 export async function resolveConflict(kind: ConflictKind, id: string, keep: Keep): Promise<void> {
   await apiPost(`/${kind}/${q(id)}/resolve`, { keep }, z.unknown());
+}
+
+// Prescriptions (doctors write them; nurses read them)
+
+export type PrescriptionDetails = {
+  medicine: string;
+  strength: string | null;
+  dose: string;
+  route: string;
+  frequency: string;
+  duration: string;
+  instructions: string | null;
+};
+
+export function getPrescriptions(
+  encounterId: string,
+  includeHistory = false,
+): Promise<Prescription[]> {
+  return apiGet(
+    `/encounters/${q(encounterId)}/prescriptions${withHistory(includeHistory)}`,
+    z.array(prescriptionSchema),
+  );
+}
+
+/** A new prescription, timed by the device: written offline before sign-off, it still counts. */
+export function prescriptionWrite(
+  encounterId: string,
+  details: PrescriptionDetails,
+  now = new Date(),
+): NewWrite {
+  return {
+    path: `/encounters/${q(encounterId)}/prescriptions`,
+    body: { ...details, id: newId(), written_at: now.toISOString() },
+    label: "Prescription",
+    encounterId,
+  };
+}
+
+/** Stop, or mark as written by mistake: the whole prescription with its new status. */
+export function prescriptionRevisionWrite(
+  prescription: Prescription,
+  clinicalStatus: "active" | "stopped" | "entered_in_error",
+): NewWrite {
+  const { medicine, strength, dose, route, frequency, duration, instructions } = prescription;
+  return {
+    path: `/prescriptions/${q(prescription.id)}/revisions`,
+    body: {
+      id: newId(),
+      medicine,
+      strength,
+      dose,
+      route,
+      frequency,
+      duration,
+      instructions,
+      clinical_status: clinicalStatus,
+    },
+    label: "Prescription change",
+    encounterId: prescription.encounter_id,
+  };
 }

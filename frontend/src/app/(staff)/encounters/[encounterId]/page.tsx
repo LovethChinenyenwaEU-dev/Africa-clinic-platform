@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 
+import { can } from "@/features/identity/abilities";
 import { EncounterScreen } from "@/features/records/EncounterScreen";
 import { requireUser } from "@/lib/server/require-user";
 
@@ -17,5 +18,11 @@ export default async function EncounterPage({
   if (!UUID.test(encounterId)) {
     notFound();
   }
-  return <EncounterScreen encounterId={encounterId} meId={user.id} />;
+  return (
+    <EncounterScreen
+      encounterId={encounterId}
+      meId={user.id}
+      canPrescribe={can(user.role, "prescribe")}
+    />
+  );
 }

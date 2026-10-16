@@ -160,3 +160,38 @@ class ClinicalNote(SQLModel, table=True):
     written_at: datetime = Field(default_factory=utcnow, sa_column=_time_column())
     # Written before sign-off but reached the server after it (see late.py).
     synced_late: bool = False
+
+
+class Prescription(SQLModel, table=True):
+    """One medicine prescribed in an encounter (FR-R2). Doctors only.
+
+    The medicine is typed by the doctor (no drug list yet); dose, frequency and
+    duration are separate boxes so a pharmacist or a later screen can read them.
+    Never edited: stopping or fixing it is a new row that points at the one it replaces.
+    """
+
+    __table_args__ = (
+        Index("ix_prescription_encounter_recorded_at", "encounter_id", "recorded_at"),
+        Index("ix_prescription_tenant_patient_status", "tenant_id", "patient_id", "version_status"),
+    )
+
+    id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
+    tenant_id: uuid.UUID = Field(foreign_key="tenant.id", index=True)
+    encounter_id: uuid.UUID = Field(foreign_key="encounter.id")
+    patient_id: uuid.UUID = Field(foreign_key="patient.id")
+    version_status: str  # current, superseded or conflict (statuses.py)
+    replaces_id: uuid.UUID | None = Field(default=None, foreign_key="prescription.id")
+
+    medicine: str  # as the doctor wrote it, for example "Artemether-lumefantrine"
+    strength: str | None = None  # for example "20/120 mg"
+    dose: str  # how much each time, for example "4 tablets"
+    route: str  # see statuses.py
+    frequency: str  # for example "twice daily"
+    duration: str  # for example "3 days"
+    instructions: str | None = None  # for example "take with food"
+    clinical_status: str  # active, stopped or entered_in_error (statuses.py)
+
+    recorded_by_id: uuid.UUID = Field(foreign_key="staff.id")  # the prescriber
+    recorded_at: datetime = Field(default_factory=utcnow, sa_column=_time_column())
+    written_at: datetime = Field(default_factory=utcnow, sa_column=_time_column())
+    synced_late: bool = False  # written offline before sign-off, arrived after (late.py)

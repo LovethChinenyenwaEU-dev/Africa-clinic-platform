@@ -39,6 +39,16 @@ from app.modules.records.notes import (
     resolve_note_conflict,
     write_note,
 )
+from app.modules.records.prescriptions import (
+    InvalidPrescriptionError,
+    NotAPrescriberError,
+    PrescriptionDetails,
+    PrescriptionNotFoundError,
+    list_encounter_prescriptions,
+    resolve_prescription_conflict,
+    revise_prescription,
+    write_prescription,
+)
 from app.modules.records.schemas import (
     AllergyForm,
     AllergyResponse,
@@ -47,12 +57,15 @@ from app.modules.records.schemas import (
     EncounterResponse,
     NoteResponse,
     OpenEncounter,
+    PrescriptionForm,
+    PrescriptionResponse,
     ProblemForm,
     ProblemResponse,
     Readings,
     RecordVitals,
     ResolveConflict,
     ReviseAllergy,
+    RevisePrescription,
     ReviseProblem,
     VitalsResponse,
     WriteNote,
@@ -87,10 +100,11 @@ router = APIRouter(tags=["records"])
 
 READ = [Depends(require(Capability.CLINICAL_READ))]
 WRITE = [Depends(require(Capability.CLINICAL_WRITE))]
+PRESCRIBE = [Depends(require(Capability.PRESCRIBE))]  # doctors only
 # One message for every missing thing, so nobody can probe what exists in another clinic.
 NOT_FOUND = "Not found."
 
-INVALID = (InvalidVitalsError, InvalidChartEntryError, InvalidNoteError)
+INVALID = (InvalidVitalsError, InvalidChartEntryError, InvalidNoteError, InvalidPrescriptionError)
 MISSING = (
     EncounterNotFoundError,
     PatientNotFoundError,
@@ -99,6 +113,7 @@ MISSING = (
     AllergyNotFoundError,
     ProblemNotFoundError,
     NoteNotFoundError,
+    PrescriptionNotFoundError,
 )
 CONFLICT = (
     InvalidEncounterMoveError,
@@ -108,7 +123,13 @@ CONFLICT = (
     VisitMismatchError,
     WrongPatientError,
 )
-FORBIDDEN = (NotAClinicianError, NotEncounterOwnerError, NotVitalsAuthorError, NotNoteAuthorError)
+FORBIDDEN = (
+    NotAClinicianError,
+    NotEncounterOwnerError,
+    NotVitalsAuthorError,
+    NotNoteAuthorError,
+    NotAPrescriberError,
+)
 KNOWN_ERRORS = INVALID + MISSING + CONFLICT + FORBIDDEN
 
 
@@ -589,6 +610,113 @@ def read_notes(
             **_who(current_staff),
             encounter_id=encounter_id,
             include_history=include_history,
+        )
+    except KNOWN_ERRORS as error:
+        raise _http_error(error) from None
+
+
+# Prescriptions: doctors write and change them; nurses and doctors read them.
+
+
+def _medicine(body: PrescriptionForm | RevisePrescription, **extra) -> PrescriptionDetails:
+    return PrescriptionDetails(
+        medicine=body.medicine,
+        strength=body.strength,
+        dose=body.dose,
+        route=body.route,
+        frequency=body.frequency,
+        duration=body.duration,
+        instructions=body.instructions,
+        **extra,
+    )
+
+
+@router.post(
+    "/encounters/{encounter_id}/prescriptions",
+    response_model=PrescriptionResponse,
+    status_code=status.HTTP_201_CREATED,
+    dependencies=PRESCRIBE,
+)
+def add_prescription(
+    encounter_id: uuid.UUID,
+    body: PrescriptionForm,
+    current_staff: CurrentStaff,
+    session: Session = Depends(get_session),
+):
+    try:
+        return write_prescription(
+            session,
+            **_who(current_staff),
+            encounter_id=encounter_id,
+            details=_medicine(body),
+            prescription_id=body.id,
+            written_at=body.written_at,
+        )
+    except KNOWN_ERRORS as error:
+        raise _http_error(error) from None
+
+
+@router.post(
+    "/prescriptions/{prescription_id}/revisions",
+    response_model=PrescriptionResponse,
+    status_code=status.HTTP_201_CREATED,
+    dependencies=PRESCRIBE,
+)
+def change_prescription(
+    prescription_id: uuid.UUID,
+    body: RevisePrescription,
+    current_staff: CurrentStaff,
+    session: Session = Depends(get_session),
+):
+    """Stop or fix a prescription: a new version. Allowed after sign-off too."""
+    try:
+        return revise_prescription(
+            session,
+            **_who(current_staff),
+            prescription_id=prescription_id,
+            details=_medicine(body, clinical_status=body.clinical_status),
+            revision_id=body.id,
+        )
+    except KNOWN_ERRORS as error:
+        raise _http_error(error) from None
+
+
+@router.get(
+    "/encounters/{encounter_id}/prescriptions",
+    response_model=list[PrescriptionResponse],
+    dependencies=READ,
+)
+def read_prescriptions(
+    encounter_id: uuid.UUID,
+    current_staff: CurrentStaff,
+    include_history: bool = False,
+    session: Session = Depends(get_session),
+):
+    try:
+        return list_encounter_prescriptions(
+            session,
+            **_who(current_staff),
+            encounter_id=encounter_id,
+            include_history=include_history,
+        )
+    except KNOWN_ERRORS as error:
+        raise _http_error(error) from None
+
+
+@router.post(
+    "/prescriptions/{prescription_id}/resolve",
+    response_model=PrescriptionResponse,
+    dependencies=PRESCRIBE,
+)
+def choose_prescription(
+    prescription_id: uuid.UUID,
+    body: ResolveConflict,
+    current_staff: CurrentStaff,
+    session: Session = Depends(get_session),
+):
+    try:
+        return resolve_prescription_conflict(
+            session, **_who(current_staff), conflict_id=prescription_id, **_choice(body)
         )
     except KNOWN_ERRORS as error:
         raise _http_error(error) from None

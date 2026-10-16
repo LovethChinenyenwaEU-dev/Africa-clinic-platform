@@ -16,6 +16,7 @@ export const SYNCED_QUERIES = [
   "problems",
   "encounter",
   "review-queue",
+  "prescriptions",
 ];
 
 const hasIndexedDb = () => typeof indexedDB !== "undefined";

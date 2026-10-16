@@ -9,6 +9,7 @@ client = TestClient(app)
 API = "/api/v1"
 ID = uuid.uuid4()
 PATIENT = str(uuid.uuid4())
+MEDICINE = {"medicine": "Paracetamol", "dose": "1 g", "frequency": "8-hourly", "duration": "3 days"}
 
 DOORS = [
     ("post", f"{API}/encounters", {"json": {"patient_id": PATIENT}}),
@@ -40,6 +41,10 @@ DOORS = [
     ("post", f"{API}/allergies/{ID}/resolve", {"json": {"keep": "this"}}),
     ("post", f"{API}/problems/{ID}/resolve", {"json": {"keep": "this"}}),
     ("post", f"{API}/notes/{ID}/resolve", {"json": {"keep": "this"}}),
+    ("post", f"{API}/encounters/{ID}/prescriptions", {"json": MEDICINE}),
+    ("get", f"{API}/encounters/{ID}/prescriptions", {}),
+    ("post", f"{API}/prescriptions/{ID}/revisions", {"json": MEDICINE}),
+    ("post", f"{API}/prescriptions/{ID}/resolve", {"json": {"keep": "this"}}),
 ]
 
 
@@ -52,6 +57,7 @@ def test_records_routes_are_registered():
         "allergies": "{allergy_id}",
         "problems": "{problem_id}",
         "notes": "{note_id}",
+        "prescriptions": "{prescription_id}",
     }
     for _, url, _ in DOORS:
         resource = url.removeprefix(f"{API}/").split("/")[0]

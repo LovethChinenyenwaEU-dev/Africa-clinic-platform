@@ -36,6 +36,7 @@ describe("keepsOffline", () => {
     [["clinicians"]],
     [["encounter", ENCOUNTER]],
     [["vitals", ENCOUNTER, false]],
+    [["prescriptions", ENCOUNTER, false]],
     [["notes", ENCOUNTER, false]],
     [["allergies", IN_VISIT]],
     [["problems", IN_VISIT]],
@@ -47,6 +48,7 @@ describe("keepsOffline", () => {
   it.each([
     [["vitals", ENCOUNTER, true]], // earlier versions: not needed during a visit
     [["notes", ENCOUNTER, true]],
+    [["prescriptions", ENCOUNTER, true]],
     [["patient", OTHER_PATIENT]], // a patient with no encounter on this device
     [["allergies", OTHER_PATIENT]],
     [["patients", "search", "Ada"]],

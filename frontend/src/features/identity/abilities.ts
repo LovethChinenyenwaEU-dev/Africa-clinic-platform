@@ -10,7 +10,8 @@ export type Ability =
   | "register_patient"
   | "manage_consent"
   | "manage_appointments"
-  | "run_consultation";
+  | "run_consultation"
+  | "prescribe";
 
 const FRONT_LINE: readonly Role[] = ["front_desk", "nurse", "doctor"];
 const CLINICIANS: readonly Role[] = ["nurse", "doctor"];
@@ -20,6 +21,7 @@ const ABILITIES: Record<Ability, readonly Role[]> = {
   manage_consent: FRONT_LINE, // consent:read and consent:write
   manage_appointments: FRONT_LINE, // appointment:read and appointment:write
   run_consultation: CLINICIANS, // appointment:consult, clinical:read and clinical:write
+  prescribe: ["doctor"], // clinical:prescribe
 };
 
 export function can(role: Role, ability: Ability): boolean {

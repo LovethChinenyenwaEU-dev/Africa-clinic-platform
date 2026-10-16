@@ -40,6 +40,10 @@ export const ACTION_LABELS: Record<string, string> = {
   "allergy.resolve": "Settled an allergy conflict",
   "problem.resolve": "Settled a problem conflict",
   "note.resolve": "Settled a note conflict",
+  "prescription.write": "Wrote a prescription",
+  "prescription.revise": "Stopped or changed a prescription",
+  "prescription.view": "Viewed prescriptions",
+  "prescription.resolve": "Settled a prescription conflict",
 };
 
 /** Plain words for an action; an unknown code is shown as it is, never hidden. */

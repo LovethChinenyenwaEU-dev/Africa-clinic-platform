@@ -53,3 +53,26 @@ class NoteKind(StrEnum):
     ASSESSMENT = "assessment"  # what the clinician thinks is going on
     PLAN = "plan"  # what happens next
     PROGRESS = "progress"  # how things are going since last time
+
+
+class PrescriptionStatus(StrEnum):
+    ACTIVE = "active"  # to be taken as written
+    STOPPED = "stopped"  # a doctor stopped it (side effect, course changed)
+    ENTERED_IN_ERROR = "entered_in_error"  # never meant: hidden from the list, kept
+
+
+class MedicineRoute(StrEnum):
+    """How the medicine is given. FHIR names it the route of administration."""
+
+    ORAL = "oral"
+    IV = "iv"  # into a vein
+    IM = "im"  # into a muscle
+    SC = "sc"  # under the skin
+    TOPICAL = "topical"  # on the skin
+    INHALED = "inhaled"
+    RECTAL = "rectal"
+    VAGINAL = "vaginal"
+    EYE = "eye"
+    EAR = "ear"
+    NASAL = "nasal"
+    OTHER = "other"

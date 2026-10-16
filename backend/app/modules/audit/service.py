@@ -56,6 +56,10 @@ class AuditAction(StrEnum):
     ALLERGY_RESOLVE = "allergy.resolve"
     PROBLEM_RESOLVE = "problem.resolve"
     NOTE_RESOLVE = "note.resolve"
+    PRESCRIPTION_WRITE = "prescription.write"
+    PRESCRIPTION_REVISE = "prescription.revise"  # stopped or corrected: a new version
+    PRESCRIPTION_VIEW = "prescription.view"
+    PRESCRIPTION_RESOLVE = "prescription.resolve"
 
 def add_audit_event(
     session: Session,

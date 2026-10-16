@@ -170,3 +170,52 @@ class NoteResponse(BaseModel):
     recorded_at: datetime
     written_at: datetime
     synced_late: bool
+
+
+class PrescriptionForm(BaseModel):
+    id: uuid.UUID | None = None
+    medicine: str = Field(max_length=400)
+    strength: str | None = Field(default=None, max_length=100)
+    dose: str = Field(max_length=100)
+    route: str = Field(default="oral", max_length=20)
+    frequency: str = Field(max_length=160)
+    duration: str = Field(max_length=100)
+    instructions: str | None = Field(default=None, max_length=1000)
+    written_at: datetime | None = None  # when written on the device; must include a time zone
+
+
+class RevisePrescription(BaseModel):
+    """The whole prescription as it should now read, with its status (active, stopped,
+    entered_in_error). `id` is the ID of the new version."""
+
+    id: uuid.UUID | None = None
+    medicine: str = Field(max_length=400)
+    strength: str | None = Field(default=None, max_length=100)
+    dose: str = Field(max_length=100)
+    route: str = Field(default="oral", max_length=20)
+    frequency: str = Field(max_length=160)
+    duration: str = Field(max_length=100)
+    instructions: str | None = Field(default=None, max_length=1000)
+    clinical_status: str = Field(default="active", max_length=20)
+
+
+class PrescriptionResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: uuid.UUID
+    encounter_id: uuid.UUID
+    patient_id: uuid.UUID
+    version_status: str
+    replaces_id: uuid.UUID | None
+    medicine: str
+    strength: str | None
+    dose: str
+    route: str
+    frequency: str
+    duration: str
+    instructions: str | None
+    clinical_status: str
+    recorded_by_id: uuid.UUID
+    recorded_at: datetime
+    written_at: datetime
+    synced_late: bool

@@ -22,6 +22,7 @@ class Capability(StrEnum):
     APPOINTMENT_CONSULT = "appointment:consult"
     CLINICAL_READ = "clinical:read"
     CLINICAL_WRITE = "clinical:write"
+    PRESCRIBE = "clinical:prescribe"  # write and change prescriptions: doctors only
 
 
 _EVERYONE = frozenset({Capability.BRANCH_READ})
@@ -46,13 +47,15 @@ _CLINICIANS = frozenset(
 _FRONT_LINE = (
     _EVERYONE | _PATIENT_REGISTRARS | _CONSENT_RECORDERS | _WORDING_READERS | _SCHEDULERS
 )
+# Prescribing is a medical act: doctors only. Nurses still read prescriptions (clinical:read).
+_PRESCRIBERS = frozenset({Capability.PRESCRIBE})
 
 # The one table that says who may do what. Change a rule here, nowhere else.
 ROLE_CAPABILITIES: dict[Role, frozenset[Capability]] = {
     Role.ADMIN: _EVERYONE | _ADMIN_ONLY | _WORDING_READERS,
     Role.FRONT_DESK: _FRONT_LINE,
     Role.NURSE: _FRONT_LINE | _CLINICIANS,
-    Role.DOCTOR: _FRONT_LINE | _CLINICIANS,
+    Role.DOCTOR: _FRONT_LINE | _CLINICIANS | _PRESCRIBERS,
     Role.BILLING: _EVERYONE | _PATIENT_READERS,
 }
 

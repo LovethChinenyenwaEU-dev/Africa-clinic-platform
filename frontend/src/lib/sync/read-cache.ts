@@ -6,7 +6,7 @@ import { READS, done, finished, openDatabase } from "./database";
  * patient data on the device).
  *
  * Kept: today's queue and visit list, branches, the clinician list, and the
- * encounters open on this device with their vitals, notes, allergies and problems,
+ * encounters open on this device with their vitals, notes, prescriptions, allergies and problems,
  * plus the name and age of those encounters' patients. Never kept: patient search,
  * other patients' pages, consent, audit, history views.
  *
@@ -26,7 +26,7 @@ export type ReadEntry = {
 // Lists that are safe and useful to keep whole.
 const ALWAYS = new Set(["queue", "day-list", "branches", "clinicians", "encounter"]);
 // Encounter contents: kept, but not the "show earlier versions" view.
-const CURRENT_ONLY = new Set(["vitals", "notes"]);
+const CURRENT_ONLY = new Set(["vitals", "notes", "prescriptions"]);
 // The patient's lists (allergies, problems) and details: only for an encounter kept here.
 const BY_PATIENT = new Set(["allergies", "problems", "patient"]);
 

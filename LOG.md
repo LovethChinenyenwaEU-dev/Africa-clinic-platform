@@ -9,9 +9,11 @@ Roadmap: [README](./README.md#roadmap-12-week-mvp) · Brief: [docs/product-brief
 
 ---
 
-## 16 Oct 2026 (Fri): Week 8, offline sync and conflict handling (Steps 1–8)
+## 16 Oct 2026 (Fri): Week 8 finished (offline sync and conflict handling); Week 9 started
 
 **Done**
+- Week 9 plan agreed (8 steps): prescriptions, triage, clinician availability, teleconsult booking and intake, consult room (chat + Jitsi video with audio/text fallback), follow-up and referral, clinician-approved summary, patient web experience. Decisions: patients sign in with a one-time SMS code; video through Jitsi Meet room links behind an adapter; medicines typed freely with separate dose, route, frequency and duration boxes.
+- Week 9 Step 1: **prescriptions** (FR-R2). Doctors only (new `clinical:prescribe` permission); nurses read them. Written inside an encounter through the device outbox, so drafts work offline (FR-O1) and one written before sign-off is accepted after it, marked late. Stopping or "written by mistake" is a new version, allowed after sign-off; two devices changing one prescription keep both as a conflict for a doctor to settle. Migration 0017.
 - Week 8 Step 8: **the conflict screen and the offline chaos test.** A version in conflict shows beside the one in use with "Keep this version" / "Keep the current one" (each asks first); only those allowed see the buttons (vitals: either recorder or the encounter owner; notes: the author; allergies and problems: any clinician), and the server checks again. The chaos test runs 12 seeded scenarios: three devices' queued writes arrive shuffled, re-sent up to three times, after sign-off. Every time: nothing lost, nothing doubled, one audit line per real write, late entries marked, each disagreement ends as one version in use plus one conflict, and after settling exactly one version per chain. README roadmap: W8 ticked. Brief check updated.
 - Week 8 Step 7c: **registering patients offline.** With no network the form saves the registration on the device (or offers to, if the network drops mid-send), and the outbox sends it with its own ID and `registered_offline`. The server never refuses it as a possible duplicate (nobody could answer the question offline): it saves it and flags it `needs_review`. Front desk opens "Registrations to review", compares with the possible matches, and decides "Someone new" or "Same person as …". Nothing is merged or deleted: a duplicate points at the original. Every look and decision is in the audit log. Migration 0016.
 - Week 8 Step 7b: **the app opens with no network.** A service worker (`public/sw.js`) keeps the app's own files and the pages already opened on this device. Pages are fetched from the network first; if it fails, or takes more than 6 seconds (slow networks), the kept copy is shown, else a plain offline page. It never touches the API, writes, other sites, errors or redirects. Kept pages hold no patient data (screens load that in the browser), only the staff member's name, and are deleted at sign-out.
@@ -34,11 +36,11 @@ Roadmap: [README](./README.md#roadmap-12-week-mvp) · Brief: [docs/product-brief
 **Broke, and fixed**
 - *A proxy test used a header value with a line break:* real `Headers` objects refuse those before our code runs, so the test would have failed for the wrong reason. Replaced with a plain malformed value.
 
-**Finished:** Week 8 (Steps 1–7c green in the Codespace; Step 8 awaiting its run). Migration head: 0016.
+**Finished:** Week 8 (all green in the Codespace). Week 9 Step 1 written, awaiting its Codespace run (needs `alembic upgrade head`). Migration head: 0017.
 
 **Pending:** as on 15 Oct. The conflict screen itself comes in Step 8 (the backend is ready).
 
-**Next:** Week 9, teleconsult flow, prescriptions, the clinician-approved patient summary, clinician schedules, triage, and the lightweight patient web experience.
+**Next:** Week 9 Step 2, triage on the queue (urgency and red flags, urgent patients first).
 
 **Pending (new):** merging a duplicate patient's visits into the original record (W11, with the admin screens).
 

@@ -36,3 +36,18 @@ export const ENCOUNTER_STATUS_LABELS: Record<string, string> = {
   closed: "Signed off",
   entered_in_error: "Opened by mistake",
 };
+
+export const ROUTE_LABELS: Record<string, string> = {
+  oral: "By mouth",
+  iv: "Into a vein (IV)",
+  im: "Into a muscle (IM)",
+  sc: "Under the skin (SC)",
+  topical: "On the skin",
+  inhaled: "Inhaled",
+  rectal: "Rectal",
+  vaginal: "Vaginal",
+  eye: "Eye",
+  ear: "Ear",
+  nasal: "Nose",
+  other: "Other",
+};
