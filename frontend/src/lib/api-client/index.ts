@@ -1,5 +1,7 @@
 import { z } from "zod";
 
+import { getDeviceId } from "@/lib/device";
+
 /*
  * How screens talk to the API: always through our own /api/backend pass-through,
  * which adds the login token on the server. Every answer is checked with Zod
@@ -64,7 +66,12 @@ function messageFrom(body: unknown, kind: ApiFailure): string {
 async function send<T>(path: string, schema: z.ZodType<T>, init: RequestInit): Promise<T> {
   let response: Response;
   try {
-    response = await fetch(`${BASE}${path}`, { ...init, cache: "no-store" });
+    response = await fetch(`${BASE}${path}`, {
+      ...init,
+      // Every request says which device it came from, for the audit diary (FR-A2).
+      headers: { ...(init.headers as Record<string, string>), "X-Device-Id": getDeviceId() },
+      cache: "no-store",
+    });
   } catch {
     throw new ApiError("unavailable");
   }

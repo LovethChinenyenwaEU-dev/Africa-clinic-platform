@@ -116,3 +116,17 @@ describe("errorMessage", () => {
     expect(errorMessage(new TypeError("internal details"))).toBe(API_MESSAGES.unavailable);
   });
 });
+
+describe("device ID", () => {
+  it("is sent on every request, reads and writes alike", async () => {
+    fetchMock.mockImplementation(async () => answer({ id: "a" }));
+
+    await apiGet("/x", thing);
+    await apiPost("/x", {}, thing);
+
+    for (const [, init] of fetchMock.mock.calls) {
+      expect(init.headers["X-Device-Id"]).toMatch(/^[0-9a-f-]{36}$/);
+    }
+    expect(fetchMock.mock.calls[1][1].headers["Content-Type"]).toBe("application/json");
+  });
+});

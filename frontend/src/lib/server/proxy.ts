@@ -20,6 +20,7 @@ const SAFE_SEGMENT = /^[A-Za-z0-9_-][A-Za-z0-9_.-]*$/;
 const BLOCKED_FIRST_SEGMENTS = new Set(["auth"]);
 // Big enough for the longest clinical note, small enough to stop abuse.
 export const MAX_BODY_BYTES = 64 * 1024;
+const DEVICE_ID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 type Message = { message: string };
 const NOT_SIGNED_IN: Message = { message: "Not signed in." };
@@ -69,9 +70,12 @@ export async function forwardToBackend(request: Request, segments: string[]): Pr
     }
   }
 
-  // The only browser header passed on: it lets the backend run a repeated write once
-  // (offline outbox replays). The backend checks its format.
+  // The only browser headers passed on. Idempotency-Key lets the backend run a repeated
+  // write once (offline outbox replays); the backend checks its format.
   const idempotencyKey = request.headers.get("idempotency-key");
+  // X-Device-Id says which device a change came from (audit diary). Only a real UUID.
+  const deviceId = request.headers.get("x-device-id");
+  const validDeviceId = deviceId && DEVICE_ID.test(deviceId) ? deviceId : null;
 
   let answer: Response;
   try {
@@ -82,6 +86,7 @@ export async function forwardToBackend(request: Request, segments: string[]): Pr
         Authorization: `Bearer ${token}`,
         ...(body !== undefined ? { "Content-Type": "application/json" } : {}),
         ...(idempotencyKey ? { "Idempotency-Key": idempotencyKey } : {}),
+        ...(validDeviceId ? { "X-Device-Id": validDeviceId } : {}),
       },
       body,
       cache: "no-store",

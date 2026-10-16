@@ -119,6 +119,29 @@ describe("forwardToBackend", () => {
     ]);
   });
 
+  it("passes on a proper device ID, on reads and writes", async () => {
+    signedIn();
+    fetchMock.mockImplementation(async () => answer({ id: ID }));
+    const device = "33333333-4444-4555-8666-777777777777";
+    const read = fakeRequest();
+    read.headers.set("x-device-id", device);
+
+    await forwardToBackend(read, ["encounters", ID]);
+
+    expect(fetchMock.mock.calls[0][1].headers["X-Device-Id"]).toBe(device);
+  });
+
+  it("drops a device ID that is not a proper UUID", async () => {
+    signedIn();
+    fetchMock.mockImplementation(async () => answer({ id: ID }));
+    const read = fakeRequest();
+    read.headers.set("x-device-id", "not-a-device; also-not-a-uuid");
+
+    await forwardToBackend(read, ["encounters", ID]);
+
+    expect(fetchMock.mock.calls[0][1].headers["X-Device-Id"]).toBeUndefined();
+  });
+
   it("refuses writes that do not come from our own site", async () => {
     signedIn();
 
