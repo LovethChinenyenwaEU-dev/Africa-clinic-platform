@@ -18,6 +18,8 @@ export const ACTION_LABELS: Record<string, string> = {
   "appointment.reschedule": "Rescheduled a visit",
   "queue.view": "Viewed the queue",
   "appointment.list": "Viewed the day's visits",
+  "triage.record": "Triaged a patient",
+  "triage.view": "Viewed triage history",
   "reminder.send": "Sent a reminder",
   "encounter.create": "Opened an encounter",
   "encounter.close": "Signed off an encounter",

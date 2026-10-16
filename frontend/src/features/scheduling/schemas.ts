@@ -23,6 +23,8 @@ export const queueEntrySchema = z.object({
   checked_in_at: z.string().nullable(),
   consult_started_at: z.string().nullable(),
   from_earlier_day: z.boolean(),
+  triage_level: z.string().nullable().default(null), // None until a clinician triages
+  red_flags: z.array(z.string()).default([]), // empty for staff without clinical access
 });
 export type QueueEntry = z.infer<typeof queueEntrySchema>;
 
@@ -47,3 +49,13 @@ export const appointmentSchema = z.object({
   starts_at: z.string(),
 });
 export type Appointment = z.infer<typeof appointmentSchema>;
+
+export const triageSchema = z.object({
+  id: z.string().uuid(),
+  appointment_id: z.string().uuid(),
+  level: z.string(),
+  red_flags: z.array(z.string()),
+  recorded_by_id: z.string().uuid(),
+  recorded_at: z.string(),
+});
+export type Triage = z.infer<typeof triageSchema>;

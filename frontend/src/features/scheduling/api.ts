@@ -8,11 +8,13 @@ import {
   clinicianSchema,
   dayEntrySchema,
   queueEntrySchema,
+  triageSchema,
   type Appointment,
   type Branch,
   type Clinician,
   type DayEntry,
   type QueueEntry,
+  type Triage,
 } from "./schemas";
 
 const q = encodeURIComponent;
@@ -60,4 +62,20 @@ export type VisitAction = "check-in" | "cancel" | "no-show";
 /** Check in, cancel or mark a no-show. The backend decides whether the move is allowed. */
 export function changeVisit(appointmentId: string, action: VisitAction): Promise<Appointment> {
   return apiPost(`/appointments/${q(appointmentId)}/${action}`, {}, appointmentSchema);
+}
+
+/**
+ * Doctors and nurses: how urgent a patient who is here is. Sent directly (the queue
+ * needs the network anyway); the device-made ID makes a double tap harmless.
+ */
+export function recordTriage(
+  appointmentId: string,
+  level: string,
+  redFlags: string[],
+): Promise<Triage> {
+  return apiPost(
+    `/appointments/${q(appointmentId)}/triage`,
+    { id: crypto.randomUUID(), level, red_flags: redFlags },
+    triageSchema,
+  );
 }

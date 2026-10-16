@@ -17,8 +17,16 @@ import {
   getQueue,
   type VisitAction,
 } from "./api";
-import { KIND_LABELS, STATUS_LABELS, STATUS_STYLES } from "./labels";
+import {
+  KIND_LABELS,
+  RED_FLAG_LABELS,
+  STATUS_LABELS,
+  STATUS_STYLES,
+  TRIAGE_LABELS,
+  TRIAGE_STYLES,
+} from "./labels";
 import type { Clinician, DayEntry } from "./schemas";
+import { TriageForm } from "./TriageForm";
 import { BookVisitForm, WalkInForm } from "./VisitForms";
 
 // Each refresh is one diary line, so once a minute (and only while the screen is
@@ -91,6 +99,8 @@ export function QueueBoard({ canConsult }: { canConsult: boolean }) {
   const [branchId, setBranchId] = useState<string | null>(null);
   const [day, setDay] = useState(todayInLagos);
   const [form, setForm] = useState<"none" | "walk-in" | "book">("none");
+  // The visit whose triage form is open, if any.
+  const [triaging, setTriaging] = useState<string | null>(null);
 
   const branches = useQuery({ queryKey: ["branches"], queryFn: getBranches });
   const clinicians = useQuery({ queryKey: ["clinicians"], queryFn: getClinicians });
@@ -238,6 +248,11 @@ export function QueueBoard({ canConsult }: { canConsult: boolean }) {
                 </span>
                 <span className="font-semibold">{entry.patient_name}</span>
                 <StatusBadge status={entry.status} />
+                {entry.triage_level && (
+                  <span className={`badge ${TRIAGE_STYLES[entry.triage_level] ?? ""}`}>
+                    {TRIAGE_LABELS[entry.triage_level] ?? entry.triage_level}
+                  </span>
+                )}
                 <span className="text-sm">
                   {entry.status === "in_consult"
                     ? `with ${clinicianName(people, entry.clinician_id)}`
@@ -245,6 +260,33 @@ export function QueueBoard({ canConsult }: { canConsult: boolean }) {
                   {" · "}
                   {KIND_LABELS[entry.kind] ?? entry.kind}
                 </span>
+                {entry.red_flags.length > 0 && (
+                  <span className="w-full text-sm text-red-900">
+                    Danger signs:{" "}
+                    {entry.red_flags.map((flag) => RED_FLAG_LABELS[flag] ?? flag).join(", ")}
+                  </span>
+                )}
+                {canConsult && triaging !== entry.appointment_id && (
+                  <button
+                    type="button"
+                    className="button-secondary ml-auto"
+                    onClick={() => setTriaging(entry.appointment_id)}
+                  >
+                    {entry.triage_level ? "Triage again" : "Triage"}
+                  </button>
+                )}
+                {triaging === entry.appointment_id && (
+                  <TriageForm
+                    appointmentId={entry.appointment_id}
+                    patientName={entry.patient_name}
+                    current={{ level: entry.triage_level, redFlags: entry.red_flags }}
+                    onDone={() => {
+                      setTriaging(null);
+                      refresh();
+                    }}
+                    onCancel={() => setTriaging(null)}
+                  />
+                )}
               </li>
             ))}
           </ol>

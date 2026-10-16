@@ -1,7 +1,7 @@
 import uuid
 from datetime import UTC, datetime
 
-from sqlalchemy import Column, DateTime, Index
+from sqlalchemy import ARRAY, Column, DateTime, Index, String
 from sqlmodel import Field, SQLModel
 
 
@@ -39,3 +39,23 @@ class Appointment(SQLModel, table=True):
     completed_at: datetime | None = Field(default=None, sa_column=_time_column(nullable=True))
     created_by_id: uuid.UUID = Field(foreign_key="staff.id")
     created_at: datetime = Field(default_factory=utcnow, sa_column=_time_column())
+
+class Triage(SQLModel, table=True):
+    """How urgent a waiting patient is, and which danger signs they have. Codes only.
+
+    Never edited: triaging again (the patient got worse, or better) adds a new row,
+    and the newest one counts. The history shows who decided what, and when.
+    """
+
+    __table_args__ = (Index("ix_triage_appointment_recorded_at", "appointment_id", "recorded_at"),)
+
+    id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
+    tenant_id: uuid.UUID = Field(foreign_key="tenant.id", index=True)
+    appointment_id: uuid.UUID = Field(foreign_key="appointment.id")
+    patient_id: uuid.UUID = Field(foreign_key="patient.id")
+    level: str  # see statuses.TriageLevel
+    red_flags: list[str] = Field(
+        default_factory=list, sa_column=Column(ARRAY(String), nullable=False)
+    )
+    recorded_by_id: uuid.UUID = Field(foreign_key="staff.id")
+    recorded_at: datetime = Field(default_factory=utcnow, sa_column=_time_column())

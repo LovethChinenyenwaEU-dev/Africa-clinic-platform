@@ -61,6 +61,8 @@ class QueueEntryResponse(BaseModel):
     checked_in_at: datetime | None
     consult_started_at: datetime | None
     from_earlier_day: bool  # left open from an earlier day: shown apart, never hidden
+    triage_level: str | None  # emergency, urgent or standard; None until triaged
+    red_flags: list[str]  # danger-sign codes; empty for staff without clinical access
 
 
 class DayEntryResponse(BaseModel):
@@ -78,3 +80,22 @@ class DayEntryResponse(BaseModel):
     starts_at: datetime
     ends_at: datetime
     checked_in_at: datetime | None
+
+
+class RecordTriage(BaseModel):
+    """Codes only. Any danger sign makes the level emergency, whatever is sent."""
+
+    id: uuid.UUID | None = None  # made by the device, so a re-send records nothing new
+    level: str = Field(max_length=20)
+    red_flags: list[str] = Field(default_factory=list, max_length=20)
+
+
+class TriageResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: uuid.UUID
+    appointment_id: uuid.UUID
+    level: str
+    red_flags: list[str]
+    recorded_by_id: uuid.UUID
+    recorded_at: datetime

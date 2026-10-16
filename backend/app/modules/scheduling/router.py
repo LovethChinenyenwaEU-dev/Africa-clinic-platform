@@ -1,5 +1,6 @@
 import uuid
 from collections.abc import Callable
+from dataclasses import replace
 from datetime import date
 from typing import Annotated
 
@@ -8,7 +9,7 @@ from sqlmodel import Session
 
 from app.core.db import get_session
 from app.modules.identity.dependencies import CurrentStaff, require
-from app.modules.identity.permissions import Capability
+from app.modules.identity.permissions import Capability, role_has
 from app.modules.patients.service import PatientNotFoundError
 from app.modules.scheduling.board import get_day_list, get_queue
 from app.modules.scheduling.lifecycle import (
@@ -27,7 +28,9 @@ from app.modules.scheduling.schemas import (
     BookAppointment,
     DayEntryResponse,
     QueueEntryResponse,
+    RecordTriage,
     RescheduleAppointment,
+    TriageResponse,
     WalkInRegistration,
 )
 from app.modules.scheduling.service import (
@@ -39,6 +42,11 @@ from app.modules.scheduling.service import (
     register_walk_in,
 )
 from app.modules.scheduling.transitions import InvalidMoveError
+from app.modules.scheduling.triage import (
+    NotAClinicianToTriageError,
+    record_triage,
+    triage_history,
+)
 
 router = APIRouter(prefix="/appointments", tags=["appointments"])
 
@@ -55,6 +63,7 @@ KNOWN_ERRORS = (
     SlotTakenError,
     InvalidMoveError,
     ClinicianMismatchError,
+    NotAClinicianToTriageError,
 )
 
 
@@ -68,7 +77,7 @@ def _http_error(error: Exception) -> HTTPException:
         return HTTPException(status_code=404, detail=APPOINTMENT_NOT_FOUND)
     if isinstance(error, SlotTakenError | InvalidMoveError):
         return HTTPException(status_code=409, detail=str(error))
-    if isinstance(error, ClinicianMismatchError):
+    if isinstance(error, ClinicianMismatchError | NotAClinicianToTriageError):
         return HTTPException(status_code=403, detail=str(error))
     raise error
 
@@ -152,9 +161,13 @@ def read_queue(
     branch_id: uuid.UUID,
     session: Session = Depends(get_session),
 ):
-    """Who is being seen and who is waiting at one branch. Viewing it is noted in the diary."""
+    """Who is being seen and who is waiting at one branch. Viewing it is noted in the diary.
+
+    Everyone sees the urgency (front desk must know to call a clinician now); the
+    danger signs themselves only reach staff who may read the clinical record.
+    """
     try:
-        return get_queue(
+        entries = get_queue(
             session,
             tenant_id=current_staff.tenant_id,
             actor_id=current_staff.id,
@@ -162,6 +175,9 @@ def read_queue(
         )
     except KNOWN_ERRORS as error:
         raise _http_error(error) from None
+    if role_has(current_staff.role, Capability.CLINICAL_READ):
+        return entries
+    return [replace(entry, red_flags=()) for entry in entries]
 
 
 @router.get(
@@ -286,6 +302,54 @@ def reschedule_visit(
             appointment_id=appointment_id,
             starts_at=body.starts_at,
             duration_minutes=body.duration_minutes,
+        )
+    except KNOWN_ERRORS as error:
+        raise _http_error(error) from None
+
+@router.post(
+    "/{appointment_id}/triage",
+    response_model=TriageResponse,
+    status_code=status.HTTP_201_CREATED,
+    dependencies=[Depends(require(Capability.APPOINTMENT_CONSULT))],
+)
+def triage_visit(
+    appointment_id: uuid.UUID,
+    body: RecordTriage,
+    current_staff: CurrentStaff,
+    session: Session = Depends(get_session),
+):
+    """Doctors and nurses: how urgent this patient is. Triaging again adds a new row."""
+    try:
+        return record_triage(
+            session,
+            tenant_id=current_staff.tenant_id,
+            actor_id=current_staff.id,
+            appointment_id=appointment_id,
+            level=body.level,
+            red_flags=body.red_flags,
+            triage_id=body.id,
+        )
+    except KNOWN_ERRORS as error:
+        raise _http_error(error) from None
+
+
+@router.get(
+    "/{appointment_id}/triage",
+    response_model=list[TriageResponse],
+    dependencies=[Depends(require(Capability.CLINICAL_READ))],
+)
+def read_triage(
+    appointment_id: uuid.UUID,
+    current_staff: CurrentStaff,
+    session: Session = Depends(get_session),
+):
+    """Every triage of this visit, newest first: who decided what, and when."""
+    try:
+        return triage_history(
+            session,
+            tenant_id=current_staff.tenant_id,
+            actor_id=current_staff.id,
+            appointment_id=appointment_id,
         )
     except KNOWN_ERRORS as error:
         raise _http_error(error) from None

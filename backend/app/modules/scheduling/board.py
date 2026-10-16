@@ -10,6 +10,7 @@ from app.modules.patients.service import patient_names
 from app.modules.scheduling.models import Appointment
 from app.modules.scheduling.service import BranchNotFoundError
 from app.modules.scheduling.statuses import AppointmentStatus as Status
+from app.modules.scheduling.triage import latest_triage, urgency_rank
 from app.modules.tenancy.service import get_branch
 
 # Nigeria is on West Africa Time all year (no daylight saving), so a fixed offset is exact.
@@ -38,6 +39,10 @@ class QueueEntry:
     # A visit from an earlier Lagos day that was never finished or cancelled.
     # It is shown apart, never silently hidden, so front desk can tidy it up.
     from_earlier_day: bool
+    # The triage that counts (None until someone triages). Danger signs are clinical:
+    # the router leaves them out for staff who may not read the clinical record.
+    triage_level: str | None = None
+    red_flags: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True)
@@ -63,8 +68,14 @@ def _names_for(session: Session, tenant_id: uuid.UUID, rows) -> dict[uuid.UUID, 
 
 
 def _queue_entry(
-    row: Appointment, position: int | None, names: dict, *, earlier: bool = False
+    row: Appointment,
+    position: int | None,
+    names: dict,
+    triage: dict,
+    *,
+    earlier: bool = False,
 ) -> QueueEntry:
+    latest = triage.get(row.id)
     return QueueEntry(
         appointment_id=row.id,
         patient_id=row.patient_id,
@@ -78,6 +89,8 @@ def _queue_entry(
         checked_in_at=row.checked_in_at,
         consult_started_at=row.consult_started_at,
         from_earlier_day=earlier,
+        triage_level=latest.level if latest else None,
+        red_flags=tuple(latest.red_flags) if latest else (),
     )
 
 
@@ -125,6 +138,7 @@ def get_queue(
     )
     rows = session.exec(statement).all()
     names = _names_for(session, tenant_id, rows)
+    triage = latest_triage(session, tenant_id=tenant_id, visits=list(rows))
 
     current = [row for row in rows if lagos_day(row.starts_at) >= today]
     leftover = sorted(
@@ -137,12 +151,19 @@ def get_queue(
     )
     waiting = sorted(
         (row for row in current if row.status == Status.WAITING.value),
-        key=lambda row: (row.checked_in_at or row.starts_at, str(row.id)),
+        # Emergencies first, then urgent, then everyone else in arrival order.
+        key=lambda row: (
+            urgency_rank(triage.get(row.id)),
+            row.checked_in_at or row.starts_at,
+            str(row.id),
+        ),
     )
 
-    entries = [_queue_entry(row, None, names) for row in in_consult]
-    entries += [_queue_entry(row, place, names) for place, row in enumerate(waiting, start=1)]
-    entries += [_queue_entry(row, None, names, earlier=True) for row in leftover]
+    entries = [_queue_entry(row, None, names, triage) for row in in_consult]
+    entries += [
+        _queue_entry(row, place, names, triage) for place, row in enumerate(waiting, start=1)
+    ]
+    entries += [_queue_entry(row, None, names, triage, earlier=True) for row in leftover]
     return entries
 
 

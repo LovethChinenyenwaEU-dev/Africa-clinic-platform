@@ -34,6 +34,8 @@ class AuditAction(StrEnum):
     APPOINTMENT_RESCHEDULE = "appointment.reschedule"
     QUEUE_VIEW = "queue.view"
     APPOINTMENT_LIST = "appointment.list"
+    TRIAGE_RECORD = "triage.record"
+    TRIAGE_VIEW = "triage.view"
     REMINDER_SEND = "reminder.send"
     ENCOUNTER_CREATE = "encounter.create"
     ENCOUNTER_CLOSE = "encounter.close"
