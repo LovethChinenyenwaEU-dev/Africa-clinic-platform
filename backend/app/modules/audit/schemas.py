@@ -13,6 +13,7 @@ class AuditEventResponse(BaseModel):
     actor_id: uuid.UUID
     patient_id: uuid.UUID | None
     entity_id: uuid.UUID | None
+    device_id: uuid.UUID | None
     action: str
     purpose: str | None
     occurred_at: datetime

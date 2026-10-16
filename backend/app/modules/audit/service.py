@@ -4,6 +4,7 @@ from enum import StrEnum
 
 from sqlmodel import Session, col
 
+from app.core.device import current_device_id
 from app.core.tenant_scope import tenant_select
 from app.modules.audit.models import AuditEvent
 
@@ -65,6 +66,7 @@ def add_audit_event(
     It does NOT save. The caller saves once, together with the action itself, so
     the action and its diary line either both happen or neither does.
     entity_id says exactly which record was touched (a note, a vitals set...).
+    The device is taken from the request being handled, when there is one.
     """
     event = AuditEvent(
         tenant_id=tenant_id,
@@ -72,6 +74,7 @@ def add_audit_event(
         action=action.value,
         patient_id=patient_id,
         entity_id=entity_id,
+        device_id=current_device_id(),
         purpose=purpose,
     )
     session.add(event)

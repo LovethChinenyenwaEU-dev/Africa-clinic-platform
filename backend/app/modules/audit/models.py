@@ -24,6 +24,7 @@ class AuditEvent(SQLModel, table=True):
     actor_id: uuid.UUID
     patient_id: uuid.UUID | None = Field(default=None, index=True)
     entity_id: uuid.UUID | None = None  # which note, vitals set, encounter... was touched
+    device_id: uuid.UUID | None = None  # which device (browser) it came from; None if unknown
     action: str
     purpose: str | None = None
     occurred_at: datetime = Field(
