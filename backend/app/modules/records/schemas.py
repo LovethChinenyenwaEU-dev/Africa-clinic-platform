@@ -219,3 +219,70 @@ class PrescriptionResponse(BaseModel):
     recorded_at: datetime
     written_at: datetime
     synced_late: bool
+
+
+class PlanFollowUp(BaseModel):
+    id: uuid.UUID | None = None
+    due_date: date  # a Lagos calendar day
+    visit_type: str = Field(default="in_person", max_length=20)
+    instructions: str | None = Field(default=None, max_length=1000)
+    written_at: datetime | None = None
+
+
+class FollowUpResponse(BaseModel):
+    """For clinicians: with the instructions."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    id: uuid.UUID
+    encounter_id: uuid.UUID
+    patient_id: uuid.UUID
+    due_date: date
+    visit_type: str
+    instructions: str | None
+    status: str
+    appointment_id: uuid.UUID | None
+    recorded_by_id: uuid.UUID
+    recorded_at: datetime
+    synced_late: bool
+
+
+class FollowUpDue(BaseModel):
+    """For front desk: who, when and what kind of visit. No clinical instructions."""
+
+    id: uuid.UUID
+    patient_id: uuid.UUID
+    patient_name: str
+    due_date: date
+    visit_type: str
+    status: str
+
+
+class MarkBooked(BaseModel):
+    appointment_id: uuid.UUID | None = None  # the visit booked for it, if known
+
+
+class WriteReferral(BaseModel):
+    id: uuid.UUID | None = None
+    to_name: str = Field(max_length=400)
+    specialty: str | None = Field(default=None, max_length=200)
+    urgency: str = Field(default="routine", max_length=20)
+    reason: str = Field(max_length=4000)
+    written_at: datetime | None = None
+
+
+class ReferralResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: uuid.UUID
+    encounter_id: uuid.UUID
+    patient_id: uuid.UUID
+    to_name: str
+    specialty: str | None
+    urgency: str
+    reason: str
+    status: str
+    recorded_by_id: uuid.UUID
+    recorded_at: datetime
+    written_at: datetime
+    synced_late: bool

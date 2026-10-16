@@ -5,6 +5,7 @@ owner, author, same clinic). Another clinic's records answer 404, exactly like
 an ID that does not exist.
 """
 import uuid
+from datetime import date
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlmodel import Session
@@ -39,6 +40,22 @@ from app.modules.records.notes import (
     resolve_note_conflict,
     write_note,
 )
+from app.modules.records.outcomes import (
+    FollowUpNotFoundError,
+    InvalidOutcomeError,
+    NotReferralAuthorError,
+    OutcomeMoveError,
+    ReferralNotFoundError,
+    cancel_follow_up,
+    cancel_referral,
+    follow_ups_due,
+    get_referral,
+    list_encounter_follow_ups,
+    list_encounter_referrals,
+    mark_follow_up_booked,
+    plan_follow_up,
+    write_referral,
+)
 from app.modules.records.prescriptions import (
     InvalidPrescriptionError,
     NotAPrescriberError,
@@ -55,20 +72,26 @@ from app.modules.records.schemas import (
     AmendNote,
     CorrectVitals,
     EncounterResponse,
+    FollowUpDue,
+    FollowUpResponse,
+    MarkBooked,
     NoteResponse,
     OpenEncounter,
+    PlanFollowUp,
     PrescriptionForm,
     PrescriptionResponse,
     ProblemForm,
     ProblemResponse,
     Readings,
     RecordVitals,
+    ReferralResponse,
     ResolveConflict,
     ReviseAllergy,
     RevisePrescription,
     ReviseProblem,
     VitalsResponse,
     WriteNote,
+    WriteReferral,
 )
 from app.modules.records.service import (
     EncounterNotFoundError,
@@ -720,3 +743,192 @@ def choose_prescription(
         )
     except KNOWN_ERRORS as error:
         raise _http_error(error) from None
+
+
+# Follow-up and referral (FR-C5). Clinicians write them in the encounter; front desk
+# sees the follow-ups due (no instructions) and marks them booked or cancelled.
+
+OUTCOME_ERRORS = (
+    InvalidOutcomeError,
+    FollowUpNotFoundError,
+    ReferralNotFoundError,
+    OutcomeMoveError,
+    NotReferralAuthorError,
+)
+BOOKERS = [Depends(require(Capability.APPOINTMENT_WRITE))]
+BOOKINGS = [Depends(require(Capability.APPOINTMENT_READ))]
+
+
+def _outcome_error(error: Exception) -> HTTPException:
+    if isinstance(error, InvalidOutcomeError):
+        return HTTPException(status_code=422, detail=str(error))
+    if isinstance(error, FollowUpNotFoundError | ReferralNotFoundError):
+        return HTTPException(status_code=404, detail=NOT_FOUND)
+    if isinstance(error, OutcomeMoveError):
+        return HTTPException(status_code=409, detail=str(error))
+    if isinstance(error, NotReferralAuthorError):
+        return HTTPException(status_code=403, detail=str(error))
+    return _http_error(error)
+
+
+def _due(row, name: str = "") -> FollowUpDue:
+    return FollowUpDue(
+        id=row.id,
+        patient_id=row.patient_id,
+        patient_name=name,
+        due_date=row.due_date,
+        visit_type=row.visit_type,
+        status=row.status,
+    )
+
+
+@router.post(
+    "/encounters/{encounter_id}/follow-ups",
+    response_model=FollowUpResponse,
+    status_code=status.HTTP_201_CREATED,
+    dependencies=WRITE,
+)
+def add_follow_up(
+    encounter_id: uuid.UUID,
+    body: PlanFollowUp,
+    current_staff: CurrentStaff,
+    session: Session = Depends(get_session),
+):
+    try:
+        return plan_follow_up(
+            session,
+            **_who(current_staff),
+            encounter_id=encounter_id,
+            due_date=body.due_date,
+            visit_type=body.visit_type,
+            instructions=body.instructions,
+            follow_up_id=body.id,
+            written_at=body.written_at,
+        )
+    except KNOWN_ERRORS + OUTCOME_ERRORS as error:
+        raise _outcome_error(error) from None
+
+
+@router.get(
+    "/encounters/{encounter_id}/follow-ups",
+    response_model=list[FollowUpResponse],
+    dependencies=READ,
+)
+def read_follow_ups(
+    encounter_id: uuid.UUID, current_staff: CurrentStaff, session: Session = Depends(get_session)
+):
+    try:
+        return list_encounter_follow_ups(session, **_who(current_staff), encounter_id=encounter_id)
+    except KNOWN_ERRORS + OUTCOME_ERRORS as error:
+        raise _outcome_error(error) from None
+
+
+@router.get("/follow-ups/due", response_model=list[FollowUpDue], dependencies=BOOKINGS)
+def read_follow_ups_due(
+    current_staff: CurrentStaff,
+    until: date,
+    session: Session = Depends(get_session),
+):
+    """Planned follow-ups due by `until`, overdue ones included, soonest first."""
+    rows = follow_ups_due(session, **_who(current_staff), until=until)
+    return [_due(row, name) for row, name in rows]
+
+
+@router.post(
+    "/follow-ups/{follow_up_id}/booked", response_model=FollowUpDue, dependencies=BOOKERS
+)
+def follow_up_booked(
+    follow_up_id: uuid.UUID,
+    body: MarkBooked,
+    current_staff: CurrentStaff,
+    session: Session = Depends(get_session),
+):
+    try:
+        row = mark_follow_up_booked(
+            session,
+            **_who(current_staff),
+            follow_up_id=follow_up_id,
+            appointment_id=body.appointment_id,
+        )
+    except OUTCOME_ERRORS as error:
+        raise _outcome_error(error) from None
+    return _due(row)
+
+
+@router.post(
+    "/follow-ups/{follow_up_id}/cancel", response_model=FollowUpDue, dependencies=BOOKERS
+)
+def follow_up_cancelled(
+    follow_up_id: uuid.UUID, current_staff: CurrentStaff, session: Session = Depends(get_session)
+):
+    try:
+        row = cancel_follow_up(session, **_who(current_staff), follow_up_id=follow_up_id)
+    except OUTCOME_ERRORS as error:
+        raise _outcome_error(error) from None
+    return _due(row)
+
+
+@router.post(
+    "/encounters/{encounter_id}/referrals",
+    response_model=ReferralResponse,
+    status_code=status.HTTP_201_CREATED,
+    dependencies=WRITE,
+)
+def add_referral(
+    encounter_id: uuid.UUID,
+    body: WriteReferral,
+    current_staff: CurrentStaff,
+    session: Session = Depends(get_session),
+):
+    try:
+        return write_referral(
+            session,
+            **_who(current_staff),
+            encounter_id=encounter_id,
+            to_name=body.to_name,
+            specialty=body.specialty,
+            urgency=body.urgency,
+            reason=body.reason,
+            referral_id=body.id,
+            written_at=body.written_at,
+        )
+    except KNOWN_ERRORS + OUTCOME_ERRORS as error:
+        raise _outcome_error(error) from None
+
+
+@router.get(
+    "/encounters/{encounter_id}/referrals",
+    response_model=list[ReferralResponse],
+    dependencies=READ,
+)
+def read_referrals(
+    encounter_id: uuid.UUID, current_staff: CurrentStaff, session: Session = Depends(get_session)
+):
+    try:
+        return list_encounter_referrals(session, **_who(current_staff), encounter_id=encounter_id)
+    except KNOWN_ERRORS + OUTCOME_ERRORS as error:
+        raise _outcome_error(error) from None
+
+
+@router.get("/referrals/{referral_id}", response_model=ReferralResponse, dependencies=READ)
+def read_referral(
+    referral_id: uuid.UUID, current_staff: CurrentStaff, session: Session = Depends(get_session)
+):
+    """One referral, for printing its letter."""
+    try:
+        return get_referral(session, **_who(current_staff), referral_id=referral_id)
+    except OUTCOME_ERRORS as error:
+        raise _outcome_error(error) from None
+
+
+@router.post(
+    "/referrals/{referral_id}/cancel", response_model=ReferralResponse, dependencies=WRITE
+)
+def referral_cancelled(
+    referral_id: uuid.UUID, current_staff: CurrentStaff, session: Session = Depends(get_session)
+):
+    """Written by mistake, or no longer needed. Kept."""
+    try:
+        return cancel_referral(session, **_who(current_staff), referral_id=referral_id)
+    except KNOWN_ERRORS + OUTCOME_ERRORS as error:
+        raise _outcome_error(error) from None

@@ -18,7 +18,7 @@ export default async function StaffLayout({ children }: { children: ReactNode })
   return (
     <SyncProvider staffId={user.id}>
       <div className="min-h-screen">
-        <header className="border-b border-line bg-white">
+        <header className="border-b border-line bg-white print:hidden">
           <div className="mx-auto flex max-w-5xl flex-wrap items-center gap-x-6 gap-y-2 px-4 py-3">
             <Link href="/" className="font-bold text-accent">
               Clinic Platform

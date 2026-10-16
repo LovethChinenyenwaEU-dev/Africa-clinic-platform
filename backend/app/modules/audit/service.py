@@ -45,6 +45,14 @@ class AuditAction(StrEnum):
     TELECONSULT_MODE = "teleconsult.mode"  # switched between video, audio and text
     TELECONSULT_MESSAGE = "teleconsult.message"
     TELECONSULT_CHAT_VIEW = "teleconsult.chat_view"
+    FOLLOW_UP_PLAN = "follow_up.plan"
+    FOLLOW_UP_VIEW = "follow_up.view"
+    FOLLOW_UP_LIST = "follow_up.list"  # front desk opened the follow-ups due
+    FOLLOW_UP_BOOKED = "follow_up.booked"
+    FOLLOW_UP_CANCEL = "follow_up.cancel"
+    REFERRAL_WRITE = "referral.write"
+    REFERRAL_VIEW = "referral.view"
+    REFERRAL_CANCEL = "referral.cancel"
     REMINDER_SEND = "reminder.send"
     ENCOUNTER_CREATE = "encounter.create"
     ENCOUNTER_CLOSE = "encounter.close"

@@ -80,3 +80,14 @@ export const slotSchema = z.object({
   visit_type: z.string(),
 });
 export type Slot = z.infer<typeof slotSchema>;
+
+// Follow-ups due, for front desk: no clinical instructions.
+export const followUpDueSchema = z.object({
+  id: z.string().uuid(),
+  patient_id: z.string().uuid(),
+  patient_name: z.string(),
+  due_date: z.string(),
+  visit_type: z.string(),
+  status: z.string(),
+});
+export type FollowUpDue = z.infer<typeof followUpDueSchema>;

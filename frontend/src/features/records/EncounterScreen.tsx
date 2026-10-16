@@ -18,6 +18,7 @@ import { getEncounter, markOpenedByMistake, signOff, type SignOffResult } from "
 import { AllergiesPanel, ProblemsPanel } from "./ChartPanels";
 import { ENCOUNTER_STATUS_LABELS } from "./labels";
 import { NotesPanel } from "./NotesPanel";
+import { OutcomesPanel } from "./OutcomesPanel";
 import { PrescriptionsPanel } from "./PrescriptionsPanel";
 import { VitalsPanel } from "./VitalsPanel";
 
@@ -221,6 +222,7 @@ export function EncounterScreen({
       <ProblemsPanel {...context} />
       <PrescriptionsPanel {...context} canPrescribe={canPrescribe} />
       <NotesPanel {...context} />
+      <OutcomesPanel {...context} />
     </div>
   );
 }

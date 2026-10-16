@@ -45,6 +45,15 @@ DOORS = [
     ("get", f"{API}/encounters/{ID}/prescriptions", {}),
     ("post", f"{API}/prescriptions/{ID}/revisions", {"json": MEDICINE}),
     ("post", f"{API}/prescriptions/{ID}/resolve", {"json": {"keep": "this"}}),
+    ("post", f"{API}/encounters/{ID}/follow-ups", {"json": {"due_date": "2026-12-01"}}),
+    ("get", f"{API}/encounters/{ID}/follow-ups", {}),
+    ("get", f"{API}/follow-ups/due", {"params": {"until": "2026-12-01"}}),
+    ("post", f"{API}/follow-ups/{ID}/booked", {"json": {}}),
+    ("post", f"{API}/follow-ups/{ID}/cancel", {}),
+    ("post", f"{API}/encounters/{ID}/referrals", {"json": {"to_name": "X", "reason": "Y"}}),
+    ("get", f"{API}/encounters/{ID}/referrals", {}),
+    ("get", f"{API}/referrals/{ID}", {}),
+    ("post", f"{API}/referrals/{ID}/cancel", {}),
 ]
 
 
@@ -58,6 +67,8 @@ def test_records_routes_are_registered():
         "problems": "{problem_id}",
         "notes": "{note_id}",
         "prescriptions": "{prescription_id}",
+        "follow-ups": "{follow_up_id}",
+        "referrals": "{referral_id}",
     }
     for _, url, _ in DOORS:
         resource = url.removeprefix(f"{API}/").split("/")[0]

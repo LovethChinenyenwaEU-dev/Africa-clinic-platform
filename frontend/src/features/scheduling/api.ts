@@ -7,6 +7,7 @@ import {
   branchSchema,
   clinicianSchema,
   dayEntrySchema,
+  followUpDueSchema,
   hoursSchema,
   queueEntrySchema,
   slotSchema,
@@ -15,6 +16,7 @@ import {
   type Branch,
   type Clinician,
   type DayEntry,
+  type FollowUpDue,
   type Hours,
   type QueueEntry,
   type Slot,
@@ -124,4 +126,18 @@ export function getFreeSlots(
     days: String(days),
   });
   return apiGet(`/availability/slots?${query}`, z.array(slotSchema));
+}
+
+// Follow-ups due (FR-C5): front desk books them, then marks them booked or cancelled.
+
+export function getFollowUpsDue(until: string): Promise<FollowUpDue[]> {
+  return apiGet(`/follow-ups/due?until=${q(until)}`, z.array(followUpDueSchema));
+}
+
+export function markFollowUpBooked(followUpId: string): Promise<FollowUpDue> {
+  return apiPost(`/follow-ups/${q(followUpId)}/booked`, {}, followUpDueSchema);
+}
+
+export function cancelFollowUp(followUpId: string): Promise<FollowUpDue> {
+  return apiPost(`/follow-ups/${q(followUpId)}/cancel`, {}, followUpDueSchema);
 }

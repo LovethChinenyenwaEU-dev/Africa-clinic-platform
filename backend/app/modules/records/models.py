@@ -195,3 +195,52 @@ class Prescription(SQLModel, table=True):
     recorded_at: datetime = Field(default_factory=utcnow, sa_column=_time_column())
     written_at: datetime = Field(default_factory=utcnow, sa_column=_time_column())
     synced_late: bool = False  # written offline before sign-off, arrived after (late.py)
+
+
+class FollowUp(SQLModel, table=True):
+    """When the patient should be seen again, asked for in an encounter (FR-C5).
+
+    Front desk sees the due date and the kind of visit; the instructions are clinical
+    and only clinicians read them. Booking or cancelling changes the status only.
+    """
+
+    __tablename__ = "follow_up"
+    __table_args__ = (Index("ix_follow_up_tenant_status_due", "tenant_id", "status", "due_date"),)
+
+    id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
+    tenant_id: uuid.UUID = Field(foreign_key="tenant.id", index=True)
+    encounter_id: uuid.UUID = Field(foreign_key="encounter.id", index=True)
+    patient_id: uuid.UUID = Field(foreign_key="patient.id")
+    due_date: date  # a Lagos calendar day
+    visit_type: str  # in_person or teleconsult
+    instructions: str | None = None  # for example "repeat blood pressure"; clinical
+    status: str  # planned, booked or cancelled (statuses.py)
+    appointment_id: uuid.UUID | None = Field(default=None, foreign_key="appointment.id")
+    recorded_by_id: uuid.UUID = Field(foreign_key="staff.id")
+    recorded_at: datetime = Field(default_factory=utcnow, sa_column=_time_column())
+    written_at: datetime = Field(default_factory=utcnow, sa_column=_time_column())
+    synced_late: bool = False
+
+
+class Referral(SQLModel, table=True):
+    """A referral to another clinic or specialist, written in an encounter (FR-C5).
+
+    The reason is the clinician's words: health information, never logged. Its content
+    is never edited; cancelling (written by mistake, no longer needed) keeps it.
+    """
+
+    __table_args__ = (Index("ix_referral_encounter_recorded_at", "encounter_id", "recorded_at"),)
+
+    id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
+    tenant_id: uuid.UUID = Field(foreign_key="tenant.id", index=True)
+    encounter_id: uuid.UUID = Field(foreign_key="encounter.id")
+    patient_id: uuid.UUID = Field(foreign_key="patient.id")
+    to_name: str  # the facility or specialist, for example "LUTH Cardiology clinic"
+    specialty: str | None = None  # for example "Cardiology"
+    urgency: str  # routine, urgent or emergency (statuses.py)
+    reason: str  # why, and what is asked of them
+    status: str  # active or cancelled
+    recorded_by_id: uuid.UUID = Field(foreign_key="staff.id")
+    recorded_at: datetime = Field(default_factory=utcnow, sa_column=_time_column())
+    written_at: datetime = Field(default_factory=utcnow, sa_column=_time_column())
+    synced_late: bool = False

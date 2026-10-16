@@ -51,3 +51,15 @@ export const ROUTE_LABELS: Record<string, string> = {
   nasal: "Nose",
   other: "Other",
 };
+
+export const URGENCY_LABELS: Record<string, string> = {
+  routine: "Routine",
+  urgent: "Urgent (within days)",
+  emergency: "Emergency (go now)",
+};
+
+export const FOLLOW_UP_STATUS_LABELS: Record<string, string> = {
+  planned: "To be booked",
+  booked: "Booked",
+  cancelled: "Cancelled",
+};

@@ -115,3 +115,34 @@ export const prescriptionSchema = z.object({
   synced_late: z.boolean().default(false),
 });
 export type Prescription = z.infer<typeof prescriptionSchema>;
+
+export const followUpSchema = z.object({
+  id,
+  encounter_id: id,
+  patient_id: id,
+  due_date: z.string(), // a Lagos day, "2026-11-16"
+  visit_type: z.string(),
+  instructions: z.string().nullable(),
+  status: z.string(), // planned, booked or cancelled
+  appointment_id: id.nullable(),
+  recorded_by_id: id,
+  recorded_at: z.string(),
+  synced_late: z.boolean().default(false),
+});
+export type FollowUp = z.infer<typeof followUpSchema>;
+
+export const referralSchema = z.object({
+  id,
+  encounter_id: id,
+  patient_id: id,
+  to_name: z.string(),
+  specialty: z.string().nullable(),
+  urgency: z.string(), // routine, urgent or emergency
+  reason: z.string(),
+  status: z.string(), // active or cancelled
+  recorded_by_id: id,
+  recorded_at: z.string(),
+  written_at: z.string(),
+  synced_late: z.boolean().default(false),
+});
+export type Referral = z.infer<typeof referralSchema>;

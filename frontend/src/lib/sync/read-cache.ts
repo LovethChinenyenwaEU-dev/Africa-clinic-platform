@@ -26,7 +26,7 @@ export type ReadEntry = {
 // Lists that are safe and useful to keep whole.
 const ALWAYS = new Set(["queue", "day-list", "branches", "clinicians", "encounter"]);
 // Encounter contents: kept, but not the "show earlier versions" view.
-const CURRENT_ONLY = new Set(["vitals", "notes", "prescriptions"]);
+const CURRENT_ONLY = new Set(["vitals", "notes", "prescriptions", "follow-ups", "referrals"]);
 // The patient's lists (allergies, problems) and details: only for an encounter kept here.
 const BY_PATIENT = new Set(["allergies", "problems", "patient"]);
 

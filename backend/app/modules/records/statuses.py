@@ -76,3 +76,20 @@ class MedicineRoute(StrEnum):
     EAR = "ear"
     NASAL = "nasal"
     OTHER = "other"
+
+
+class FollowUpStatus(StrEnum):
+    PLANNED = "planned"  # the clinician asked for it; front desk has not booked it yet
+    BOOKED = "booked"  # a visit was booked for it
+    CANCELLED = "cancelled"  # not needed after all, or the patient declined
+
+
+class ReferralUrgency(StrEnum):
+    ROUTINE = "routine"
+    URGENT = "urgent"  # within days
+    EMERGENCY = "emergency"  # now: the patient goes straight there
+
+
+class ReferralStatus(StrEnum):
+    ACTIVE = "active"
+    CANCELLED = "cancelled"  # written by mistake, or no longer needed; kept

@@ -27,6 +27,7 @@ import {
   TRIAGE_STYLES,
 } from "./labels";
 import type { Clinician, DayEntry } from "./schemas";
+import { FollowUpsDue } from "./FollowUpsDue";
 import { TriageForm } from "./TriageForm";
 import { BookVisitForm, WalkInForm } from "./VisitForms";
 
@@ -355,6 +356,9 @@ export function QueueBoard({ canConsult }: { canConsult: boolean }) {
           </ul>
         </section>
       )}
+
+      {/* Everyone who opens the queue may book visits (front desk, nurses, doctors). */}
+      <FollowUpsDue canBook />
 
       <section aria-labelledby="day-heading" className="card">
         <div className="flex flex-wrap items-end justify-between gap-3">

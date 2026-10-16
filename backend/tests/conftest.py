@@ -14,8 +14,10 @@ from app.modules.records.models import (
     Allergy,
     ClinicalNote,
     Encounter,
+    FollowUp,
     Prescription,
     Problem,
+    Referral,
     VitalSigns,
 )
 from app.modules.scheduling.models import Appointment, Availability, Triage
@@ -57,6 +59,8 @@ def session(run_id):
                 TeleconsultIntake,
                 Triage,
                 Availability,
+                FollowUp,
+                Referral,
                 Prescription,
                 VitalSigns,
                 Allergy,

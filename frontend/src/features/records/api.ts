@@ -6,15 +6,19 @@ import type { NewWrite } from "@/lib/sync/outbox";
 import {
   allergySchema,
   encounterSchema,
+  followUpSchema,
   noteSchema,
   prescriptionSchema,
   problemSchema,
+  referralSchema,
   vitalsSchema,
   type Allergy,
   type Encounter,
+  type FollowUp,
   type Note,
   type Prescription,
   type Problem,
+  type Referral,
   type ReadingField,
   type Vitals,
 } from "./schemas";
@@ -289,4 +293,62 @@ export function prescriptionRevisionWrite(
     label: "Prescription change",
     encounterId: prescription.encounter_id,
   };
+}
+
+// Follow-up and referral (FR-C5). Written through the outbox, timed by the device.
+
+export type FollowUpDetails = {
+  due_date: string; // "2026-11-16", a Lagos day
+  visit_type: "in_person" | "teleconsult";
+  instructions: string | null;
+};
+
+export function getFollowUps(encounterId: string): Promise<FollowUp[]> {
+  return apiGet(`/encounters/${q(encounterId)}/follow-ups`, z.array(followUpSchema));
+}
+
+export function followUpWrite(
+  encounterId: string,
+  details: FollowUpDetails,
+  now = new Date(),
+): NewWrite {
+  return {
+    path: `/encounters/${q(encounterId)}/follow-ups`,
+    body: { ...details, id: newId(), written_at: now.toISOString() },
+    label: "Follow-up",
+    encounterId,
+  };
+}
+
+export type ReferralDetails = {
+  to_name: string;
+  specialty: string | null;
+  urgency: "routine" | "urgent" | "emergency";
+  reason: string;
+};
+
+export function getReferrals(encounterId: string): Promise<Referral[]> {
+  return apiGet(`/encounters/${q(encounterId)}/referrals`, z.array(referralSchema));
+}
+
+/** One referral, for its letter. Reading it is in the diary. */
+export function getReferral(referralId: string): Promise<Referral> {
+  return apiGet(`/referrals/${q(referralId)}`, referralSchema);
+}
+
+export function referralWrite(
+  encounterId: string,
+  details: ReferralDetails,
+  now = new Date(),
+): NewWrite {
+  return {
+    path: `/encounters/${q(encounterId)}/referrals`,
+    body: { ...details, id: newId(), written_at: now.toISOString() },
+    label: "Referral",
+    encounterId,
+  };
+}
+
+export function cancelReferral(referralId: string): Promise<Referral> {
+  return apiPost(`/referrals/${q(referralId)}/cancel`, {}, referralSchema);
 }
