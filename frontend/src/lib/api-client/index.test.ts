@@ -130,3 +130,17 @@ describe("device ID", () => {
     expect(fetchMock.mock.calls[1][1].headers["Content-Type"]).toBe("application/json");
   });
 });
+
+describe("idempotency key", () => {
+  it("is sent only when given, beside the device ID", async () => {
+    fetchMock.mockImplementation(async () => answer({ id: "a" }, 201));
+    const key = "66666666-7777-4888-8999-aaaaaaaaaaaa";
+
+    await apiPost("/x", {}, thing, { idempotencyKey: key });
+    await apiPost("/x", {}, thing);
+
+    expect(fetchMock.mock.calls[0][1].headers["Idempotency-Key"]).toBe(key);
+    expect(fetchMock.mock.calls[0][1].headers["X-Device-Id"]).toMatch(/^[0-9a-f-]{36}$/);
+    expect(fetchMock.mock.calls[1][1].headers["Idempotency-Key"]).toBeUndefined();
+  });
+});

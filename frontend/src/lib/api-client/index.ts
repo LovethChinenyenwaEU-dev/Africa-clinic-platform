@@ -96,11 +96,24 @@ export function apiGet<T>(path: string, schema: z.ZodType<T>): Promise<T> {
   return send(path, schema, { method: "GET" });
 }
 
+export type PostOptions = {
+  // The same key on a re-send makes the server answer as it did the first time,
+  // without doing the work twice (Week 8). The outbox sends one per queued write.
+  idempotencyKey?: string;
+};
+
 /** Write to the API. The body is sent as JSON. */
-export function apiPost<T>(path: string, body: unknown, schema: z.ZodType<T>): Promise<T> {
+export function apiPost<T>(
+  path: string,
+  body: unknown,
+  schema: z.ZodType<T>,
+  options: PostOptions = {},
+): Promise<T> {
+  const headers: Record<string, string> = { "Content-Type": "application/json" };
+  if (options.idempotencyKey) headers["Idempotency-Key"] = options.idempotencyKey;
   return send(path, schema, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers,
     body: JSON.stringify(body ?? {}),
   });
 }
