@@ -9,6 +9,26 @@ Roadmap: [README](./README.md#roadmap-12-week-mvp) · Brief: [docs/product-brief
 
 ---
 
+## 16 Oct 2026 (Fri): Week 8 Steps 1–2
+
+**Done**
+- Week 8 Step 1 (written on 15 Oct) confirmed in the Codespace: migration 0013 up and down, backend tests green, 156 frontend tests. A write sent twice with the same `Idempotency-Key` now happens once (the SRS acceptance test: 3 sends, 1 record).
+- Week 8 Step 2: every audit line records **which device** it came from (FR-A2). Each browser keeps a random device ID (not a fingerprint), sends it as `X-Device-Id`, the pass-through forwards it only if it is a proper UUID, and the admin audit log shows a Device column.
+
+**Hardest problem: getting the device into every diary line without touching dozens of service calls**
+- *Fix:* the device is read once per request into a per-request context variable that the diary reads by itself. A test proves one request's device never leaks into the next, and work done outside a request (the reminder worker) records no device.
+
+**Broke, and fixed**
+- *A proxy test used a header value with a line break:* real `Headers` objects refuse those before our code runs, so the test would have failed for the wrong reason. Replaced with a plain malformed value.
+
+**Finished:** Week 8 Steps 1–2 (Step 2 awaiting its Codespace run).
+
+**Pending:** as on 15 Oct.
+
+**Next:** Step 3, keeping conflicting offline corrections (both versions kept and flagged for a clinician).
+
+---
+
 ## 15 Oct 2026 (Thu): Week 7 finished; sign-in in Codespaces; brief review
 
 **Done**
@@ -19,6 +39,7 @@ Roadmap: [README](./README.md#roadmap-12-week-mvp) · Brief: [docs/product-brief
 - Step 5: audit log viewer for admins (staff, patient and day filters; patients shown by ID only).
 - Week 7 wrap-up in the README (demo data, Codespaces notes).
 - Saved the product brief in `docs/` and checked the whole build against it (`docs/brief-alignment.md`).
+- Week 8 planned (8 steps) and Step 1 written: the `Idempotency-Key` header.
 
 **Hardest problem: sign-in refused (403) only in Codespaces**
 - *Cause:* the sign-in route's anti-forgery check compares the browser's `Origin` with the server's own address. The Codespaces proxy **rewrites `Origin` to `https://localhost:3000`** and puts the real address in `x-forwarded-host`, so they never matched.

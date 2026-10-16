@@ -6,6 +6,7 @@ export const auditEventSchema = z.object({
   actor_id: z.string().uuid(),
   patient_id: z.string().uuid().nullable(),
   entity_id: z.string().uuid().nullable(),
+  device_id: z.string().uuid().nullable(),
   action: z.string(),
   purpose: z.string().nullable(),
   occurred_at: z.string(),

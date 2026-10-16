@@ -182,7 +182,8 @@ export function AuditLog() {
                     <th className="py-2 pr-3">Who</th>
                     <th className="py-2 pr-3">What</th>
                     <th className="py-2 pr-3">Patient</th>
-                    <th className="py-2">Record</th>
+                    <th className="py-2 pr-3">Record</th>
+                    <th className="py-2">Device</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -213,8 +214,11 @@ export function AuditLog() {
                           "-"
                         )}
                       </td>
-                      <td className="py-2 font-mono" title={event.entity_id ?? undefined}>
+                      <td className="py-2 pr-3 font-mono" title={event.entity_id ?? undefined}>
                         {event.entity_id ? short(event.entity_id) : "-"}
+                      </td>
+                      <td className="py-2 font-mono" title={event.device_id ?? undefined}>
+                        {event.device_id ? short(event.device_id) : "-"}
                       </td>
                     </tr>
                   ))}
