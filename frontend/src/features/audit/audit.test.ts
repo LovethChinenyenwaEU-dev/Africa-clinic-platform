@@ -53,8 +53,9 @@ describe("auditQuery", () => {
 
 describe("labels", () => {
   it("has plain words for every action the backend writes", () => {
-    expect(Object.keys(ACTION_LABELS)).toHaveLength(34);
+    expect(Object.keys(ACTION_LABELS)).toHaveLength(38);
     expect(describeAction("note.view")).toBe("Viewed notes");
+    expect(describeAction("vitals.resolve")).toBe("Settled a vitals conflict");
   });
 
   it("shows an unknown action as it is rather than hiding it", () => {

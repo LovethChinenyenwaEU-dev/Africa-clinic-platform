@@ -204,14 +204,22 @@ def test_notes_in_a_mistaken_encounter_cannot_be_amended(session, clinics):
         amend_note(session, **who(clinic), note_id=original.id, body=AMENDED)
 
 
-def test_only_the_newest_wording_can_be_amended(session, clinics):
+def test_amending_an_old_wording_keeps_both_as_a_conflict(session, clinics):
+    """Week 8 (FR-O4): the author amended on two devices. Neither wording is lost."""
     clinic = clinics["a"]
     encounter = visit(session, clinic)
     original = write(session, clinic, encounter)
-    amend_note(session, **who(clinic), note_id=original.id, body=AMENDED)
+    first = amend_note(session, **who(clinic), note_id=original.id, body=AMENDED)
 
+    second = amend_note(session, **who(clinic), note_id=original.id, body="Third try.")
+
+    assert second.version_status == "conflict"
+    session.refresh(first)
+    assert first.version_status == "current"
+
+    # A conflict cannot be amended again: it must be settled first.
     with pytest.raises(NotCurrentVersionError):
-        amend_note(session, **who(clinic), note_id=original.id, body="Third try.")
+        amend_note(session, **who(clinic), note_id=second.id, body="Fourth try.")
 
 
 def test_another_clinic_cannot_amend_a_note(session, clinics):

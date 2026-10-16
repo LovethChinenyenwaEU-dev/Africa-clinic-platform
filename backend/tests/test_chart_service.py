@@ -192,21 +192,35 @@ def test_a_change_must_be_made_in_a_visit_of_the_same_patient(session, clinics):
         )
 
 
-def test_only_the_newest_version_can_be_changed(session, clinics):
+def test_changing_an_old_version_keeps_both_as_a_conflict(session, clinics):
+    """Week 8 (FR-O4): two devices changed the same allergy. Nothing is refused or lost."""
     clinic = clinics["a"]
     encounter = visit(session, clinic)
     original = record_allergy(session, **who(clinic), encounter_id=encounter.id, details=PENICILLIN)
-    revise_allergy(
+    first = revise_allergy(
         session, **who(clinic), allergy_id=original.id, encounter_id=encounter.id, details=OUTGROWN
     )
 
+    second = revise_allergy(
+        session,
+        **who(clinic),
+        allergy_id=original.id,
+        encounter_id=encounter.id,
+        details=PENICILLIN,
+    )
+
+    assert second.version_status == "conflict"
+    session.refresh(first)
+    assert first.version_status == "current"
+
+    # A conflict cannot be changed again: it must be settled first.
     with pytest.raises(NotCurrentVersionError):
         revise_allergy(
             session,
             **who(clinic),
-            allergy_id=original.id,
+            allergy_id=second.id,
             encounter_id=encounter.id,
-            details=PENICILLIN,
+            details=OUTGROWN,
         )
 
 

@@ -34,6 +34,10 @@ export const ACTION_LABELS: Record<string, string> = {
   "note.write": "Wrote a note",
   "note.amend": "Amended a note",
   "note.view": "Viewed notes",
+  "vitals.resolve": "Settled a vitals conflict",
+  "allergy.resolve": "Settled an allergy conflict",
+  "problem.resolve": "Settled a problem conflict",
+  "note.resolve": "Settled a note conflict",
 };
 
 /** Plain words for an action; an unknown code is shown as it is, never hidden. */

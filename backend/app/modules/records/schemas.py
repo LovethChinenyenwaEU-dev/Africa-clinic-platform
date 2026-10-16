@@ -9,6 +9,7 @@ Size limits here only stop huge payloads; the real rules live in the services.
 import uuid
 from datetime import date, datetime
 from decimal import Decimal
+from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -142,6 +143,15 @@ class WriteNote(BaseModel):
 class AmendNote(BaseModel):
     id: uuid.UUID | None = None  # the ID of the amendment
     body: str = Field(max_length=20_000)
+
+
+class ResolveConflict(BaseModel):
+    """Which version to keep: `this` (the conflict in the URL) or `current` (the one in use).
+
+    Choosing twice is harmless: the second answers 409, because nothing is in conflict.
+    """
+
+    keep: Literal["this", "current"]
 
 
 class NoteResponse(BaseModel):

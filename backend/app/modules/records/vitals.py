@@ -13,11 +13,11 @@ from sqlmodel import Session, col
 
 from app.core.tenant_scope import get_in_tenant, tenant_select
 from app.modules.audit.service import AuditAction, add_audit_event
+from app.modules.records.conflicts import SHOWN, new_version_status, resolve_conflict
 from app.modules.records.models import Encounter, VitalSigns
 from app.modules.records.service import (
     EncounterNotFoundError,
     EncounterNotOpenError,
-    NotCurrentVersionError,
     _require_clinician,
 )
 from app.modules.records.statuses import EncounterStatus, VersionStatus
@@ -188,6 +188,8 @@ def correct_vitals(
     """Replace a set with a corrected one. The old set is kept, unchanged, as superseded.
 
     Allowed after the encounter is closed too: changes after sign-off are new versions.
+    If the set was already corrected elsewhere (another device, offline), this
+    correction is kept as a conflict for a clinician to choose (FR-O4), never refused.
     """
     current = now or datetime.now(UTC)
     _require_clinician(session, tenant_id=tenant_id, actor_id=actor_id)
@@ -204,8 +206,7 @@ def correct_vitals(
     old = session.exec(statement).first()
     if old is None:
         raise VitalsNotFoundError("Vitals not found.")
-    if old.status != VersionStatus.CURRENT.value:
-        raise NotCurrentVersionError("These vitals were already corrected; correct the newest.")
+    new_status = new_version_status(old)  # current, or conflict; refused if old is a conflict
 
     encounter = _encounter(session, tenant_id=tenant_id, encounter_id=old.encounter_id)
     if encounter.status == EncounterStatus.ENTERED_IN_ERROR.value:
@@ -215,13 +216,14 @@ def correct_vitals(
             "Only whoever recorded these vitals, or the encounter's owner, can correct them."
         )
 
-    old.status = VersionStatus.SUPERSEDED.value
+    if new_status == VersionStatus.CURRENT.value:
+        old.status = VersionStatus.SUPERSEDED.value
     corrected = VitalSigns(
         id=correction_id or uuid.uuid4(),
         tenant_id=tenant_id,
         encounter_id=old.encounter_id,
         patient_id=old.patient_id,
-        status=VersionStatus.CURRENT.value,
+        status=new_status,
         replaces_id=old.id,
         measured_at=old.measured_at,  # the same measurement, recorded correctly
         recorded_by_id=actor_id,
@@ -251,7 +253,8 @@ def list_encounter_vitals(
     encounter_id: uuid.UUID,
     include_history: bool = False,
 ) -> list[VitalSigns]:
-    """An encounter's vitals, oldest first. With history, superseded versions are included."""
+    """An encounter's vitals, oldest first: current sets and conflicts waiting for a choice.
+    With history, superseded versions are included too."""
     encounter = _encounter(session, tenant_id=tenant_id, encounter_id=encounter_id)
     add_audit_event(
         session,
@@ -266,6 +269,54 @@ def list_encounter_vitals(
         col(VitalSigns.encounter_id) == encounter_id
     )
     if not include_history:
-        statement = statement.where(col(VitalSigns.status) == VersionStatus.CURRENT.value)
+        statement = statement.where(col(VitalSigns.status).in_(SHOWN))
     statement = statement.order_by(col(VitalSigns.measured_at), col(VitalSigns.recorded_at))
     return list(session.exec(statement).all())
+
+
+def resolve_vitals_conflict(
+    session: Session,
+    *,
+    tenant_id: uuid.UUID,
+    actor_id: uuid.UUID,
+    conflict_id: uuid.UUID,
+    keep_conflict: bool,
+) -> VitalSigns:
+    """Choose between a conflicting set and the current one. Returns the set now in use.
+
+    Allowed for whoever recorded either set, or the encounter's owner.
+    """
+    _require_clinician(session, tenant_id=tenant_id, actor_id=actor_id)
+
+    def check_allowed(conflict, current) -> None:
+        encounter = _encounter(session, tenant_id=tenant_id, encounter_id=conflict.encounter_id)
+        if encounter.status == EncounterStatus.ENTERED_IN_ERROR.value:
+            raise EncounterNotOpenError("This encounter was marked as entered in error.")
+        allowed = {conflict.recorded_by_id, encounter.clinician_id}
+        if current is not None:
+            allowed.add(current.recorded_by_id)
+        if actor_id not in allowed:
+            raise NotVitalsAuthorError(
+                "Only whoever recorded these vitals, or the encounter's owner, can choose."
+            )
+
+    kept = resolve_conflict(
+        session,
+        VitalSigns,
+        tenant_id=tenant_id,
+        conflict_id=conflict_id,
+        keep_conflict=keep_conflict,
+        not_found=VitalsNotFoundError,
+        check_allowed=check_allowed,
+    )
+    add_audit_event(
+        session,
+        tenant_id=tenant_id,
+        actor_id=actor_id,
+        action=AuditAction.VITALS_RESOLVE,
+        patient_id=kept.patient_id,
+        entity_id=kept.id,  # the version kept
+    )
+    session.commit()
+    session.refresh(kept)
+    return kept

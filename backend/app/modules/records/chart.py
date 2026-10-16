@@ -18,11 +18,11 @@ from sqlmodel import Session, col
 from app.core.tenant_scope import get_in_tenant, tenant_select
 from app.modules.audit.service import AuditAction, add_audit_event
 from app.modules.patients.service import PatientNotFoundError, patient_exists
+from app.modules.records.conflicts import SHOWN, new_version_status, resolve_conflict
 from app.modules.records.models import Allergy, Encounter, Problem
 from app.modules.records.service import (
     EncounterNotFoundError,
     EncounterNotOpenError,
-    NotCurrentVersionError,
     _require_clinician,
 )
 from app.modules.records.statuses import (
@@ -221,19 +221,20 @@ def _revise(
     old = session.exec(statement).first()
     if old is None:
         raise not_found("Not found.")
-    if old.version_status != VersionStatus.CURRENT.value:
-        raise NotCurrentVersionError("This was already changed; change the newest version.")
+    # Changed elsewhere already (another device, offline): kept as a conflict, never refused.
+    new_status = new_version_status(old)
     encounter = _working_encounter(
         session, tenant_id=tenant_id, encounter_id=encounter_id, patient_id=old.patient_id
     )
 
-    old.version_status = VersionStatus.SUPERSEDED.value
+    if new_status == VersionStatus.CURRENT.value:
+        old.version_status = VersionStatus.SUPERSEDED.value
     revised = model(
         id=revision_id or uuid.uuid4(),
         tenant_id=tenant_id,
         patient_id=old.patient_id,
         encounter_id=encounter.id,
-        version_status=VersionStatus.CURRENT.value,
+        version_status=new_status,
         replaces_id=old.id,
         recorded_by_id=actor_id,
         recorded_at=current,
@@ -272,11 +273,48 @@ def _list(
     session.commit()
     statement = tenant_select(model, tenant_id).where(col(model.patient_id) == patient_id)
     if not include_history:
-        statement = statement.where(
-            col(model.version_status) == VersionStatus.CURRENT.value
-        ).where(col(model.clinical_status) != "entered_in_error")
+        # The version in use, plus any conflict waiting for a clinician to choose.
+        statement = statement.where(col(model.version_status).in_(SHOWN)).where(
+            col(model.clinical_status) != "entered_in_error"
+        )
     statement = statement.order_by(col(model.recorded_at))
     return list(session.exec(statement).all())
+
+
+def _resolve(
+    session: Session,
+    model: ChartModel,
+    *,
+    tenant_id: uuid.UUID,
+    actor_id: uuid.UUID,
+    conflict_id: uuid.UUID,
+    keep_conflict: bool,
+    not_found: type[Exception],
+    action: AuditAction,
+):
+    """Choose between a conflicting entry and the current one. Any active clinician may:
+    these lists belong to the patient, not to one clinician."""
+    _require_clinician(session, tenant_id=tenant_id, actor_id=actor_id)
+    kept = resolve_conflict(
+        session,
+        model,
+        tenant_id=tenant_id,
+        conflict_id=conflict_id,
+        keep_conflict=keep_conflict,
+        not_found=not_found,
+        check_allowed=lambda conflict, current: None,
+    )
+    add_audit_event(
+        session,
+        tenant_id=tenant_id,
+        actor_id=actor_id,
+        action=action,
+        patient_id=kept.patient_id,
+        entity_id=kept.id,  # the version kept
+    )
+    session.commit()
+    session.refresh(kept)
+    return kept
 
 
 def record_allergy(
@@ -329,6 +367,27 @@ def revise_allergy(
         not_found=AllergyNotFoundError,
         action=AuditAction.ALLERGY_REVISE,
         now=now,
+    )
+
+
+def resolve_allergy_conflict(
+    session: Session,
+    *,
+    tenant_id: uuid.UUID,
+    actor_id: uuid.UUID,
+    conflict_id: uuid.UUID,
+    keep_conflict: bool,
+) -> Allergy:
+    """Choose between two versions of an allergy. Returns the version now in use."""
+    return _resolve(
+        session,
+        Allergy,
+        tenant_id=tenant_id,
+        actor_id=actor_id,
+        conflict_id=conflict_id,
+        keep_conflict=keep_conflict,
+        not_found=AllergyNotFoundError,
+        action=AuditAction.ALLERGY_RESOLVE,
     )
 
 
@@ -404,6 +463,27 @@ def revise_problem(
         not_found=ProblemNotFoundError,
         action=AuditAction.PROBLEM_REVISE,
         now=now,
+    )
+
+
+def resolve_problem_conflict(
+    session: Session,
+    *,
+    tenant_id: uuid.UUID,
+    actor_id: uuid.UUID,
+    conflict_id: uuid.UUID,
+    keep_conflict: bool,
+) -> Problem:
+    """Choose between two versions of a problem. Returns the version now in use."""
+    return _resolve(
+        session,
+        Problem,
+        tenant_id=tenant_id,
+        actor_id=actor_id,
+        conflict_id=conflict_id,
+        keep_conflict=keep_conflict,
+        not_found=ProblemNotFoundError,
+        action=AuditAction.PROBLEM_RESOLVE,
     )
 
 

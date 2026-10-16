@@ -50,6 +50,10 @@ class AuditAction(StrEnum):
     NOTE_WRITE = "note.write"
     NOTE_AMEND = "note.amend"
     NOTE_VIEW = "note.view"
+    VITALS_RESOLVE = "vitals.resolve"
+    ALLERGY_RESOLVE = "allergy.resolve"
+    PROBLEM_RESOLVE = "problem.resolve"
+    NOTE_RESOLVE = "note.resolve"
 
 def add_audit_event(
     session: Session,

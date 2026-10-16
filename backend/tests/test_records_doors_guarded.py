@@ -36,6 +36,10 @@ DOORS = [
     ("post", f"{API}/encounters/{ID}/notes", {"json": {"kind": "history", "body": "x"}}),
     ("post", f"{API}/notes/{ID}/amendments", {"json": {"body": "x"}}),
     ("get", f"{API}/encounters/{ID}/notes", {}),
+    ("post", f"{API}/vitals/{ID}/resolve", {"json": {"keep": "this"}}),
+    ("post", f"{API}/allergies/{ID}/resolve", {"json": {"keep": "this"}}),
+    ("post", f"{API}/problems/{ID}/resolve", {"json": {"keep": "this"}}),
+    ("post", f"{API}/notes/{ID}/resolve", {"json": {"keep": "this"}}),
 ]
 
 

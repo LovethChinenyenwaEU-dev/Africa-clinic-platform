@@ -24,15 +24,19 @@ from app.modules.records.chart import (
     list_patient_problems,
     record_allergy,
     record_problem,
+    resolve_allergy_conflict,
+    resolve_problem_conflict,
     revise_allergy,
     revise_problem,
 )
+from app.modules.records.conflicts import NotAConflictError
 from app.modules.records.notes import (
     InvalidNoteError,
     NoteNotFoundError,
     NotNoteAuthorError,
     amend_note,
     list_encounter_notes,
+    resolve_note_conflict,
     write_note,
 )
 from app.modules.records.schemas import (
@@ -47,6 +51,7 @@ from app.modules.records.schemas import (
     ProblemResponse,
     Readings,
     RecordVitals,
+    ResolveConflict,
     ReviseAllergy,
     ReviseProblem,
     VitalsResponse,
@@ -75,6 +80,7 @@ from app.modules.records.vitals import (
     correct_vitals,
     list_encounter_vitals,
     record_vitals,
+    resolve_vitals_conflict,
 )
 
 router = APIRouter(tags=["records"])
@@ -98,6 +104,7 @@ CONFLICT = (
     InvalidEncounterMoveError,
     EncounterNotOpenError,
     NotCurrentVersionError,
+    NotAConflictError,
     VisitMismatchError,
     WrongPatientError,
 )
@@ -124,6 +131,10 @@ def _readings(form: Readings) -> VitalReadings:
 
 def _who(staff) -> dict:
     return {"tenant_id": staff.tenant_id, "actor_id": staff.id}
+
+
+def _choice(body: ResolveConflict) -> dict:
+    return {"keep_conflict": body.keep == "this"}
 
 
 # Encounters
@@ -276,6 +287,22 @@ def fix_vitals(
         raise _http_error(error) from None
 
 
+@router.post("/vitals/{vitals_id}/resolve", response_model=VitalsResponse, dependencies=WRITE)
+def choose_vitals(
+    vitals_id: uuid.UUID,
+    body: ResolveConflict,
+    current_staff: CurrentStaff,
+    session: Session = Depends(get_session),
+):
+    """Settle a conflict: keep this set or the current one. Answers with the set kept."""
+    try:
+        return resolve_vitals_conflict(
+            session, **_who(current_staff), conflict_id=vitals_id, **_choice(body)
+        )
+    except KNOWN_ERRORS as error:
+        raise _http_error(error) from None
+
+
 # Allergies
 
 
@@ -332,6 +359,23 @@ def change_allergy(
             encounter_id=body.encounter_id,
             details=_allergy(body),
             revision_id=body.id,
+        )
+    except KNOWN_ERRORS as error:
+        raise _http_error(error) from None
+
+
+@router.post(
+    "/allergies/{allergy_id}/resolve", response_model=AllergyResponse, dependencies=WRITE
+)
+def choose_allergy(
+    allergy_id: uuid.UUID,
+    body: ResolveConflict,
+    current_staff: CurrentStaff,
+    session: Session = Depends(get_session),
+):
+    try:
+        return resolve_allergy_conflict(
+            session, **_who(current_staff), conflict_id=allergy_id, **_choice(body)
         )
     except KNOWN_ERRORS as error:
         raise _http_error(error) from None
@@ -421,6 +465,23 @@ def change_problem(
         raise _http_error(error) from None
 
 
+@router.post(
+    "/problems/{problem_id}/resolve", response_model=ProblemResponse, dependencies=WRITE
+)
+def choose_problem(
+    problem_id: uuid.UUID,
+    body: ResolveConflict,
+    current_staff: CurrentStaff,
+    session: Session = Depends(get_session),
+):
+    try:
+        return resolve_problem_conflict(
+            session, **_who(current_staff), conflict_id=problem_id, **_choice(body)
+        )
+    except KNOWN_ERRORS as error:
+        raise _http_error(error) from None
+
+
 @router.get(
     "/patients/{patient_id}/problems",
     response_model=list[ProblemResponse],
@@ -491,6 +552,22 @@ def change_note(
             note_id=note_id,
             body=body.body,
             amendment_id=body.id,
+        )
+    except KNOWN_ERRORS as error:
+        raise _http_error(error) from None
+
+
+@router.post("/notes/{note_id}/resolve", response_model=NoteResponse, dependencies=WRITE)
+def choose_note(
+    note_id: uuid.UUID,
+    body: ResolveConflict,
+    current_staff: CurrentStaff,
+    session: Session = Depends(get_session),
+):
+    """Only the note's author may choose between two wordings."""
+    try:
+        return resolve_note_conflict(
+            session, **_who(current_staff), conflict_id=note_id, **_choice(body)
         )
     except KNOWN_ERRORS as error:
         raise _http_error(error) from None

@@ -18,6 +18,9 @@ ALLOWED_MOVES: dict[EncounterStatus, frozenset[EncounterStatus]] = {
 class VersionStatus(StrEnum):
     CURRENT = "current"  # the version to use
     SUPERSEDED = "superseded"  # replaced by a newer version; kept forever, never changed
+    # Made from a version that was already replaced elsewhere (two devices, one offline).
+    # Kept beside the current version until a clinician chooses (FR-O4).
+    CONFLICT = "conflict"
 
 
 class AllergyStatus(StrEnum):

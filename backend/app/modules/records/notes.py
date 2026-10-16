@@ -14,11 +14,11 @@ from sqlmodel import Session, col
 from app.core.tenant_scope import get_in_tenant, tenant_select
 from app.modules.audit.service import AuditAction, add_audit_event
 from app.modules.records.chart import _working_encounter
+from app.modules.records.conflicts import SHOWN, new_version_status, resolve_conflict
 from app.modules.records.models import ClinicalNote, Encounter
 from app.modules.records.service import (
     EncounterNotFoundError,
     EncounterNotOpenError,
-    NotCurrentVersionError,
     _require_clinician,
 )
 from app.modules.records.statuses import EncounterStatus, NoteKind, VersionStatus
@@ -117,7 +117,11 @@ def amend_note(
     amendment_id: uuid.UUID | None = None,
     now: datetime | None = None,
 ) -> ClinicalNote:
-    """Replace the wording of your own note. Allowed after sign-off; the old wording stays."""
+    """Replace the wording of your own note. Allowed after sign-off; the old wording stays.
+
+    If the note was already amended on another device, this wording is kept as a
+    conflict for the author to choose (FR-O4), never refused.
+    """
     current = now or datetime.now(UTC)
     _require_clinician(session, tenant_id=tenant_id, actor_id=actor_id)
     existing = _existing(session, tenant_id=tenant_id, note_id=amendment_id)
@@ -133,8 +137,7 @@ def amend_note(
     old = session.exec(statement).first()
     if old is None:
         raise NoteNotFoundError("Note not found.")
-    if old.version_status != VersionStatus.CURRENT.value:
-        raise NotCurrentVersionError("This note was already amended; amend the newest version.")
+    new_status = new_version_status(old)  # current, or conflict; refused if old is a conflict
     if old.recorded_by_id != actor_id:
         raise NotNoteAuthorError("Only the clinician who wrote this note can amend it.")
     encounter = get_in_tenant(session, Encounter, tenant_id=tenant_id, row_id=old.encounter_id)
@@ -143,13 +146,14 @@ def amend_note(
     if encounter.status == EncounterStatus.ENTERED_IN_ERROR.value:
         raise EncounterNotOpenError("This encounter was marked as entered in error.")
 
-    old.version_status = VersionStatus.SUPERSEDED.value
+    if new_status == VersionStatus.CURRENT.value:
+        old.version_status = VersionStatus.SUPERSEDED.value
     amended = ClinicalNote(
         id=amendment_id or uuid.uuid4(),
         tenant_id=tenant_id,
         encounter_id=old.encounter_id,
         patient_id=old.patient_id,
-        version_status=VersionStatus.CURRENT.value,
+        version_status=new_status,
         replaces_id=old.id,
         kind=old.kind,
         body=new_body,
@@ -179,7 +183,8 @@ def list_encounter_notes(
     encounter_id: uuid.UUID,
     include_history: bool = False,
 ) -> list[ClinicalNote]:
-    """An encounter's notes, oldest first. With history, earlier wordings are included."""
+    """An encounter's notes, oldest first: current wordings and conflicts waiting for a
+    choice. With history, earlier wordings are included too."""
     encounter = get_in_tenant(session, Encounter, tenant_id=tenant_id, row_id=encounter_id)
     if not isinstance(encounter, Encounter):
         raise EncounterNotFoundError("Encounter not found.")
@@ -196,6 +201,53 @@ def list_encounter_notes(
         col(ClinicalNote.encounter_id) == encounter_id
     )
     if not include_history:
-        statement = statement.where(col(ClinicalNote.version_status) == VersionStatus.CURRENT.value)
+        statement = statement.where(col(ClinicalNote.version_status).in_(SHOWN))
     statement = statement.order_by(col(ClinicalNote.recorded_at))
     return list(session.exec(statement).all())
+
+
+def resolve_note_conflict(
+    session: Session,
+    *,
+    tenant_id: uuid.UUID,
+    actor_id: uuid.UUID,
+    conflict_id: uuid.UUID,
+    keep_conflict: bool,
+) -> ClinicalNote:
+    """Choose between two wordings of your own note. Returns the wording now in use.
+
+    Only the author may choose: a note is a clinician's own words.
+    """
+    _require_clinician(session, tenant_id=tenant_id, actor_id=actor_id)
+
+    def check_allowed(conflict, current) -> None:
+        if conflict.recorded_by_id != actor_id:
+            raise NotNoteAuthorError("Only the clinician who wrote this note can choose.")
+        encounter = get_in_tenant(
+            session, Encounter, tenant_id=tenant_id, row_id=conflict.encounter_id
+        )
+        if not isinstance(encounter, Encounter):
+            raise EncounterNotFoundError("Encounter not found.")
+        if encounter.status == EncounterStatus.ENTERED_IN_ERROR.value:
+            raise EncounterNotOpenError("This encounter was marked as entered in error.")
+
+    kept = resolve_conflict(
+        session,
+        ClinicalNote,
+        tenant_id=tenant_id,
+        conflict_id=conflict_id,
+        keep_conflict=keep_conflict,
+        not_found=NoteNotFoundError,
+        check_allowed=check_allowed,
+    )
+    add_audit_event(
+        session,
+        tenant_id=tenant_id,
+        actor_id=actor_id,
+        action=AuditAction.NOTE_RESOLVE,
+        patient_id=kept.patient_id,
+        entity_id=kept.id,  # the wording kept
+    )
+    session.commit()
+    session.refresh(kept)
+    return kept

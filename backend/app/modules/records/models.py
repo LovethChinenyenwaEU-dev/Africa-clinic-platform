@@ -91,7 +91,7 @@ class Allergy(SQLModel, table=True):
     tenant_id: uuid.UUID = Field(foreign_key="tenant.id", index=True)
     patient_id: uuid.UUID = Field(foreign_key="patient.id")
     encounter_id: uuid.UUID = Field(foreign_key="encounter.id")  # the visit it was recorded in
-    version_status: str  # current or superseded
+    version_status: str  # current, superseded or conflict (statuses.py)
     replaces_id: uuid.UUID | None = Field(default=None, foreign_key="allergy.id")
 
     substance: str  # what the patient reacts to, for example penicillin
@@ -117,7 +117,7 @@ class Problem(SQLModel, table=True):
     tenant_id: uuid.UUID = Field(foreign_key="tenant.id", index=True)
     patient_id: uuid.UUID = Field(foreign_key="patient.id")
     encounter_id: uuid.UUID = Field(foreign_key="encounter.id")  # the visit it was recorded in
-    version_status: str  # current or superseded
+    version_status: str  # current, superseded or conflict (statuses.py)
     replaces_id: uuid.UUID | None = Field(default=None, foreign_key="problem.id")
 
     category: str  # see statuses.py
@@ -146,7 +146,7 @@ class ClinicalNote(SQLModel, table=True):
     tenant_id: uuid.UUID = Field(foreign_key="tenant.id", index=True)
     encounter_id: uuid.UUID = Field(foreign_key="encounter.id")
     patient_id: uuid.UUID = Field(foreign_key="patient.id")
-    version_status: str  # current or superseded
+    version_status: str  # current, superseded or conflict (statuses.py)
     replaces_id: uuid.UUID | None = Field(default=None, foreign_key="clinical_note.id")
 
     kind: str  # see statuses.py

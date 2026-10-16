@@ -10,6 +10,7 @@ from app.modules.records.models import VitalSigns
 from app.modules.records.service import (
     EncounterNotFoundError,
     NotAClinicianError,
+    NotCurrentVersionError,
     close_encounter,
     mark_entered_in_error,
     open_encounter,
@@ -17,7 +18,6 @@ from app.modules.records.service import (
 from app.modules.records.vitals import (
     EncounterNotOpenError,
     InvalidVitalsError,
-    NotCurrentVersionError,
     NotVitalsAuthorError,
     VitalReadings,
     VitalsNotFoundError,
@@ -187,14 +187,22 @@ def test_corrections_are_allowed_after_sign_off(session, clinics):
     assert corrected.status == "current"
 
 
-def test_only_the_newest_version_can_be_corrected(session, clinics):
+def test_correcting_an_old_version_keeps_both_as_a_conflict(session, clinics):
+    """Week 8 (FR-O4): two devices corrected the same set. Nothing is refused or lost."""
     clinic = clinics["a"]
     encounter = doctors_encounter(session, clinic)
     original = record(session, clinic, encounter)
-    correct_vitals(session, **who(clinic), vitals_id=original.id, readings=FIXED)
+    first = correct_vitals(session, **who(clinic), vitals_id=original.id, readings=FIXED)
 
+    second = correct_vitals(session, **who(clinic), vitals_id=original.id, readings=FEVER)
+
+    assert second.status == "conflict"
+    session.refresh(first)
+    assert first.status == "current"  # the one in use is not overwritten
+
+    # A conflict cannot be corrected again: it must be settled first.
     with pytest.raises(NotCurrentVersionError):
-        correct_vitals(session, **who(clinic), vitals_id=original.id, readings=FEVER)
+        correct_vitals(session, **who(clinic), vitals_id=second.id, readings=FIXED)
 
 
 def test_a_replayed_correction_creates_nothing_new(session, clinics):
