@@ -6,6 +6,7 @@ from sqlmodel import Session, col, select
 
 from app.core.db import engine
 from app.modules.consent.models import Consent, ConsentText
+from app.modules.idempotency.models import IdempotencyRecord
 from app.modules.identity.models import Staff
 from app.modules.notifications.models import Reminder
 from app.modules.patients.models import Patient
@@ -35,6 +36,7 @@ def session(run_id):
             # One DELETE per table, so rows that point at each other (a vitals correction
             # and the set it replaces) go together.
             for model in (
+                IdempotencyRecord,
                 Reminder,
                 VitalSigns,
                 Allergy,
