@@ -1,7 +1,7 @@
 import uuid
-from datetime import UTC, datetime
+from datetime import UTC, datetime, time
 
-from sqlalchemy import ARRAY, Column, DateTime, Index, String
+from sqlalchemy import ARRAY, Column, DateTime, Index, String, Time
 from sqlmodel import Field, SQLModel
 
 
@@ -59,3 +59,25 @@ class Triage(SQLModel, table=True):
     )
     recorded_by_id: uuid.UUID = Field(foreign_key="staff.id")
     recorded_at: datetime = Field(default_factory=utcnow, sa_column=_time_column())
+
+
+class Availability(SQLModel, table=True):
+    """A clinician's weekly hours: "Mondays 09:00-13:00, remote, 15-minute slots" (FR-C1).
+
+    Times are Lagos wall-clock times (no daylight saving in Nigeria, so they never
+    shift). A clinician publishes their own hours; nothing about patients is here.
+    """
+
+    __table_args__ = (Index("ix_availability_clinician_weekday", "clinician_id", "weekday"),)
+
+    id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
+    tenant_id: uuid.UUID = Field(foreign_key="tenant.id", index=True)
+    clinician_id: uuid.UUID = Field(foreign_key="staff.id")
+    branch_id: uuid.UUID = Field(foreign_key="branch.id")  # where (or for whom) they work
+    weekday: int  # 0 Monday ... 6 Sunday
+    starts: time = Field(sa_column=Column(Time(), nullable=False))  # Lagos time
+    ends: time = Field(sa_column=Column(Time(), nullable=False))
+    visit_type: str  # in_person or teleconsult (statuses.VisitType)
+    slot_minutes: int
+    created_by_id: uuid.UUID = Field(foreign_key="staff.id")
+    created_at: datetime = Field(default_factory=utcnow, sa_column=_time_column())

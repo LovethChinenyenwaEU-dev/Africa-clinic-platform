@@ -36,6 +36,8 @@ class AuditAction(StrEnum):
     APPOINTMENT_LIST = "appointment.list"
     TRIAGE_RECORD = "triage.record"
     TRIAGE_VIEW = "triage.view"
+    AVAILABILITY_ADD = "availability.add"  # a clinician published weekly hours
+    AVAILABILITY_REMOVE = "availability.remove"
     REMINDER_SEND = "reminder.send"
     ENCOUNTER_CREATE = "encounter.create"
     ENCOUNTER_CLOSE = "encounter.close"

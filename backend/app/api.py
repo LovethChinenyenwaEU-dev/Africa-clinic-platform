@@ -6,6 +6,7 @@ from app.modules.identity.router import router as identity_router
 from app.modules.identity.staff_router import router as staff_router
 from app.modules.patients.router import router as patients_router
 from app.modules.records.router import router as records_router
+from app.modules.scheduling.availability_router import router as availability_router
 from app.modules.scheduling.router import router as scheduling_router
 from app.modules.tenancy.router import router as tenancy_router
 
@@ -13,6 +14,7 @@ api_router = APIRouter(prefix="/api/v1")
 
 # Each module registers its router here when it has one.
 api_router.include_router(audit_router)
+api_router.include_router(availability_router)
 api_router.include_router(consent_router)
 api_router.include_router(identity_router)
 api_router.include_router(staff_router)

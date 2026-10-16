@@ -58,3 +58,23 @@ export const RED_FLAG_LABELS: Record<string, string> = {
 export function effectiveLevel(level: TriageLevel, redFlags: string[]): TriageLevel {
   return redFlags.length > 0 ? "emergency" : level;
 }
+
+export const WEEKDAY_LABELS = [
+  "Monday",
+  "Tuesday",
+  "Wednesday",
+  "Thursday",
+  "Friday",
+  "Saturday",
+  "Sunday",
+] as const;
+
+export const VISIT_TYPE_LABELS: Record<string, string> = {
+  in_person: "In person",
+  teleconsult: "Remote (teleconsult)",
+};
+
+/** "09:00:00" from the server, shown as "09:00". */
+export function clockTime(value: string): string {
+  return value.slice(0, 5);
+}

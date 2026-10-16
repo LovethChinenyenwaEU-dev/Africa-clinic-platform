@@ -59,3 +59,24 @@ export const triageSchema = z.object({
   recorded_at: z.string(),
 });
 export type Triage = z.infer<typeof triageSchema>;
+
+// A clinician's weekly hours (Week 9). Times are Lagos clock times, "09:00:00".
+export const hoursSchema = z.object({
+  id: z.string().uuid(),
+  clinician_id: z.string().uuid(),
+  branch_id: z.string().uuid(),
+  weekday: z.number().int().min(0).max(6), // 0 Monday ... 6 Sunday
+  starts: z.string(),
+  ends: z.string(),
+  visit_type: z.string(),
+  slot_minutes: z.number().int(),
+});
+export type Hours = z.infer<typeof hoursSchema>;
+
+export const slotSchema = z.object({
+  starts_at: z.string(),
+  ends_at: z.string(),
+  branch_id: z.string().uuid(),
+  visit_type: z.string(),
+});
+export type Slot = z.infer<typeof slotSchema>;

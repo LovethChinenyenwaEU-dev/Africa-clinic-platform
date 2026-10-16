@@ -5,9 +5,16 @@ import { canOpen, navFor } from "./navigation";
 const labels = (role: Parameters<typeof navFor>[0]) => navFor(role).map((item) => item.label);
 
 describe("navFor", () => {
-  it("gives front desk, nurses and doctors patients and the queue", () => {
-    for (const role of ["front_desk", "nurse", "doctor"] as const) {
-      expect(labels(role)).toEqual(["Home", "Patients", "Today's queue"]);
+  it("gives front desk patients and the queue", () => {
+    expect(labels("front_desk")).toEqual(["Home", "Patients", "Today's queue"]);
+  });
+
+  it("gives nurses and doctors their own weekly hours too", () => {
+    for (const role of ["nurse", "doctor"] as const) {
+      expect(labels(role)).toEqual(["Home", "Patients", "Today's queue", "My hours"]);
+    }
+    for (const role of ["front_desk", "admin", "billing"] as const) {
+      expect(canOpen(role, "availability")).toBe(false);
     }
   });
 

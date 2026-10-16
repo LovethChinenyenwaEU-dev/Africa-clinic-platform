@@ -7,7 +7,7 @@ import type { Role } from "./schemas";
  * It mirrors the backend's permissions; the backend stays the final word.
  */
 
-export type ScreenKey = "home" | "patients" | "queue" | "encounter" | "audit";
+export type ScreenKey = "home" | "patients" | "queue" | "availability" | "encounter" | "audit";
 
 // inMenu: false for screens reached from another screen (an encounter opens from the queue).
 type Screen = { href: string; label: string; roles: readonly Role[]; inMenu: boolean };
@@ -29,6 +29,8 @@ export const SCREENS: Record<ScreenKey, Screen> = {
     roles: ["front_desk", "nurse", "doctor"],
     inMenu: true,
   },
+  // A clinician's own weekly hours, in person and remote (FR-C1).
+  availability: { href: "/availability", label: "My hours", roles: ["nurse", "doctor"], inMenu: true },
   // The clinical record: doctors and nurses only, like the backend's clinical:read.
   encounter: { href: "/encounters", label: "Encounter", roles: ["nurse", "doctor"], inMenu: false },
   audit: { href: "/audit", label: "Audit log", roles: ["admin"], inMenu: true },

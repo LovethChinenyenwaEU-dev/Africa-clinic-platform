@@ -1,5 +1,5 @@
 import uuid
-from datetime import datetime
+from datetime import datetime, time
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -99,3 +99,37 @@ class TriageResponse(BaseModel):
     red_flags: list[str]
     recorded_by_id: uuid.UUID
     recorded_at: datetime
+
+
+class PublishHours(BaseModel):
+    """Weekly hours for the person sending them. Times are Lagos clock times, e.g. 09:00."""
+
+    id: uuid.UUID | None = None
+    branch_id: uuid.UUID
+    weekday: int = Field(ge=0, le=6)  # 0 Monday ... 6 Sunday
+    starts: time
+    ends: time
+    visit_type: str = Field(default="in_person", max_length=20)
+    slot_minutes: int = 15
+
+
+class HoursResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: uuid.UUID
+    clinician_id: uuid.UUID
+    branch_id: uuid.UUID
+    weekday: int
+    starts: time
+    ends: time
+    visit_type: str
+    slot_minutes: int
+
+
+class SlotResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    starts_at: datetime
+    ends_at: datetime
+    branch_id: uuid.UUID
+    visit_type: str

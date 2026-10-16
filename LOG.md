@@ -12,6 +12,7 @@ Roadmap: [README](./README.md#roadmap-12-week-mvp) · Brief: [docs/product-brief
 ## 16 Oct 2026 (Fri): Week 8 finished (offline sync and conflict handling); Week 9 started
 
 **Done**
+- Week 9 Step 3: **clinician availability** (FR-C1). Doctors and nurses publish their own weekly hours on a new "My hours" screen: day, Lagos start and end, in person or remote, slot length, branch. Overlapping hours are refused. Free slots are those hours cut into slots, minus anything already booked and minus the past. The booking form now asks "in person or remote" and offers the clinician's free slots this week (a slot books exactly its length); staff can still type another time. Patients booking themselves (Step 8) will be held to free slots. Migration 0019.
 - Week 9 Step 2: **triage.** A doctor or nurse sets how urgent a checked-in patient is (emergency, urgent, standard) and ticks danger signs from a fixed list of 12; any danger sign makes it an emergency, on screen and on the server. The queue now shows emergencies first, then urgent, then everyone else in arrival order. Front desk sees the urgency but not the danger signs (clinical). Triaging again adds a new row; the newest counts and the history is kept. Codes only, no free text. Migration 0018. The same danger-sign list will screen teleconsult intake (Step 4).
 - Week 9 plan agreed (8 steps): prescriptions, triage, clinician availability, teleconsult booking and intake, consult room (chat + Jitsi video with audio/text fallback), follow-up and referral, clinician-approved summary, patient web experience. Decisions: patients sign in with a one-time SMS code; video through Jitsi Meet room links behind an adapter; medicines typed freely with separate dose, route, frequency and duration boxes.
 - Week 9 Step 1: **prescriptions** (FR-R2). Doctors only (new `clinical:prescribe` permission); nurses read them. Written inside an encounter through the device outbox, so drafts work offline (FR-O1) and one written before sign-off is accepted after it, marked late. Stopping or "written by mistake" is a new version, allowed after sign-off; two devices changing one prescription keep both as a conflict for a doctor to settle. Migration 0017.
@@ -37,11 +38,11 @@ Roadmap: [README](./README.md#roadmap-12-week-mvp) · Brief: [docs/product-brief
 **Broke, and fixed**
 - *A proxy test used a header value with a line break:* real `Headers` objects refuse those before our code runs, so the test would have failed for the wrong reason. Replaced with a plain malformed value.
 
-**Finished:** Week 8 (all green in the Codespace). Week 9 Step 1 green. Step 2 written, awaiting its Codespace run (needs `alembic upgrade head`). Migration head: 0018.
+**Finished:** Week 8 (all green in the Codespace). Week 9 Steps 1–2 green. Step 3 written, awaiting its Codespace run (needs `alembic upgrade head`). Migration head: 0019.
 
 **Pending:** as on 15 Oct. The conflict screen itself comes in Step 8 (the backend is ready).
 
-**Next:** Week 9 Step 3, clinician availability (weekly hours, in person or remote) and bookable slots.
+**Next:** Week 9 Step 4, teleconsult intake: before a remote visit, the reason, teleconsult consent and the danger-sign screen; any danger sign advises in-person care and records the escalation.
 
 **Pending (new):** merging a duplicate patient's visits into the original record (W11, with the admin screens).
 

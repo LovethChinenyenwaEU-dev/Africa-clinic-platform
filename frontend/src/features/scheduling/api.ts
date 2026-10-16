@@ -7,13 +7,17 @@ import {
   branchSchema,
   clinicianSchema,
   dayEntrySchema,
+  hoursSchema,
   queueEntrySchema,
+  slotSchema,
   triageSchema,
   type Appointment,
   type Branch,
   type Clinician,
   type DayEntry,
+  type Hours,
   type QueueEntry,
+  type Slot,
   type Triage,
 } from "./schemas";
 
@@ -53,6 +57,8 @@ export function bookVisit(form: {
   branch_id: string;
   clinician_id: string;
   starts_at: string; // with a time zone, for example 2026-11-02T09:00:00+01:00
+  visit_type?: "in_person" | "teleconsult";
+  duration_minutes?: number; // a chosen free slot books exactly its length
 }): Promise<Appointment> {
   return apiPost("/appointments", form, appointmentSchema);
 }
@@ -78,4 +84,44 @@ export function recordTriage(
     { id: crypto.randomUUID(), level, red_flags: redFlags },
     triageSchema,
   );
+}
+
+// Clinicians' weekly hours and free slots (no patient data)
+
+export type HoursForm = {
+  branch_id: string;
+  weekday: number;
+  starts: string; // "09:00", Lagos time
+  ends: string;
+  visit_type: "in_person" | "teleconsult";
+  slot_minutes: number;
+};
+
+export function getHours(clinicianId: string): Promise<Hours[]> {
+  return apiGet(`/availability?clinician_id=${q(clinicianId)}`, z.array(hoursSchema));
+}
+
+/** Publish weekly hours for yourself. */
+export function publishHours(form: HoursForm): Promise<Hours> {
+  return apiPost("/availability", { id: crypto.randomUUID(), ...form }, hoursSchema);
+}
+
+export function removeHours(hoursId: string): Promise<Hours> {
+  return apiPost(`/availability/${q(hoursId)}/remove`, {}, hoursSchema);
+}
+
+/** Free slots of one clinician and visit type, from a Lagos day ("2026-11-02"). */
+export function getFreeSlots(
+  clinicianId: string,
+  visitType: "in_person" | "teleconsult",
+  fromDay: string,
+  days = 7,
+): Promise<Slot[]> {
+  const query = new URLSearchParams({
+    clinician_id: clinicianId,
+    visit_type: visitType,
+    from_day: fromDay,
+    days: String(days),
+  });
+  return apiGet(`/availability/slots?${query}`, z.array(slotSchema));
 }
