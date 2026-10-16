@@ -9,6 +9,7 @@ import { getPatient } from "@/features/patients/api";
 import { SEX_LABELS } from "@/features/patients/labels";
 import { getClinicians } from "@/features/scheduling/api";
 import { OutboxList } from "@/features/sync/OutboxList";
+import { ConsultPanel } from "@/features/telehealth/ConsultPanel";
 import { useSync } from "@/features/sync/SyncProvider";
 import { errorMessage } from "@/lib/api-client";
 import { ageFrom, formatDate, formatDateTime } from "@/lib/format";
@@ -190,6 +191,14 @@ export function EncounterScreen({
           </p>
         )}
       </section>
+
+      {record.appointment_id && (
+        <ConsultPanel
+          appointmentId={record.appointment_id}
+          canRun={isOwner}
+          live={isOpen}
+        />
+      )}
 
       {onDevice.length > 0 && (
         <section aria-labelledby="on-device-heading" className="card">

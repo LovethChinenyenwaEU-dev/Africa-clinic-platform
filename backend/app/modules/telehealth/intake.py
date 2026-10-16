@@ -64,7 +64,7 @@ def clean_intake(reason: str, red_flags: list[str]) -> tuple[str, list[str]]:
     return text, flags
 
 
-def _remote_visit(
+def remote_visit(
     session: Session, *, tenant_id: uuid.UUID, appointment_id: uuid.UUID
 ) -> Appointment:
     visit = get_appointment(session, tenant_id=tenant_id, appointment_id=appointment_id)
@@ -94,7 +94,7 @@ def submit_intake(
             return existing  # the same request again: nothing new
 
     text, flags = clean_intake(reason, red_flags)
-    visit = _remote_visit(session, tenant_id=tenant_id, appointment_id=appointment_id)
+    visit = remote_visit(session, tenant_id=tenant_id, appointment_id=appointment_id)
     if visit.status not in OPEN_STATUSES:
         raise InvalidMoveError("Intake can only be taken before the remote visit starts.")
     if not has_active_consent(
@@ -151,7 +151,7 @@ def intake_history(
     session: Session, *, tenant_id: uuid.UUID, actor_id: uuid.UUID, appointment_id: uuid.UUID
 ) -> list[TeleconsultIntake]:
     """Every intake of one remote visit, newest first. Reading it is in the diary."""
-    visit = _remote_visit(session, tenant_id=tenant_id, appointment_id=appointment_id)
+    visit = remote_visit(session, tenant_id=tenant_id, appointment_id=appointment_id)
     add_audit_event(
         session,
         tenant_id=tenant_id,
@@ -174,7 +174,7 @@ def teleconsult_status(
 ) -> tuple[bool, str | None]:
     """For the booking screens: has the patient consented to remote care, and what did
     the newest intake decide (ready, escalated, or None yet)? No clinical text."""
-    visit = _remote_visit(session, tenant_id=tenant_id, appointment_id=appointment_id)
+    visit = remote_visit(session, tenant_id=tenant_id, appointment_id=appointment_id)
     consented = has_active_consent(
         session, tenant_id=tenant_id, patient_id=visit.patient_id, purpose="teleconsult"
     )

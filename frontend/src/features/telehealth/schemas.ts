@@ -17,3 +17,24 @@ export const teleconsultStatusSchema = z.object({
   intake: z.enum(["ready", "escalated"]).nullable(),
 });
 export type TeleconsultStatus = z.infer<typeof teleconsultStatusSchema>;
+
+export const CONSULT_MODES = ["video", "audio", "text"] as const;
+export type ConsultMode = (typeof CONSULT_MODES)[number];
+
+export const roomSchema = z.object({
+  appointment_id: z.string().uuid(),
+  provider: z.string(),
+  mode: z.enum(CONSULT_MODES),
+  video_url: z.string().nullable(),
+  audio_url: z.string().nullable(),
+});
+export type Room = z.infer<typeof roomSchema>;
+
+export const messageSchema = z.object({
+  id: z.string().uuid(),
+  sender: z.string(), // staff or patient
+  sender_staff_id: z.string().uuid().nullable(),
+  body: z.string(),
+  sent_at: z.string(),
+});
+export type Message = z.infer<typeof messageSchema>;

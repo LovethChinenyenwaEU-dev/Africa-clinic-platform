@@ -12,6 +12,7 @@ Roadmap: [README](./README.md#roadmap-12-week-mvp) · Brief: [docs/product-brief
 ## 16 Oct 2026 (Fri): Week 8 finished (offline sync and conflict handling); Week 9 started
 
 **Done**
+- Week 9 Step 5: **the consult room** (FR-C3, FR-C4). The clinician running a remote visit opens its room from the encounter: a private Jitsi Meet room (long random name, no names or IDs in the link) behind a video adapter (jitsi, fake for tests, none for chat only). Video opens in a new tab at low resolution; "audio only" is the same room with the camera off; text is the built-in chat, which checks for new messages every 5 seconds with a small request. Every switch between video, audio and text is recorded with its reason, and the screen suggests stepping down when the browser reports a weak connection. Chat messages are never edited; opening the chat is in the audit log, the quiet checks are not. Migration 0021. The patient joins from their own page in Step 8.
 - Week 9 Step 4: **teleconsult intake** (FR-C2, FR-C6). New `telehealth` module. Before a remote visit, staff (often on the phone) record the reason and ask the 12 danger-sign questions; the patient must have consented to remote care first. No danger sign: the patient joins the remote waiting room (the visit checks in and shows on the queue, marked Remote). A danger sign: the escalation is recorded in the audit log, in-person advice is shown, and the remote visit cannot check in or start. A remote visit can no longer be checked in by a button, nor started, without that intake. Front desk takes the intake but cannot read it back (the reason is health information); clinicians can. Migration 0020.
 - Week 9 Step 3: **clinician availability** (FR-C1). Doctors and nurses publish their own weekly hours on a new "My hours" screen: day, Lagos start and end, in person or remote, slot length, branch. Overlapping hours are refused. Free slots are those hours cut into slots, minus anything already booked and minus the past. The booking form now asks "in person or remote" and offers the clinician's free slots this week (a slot books exactly its length); staff can still type another time. Patients booking themselves (Step 8) will be held to free slots. Migration 0019.
 - Week 9 Step 2: **triage.** A doctor or nurse sets how urgent a checked-in patient is (emergency, urgent, standard) and ticks danger signs from a fixed list of 12; any danger sign makes it an emergency, on screen and on the server. The queue now shows emergencies first, then urgent, then everyone else in arrival order. Front desk sees the urgency but not the danger signs (clinical). Triaging again adds a new row; the newest counts and the history is kept. Codes only, no free text. Migration 0018. The same danger-sign list will screen teleconsult intake (Step 4).
@@ -40,11 +41,11 @@ Roadmap: [README](./README.md#roadmap-12-week-mvp) · Brief: [docs/product-brief
 - *Test clean-up missed the new tables* (prescription, triage, availability, from Week 9 Steps 1–3): after each test the clean-up deletes rows table by table, and a prescription or triage still pointing at an encounter or visit blocks that delete. Fixed in `tests/conftest.py` by clearing the new tables first (plus teleconsult_intake). Lesson: every new table goes into the clean-up list in the same step.
 - *A proxy test used a header value with a line break:* real `Headers` objects refuse those before our code runs, so the test would have failed for the wrong reason. Replaced with a plain malformed value.
 
-**Finished:** Week 8 (all green in the Codespace). Week 9 Steps 1–3 green. Step 4 written, awaiting its Codespace run (needs `alembic upgrade head`). Migration head: 0020.
+**Finished:** Week 8 (all green in the Codespace). Week 9 Steps 1–4 green. Step 5 written, awaiting its Codespace run (needs `alembic upgrade head`). Migration head: 0021.
 
 **Pending:** as on 15 Oct. The conflict screen itself comes in Step 8 (the backend is ready).
 
-**Next:** Week 9 Step 5, the consult room: secure chat for weak networks, a Jitsi video room behind an adapter, and recorded switches from video to audio to text.
+**Next:** Week 9 Step 6, follow-up and referral at the end of a consultation (FR-C5).
 
 **Pending (new):** merging a duplicate patient's visits into the original record (W11, with the admin screens).
 

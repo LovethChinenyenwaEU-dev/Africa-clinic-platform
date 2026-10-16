@@ -19,7 +19,12 @@ from app.modules.records.models import (
     VitalSigns,
 )
 from app.modules.scheduling.models import Appointment, Availability, Triage
-from app.modules.telehealth.models import TeleconsultIntake
+from app.modules.telehealth.models import (
+    ConsultMessage,
+    ConsultModeChange,
+    ConsultRoom,
+    TeleconsultIntake,
+)
 from app.modules.tenancy.models import Branch, Tenant
 
 
@@ -46,6 +51,9 @@ def session(run_id):
             for model in (
                 IdempotencyRecord,
                 Reminder,
+                ConsultMessage,
+                ConsultModeChange,
+                ConsultRoom,
                 TeleconsultIntake,
                 Triage,
                 Availability,

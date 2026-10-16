@@ -1,9 +1,16 @@
+import { z } from "zod";
+
 import { apiGet, apiPost } from "@/lib/api-client";
 
 import {
   intakeResultSchema,
+  messageSchema,
+  roomSchema,
   teleconsultStatusSchema,
+  type ConsultMode,
   type IntakeResult,
+  type Message,
+  type Room,
   type TeleconsultStatus,
 } from "./schemas";
 
@@ -27,5 +34,44 @@ export function submitIntake(
     `/teleconsults/${q(appointmentId)}/intake`,
     { id: crypto.randomUUID(), reason, red_flags: redFlags },
     intakeResultSchema,
+  );
+}
+
+// The consult room (the clinician running the remote visit)
+
+export function openRoom(appointmentId: string): Promise<Room> {
+  return apiPost(`/teleconsults/${q(appointmentId)}/room`, {}, roomSchema);
+}
+
+export type ModeReason = "poor_connection" | "patient_choice" | "clinician_choice";
+
+export function switchMode(
+  appointmentId: string,
+  mode: ConsultMode,
+  reason: ModeReason,
+): Promise<Room> {
+  return apiPost(`/teleconsults/${q(appointmentId)}/mode`, { mode, reason }, roomSchema);
+}
+
+/** The chat. With `since`, only messages sent at or after it: small, for weak networks. */
+export function getMessages(appointmentId: string, since?: string): Promise<Message[]> {
+  const query = since ? `?since=${q(since)}` : "";
+  return apiGet(`/teleconsults/${q(appointmentId)}/messages${query}`, z.array(messageSchema));
+}
+
+export function sendMessage(appointmentId: string, body: string): Promise<Message> {
+  return apiPost(
+    `/teleconsults/${q(appointmentId)}/messages`,
+    { id: crypto.randomUUID(), body },
+    messageSchema,
+  );
+}
+
+/** New messages added to what the screen has, once each, oldest first. */
+export function mergeMessages(known: Message[], fresh: Message[]): Message[] {
+  const byId = new Map(known.map((message) => [message.id, message]));
+  for (const message of fresh) byId.set(message.id, message);
+  return [...byId.values()].sort(
+    (a, b) => a.sent_at.localeCompare(b.sent_at) || a.id.localeCompare(b.id),
   );
 }

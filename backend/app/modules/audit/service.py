@@ -41,6 +41,10 @@ class AuditAction(StrEnum):
     TELECONSULT_INTAKE = "teleconsult.intake"
     TELECONSULT_ESCALATE = "teleconsult.escalate"  # danger sign: advised in-person care
     TELECONSULT_INTAKE_VIEW = "teleconsult.intake_view"
+    TELECONSULT_ROOM_OPEN = "teleconsult.room_open"
+    TELECONSULT_MODE = "teleconsult.mode"  # switched between video, audio and text
+    TELECONSULT_MESSAGE = "teleconsult.message"
+    TELECONSULT_CHAT_VIEW = "teleconsult.chat_view"
     REMINDER_SEND = "reminder.send"
     ENCOUNTER_CREATE = "encounter.create"
     ENCOUNTER_CLOSE = "encounter.close"
