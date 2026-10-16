@@ -47,7 +47,7 @@ in the repository. Update this file when a gap is closed or a decision changes.
 | Attachments | ⬜ | W11 (needs object storage) |
 | Prescriptions | ⬜ | W9 |
 | Clinician-approved patient summary | ⬜ | W9 |
-| Offline draft/outbox sync | ⬜ | **W8**. Groundwork done: every write already carries a device-made ID |
+| Offline draft/outbox sync | ✅ | W8: device outbox, sent in order with idempotency keys; conflicts kept and settled by a clinician; late entries accepted and marked; offline registration with duplicate review |
 
 ### Teleconsult, billing, interoperability, operations
 | Item | Status | Plan |
@@ -63,13 +63,13 @@ in the repository. Update this file when a gap is closed or a decision changes.
 | Brief item | Status | Notes |
 |---|---|---|
 | Next.js staff web app | ✅ | Next.js 16, Tailwind 4; token kept in an httpOnly cookie behind a server pass-through |
-| PWA with IndexedDB outbox | ⬜ | W8 |
+| PWA with IndexedDB outbox | ✅ | W8: IndexedDB outbox and minimal offline reads (wiped at sign-out and after 24h), service worker for offline opening. No install manifest yet |
 | Background jobs, queue-backed notifications | ✅ | Worker + reminder table as the queue, Redis heartbeat |
-| Idempotency keys | 🟡 | Device-made IDs make every create safe to repeat. The `Idempotency-Key` header with stored responses (skill rule) comes in **W8** |
+| Idempotency keys | ✅ | Device-made IDs on every create, plus the `Idempotency-Key` header with stored responses for every write (W8) |
 | Adapters behind retryable interfaces | ✅ | SMS adapter with fake/none; video, payments, labs follow the same pattern later |
 | Short-lived tokens | ✅ | 30 minutes; a switched-off staff member is refused on their very next request |
 | MFA for privileged staff | ⬜ | SRS FR-T4 (Should). **W11** |
-| Device/session revocation | 🟡 | Switching a person off cuts all their sessions at once; revoking **one device** is not built. W8 introduces devices; revocation in **W11** |
+| Device/session revocation | 🟡 | Switching a person off cuts all their sessions at once; revoking **one device** is not built. W8 records the device on every audit line; revoking one device in **W11** |
 | Least-privilege RBAC | ✅ | Plus record-level rules (only the opener signs off, only the author amends) |
 | ABAC | ⬜ | Not planned for the MVP; the record-level rules cover today's needs |
 | Consent and purpose tracking | 🟡 | Consent purposes ✅. Audit lines have a `purpose` field, but staff are not asked "why" when opening a record |

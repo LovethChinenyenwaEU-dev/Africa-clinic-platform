@@ -17,6 +17,7 @@ import {
   type AllergyDetails,
   type ProblemDetails,
 } from "./api";
+import { ConflictChoice } from "./ConflictChoice";
 import { CATEGORY_LABELS, SEVERITY_LABELS } from "./labels";
 import type { Allergy, Problem } from "./schemas";
 import type { RecordContext } from "./VitalsPanel";
@@ -111,7 +112,7 @@ export function AllergiesPanel({ encounter, nameOf }: RecordContext) {
                 <span className="badge bg-gray-200 text-gray-800">No longer active</span>
               )}
               <span className="text-sm">by {nameOf(allergy.recorded_by_id)}</span>
-              {isOpen && (
+              {isOpen && allergy.version_status === "current" && (
                 <span className="ml-auto flex flex-wrap gap-2">
                   {allergy.clinical_status === "active" && (
                     <ConfirmAction
@@ -128,6 +129,9 @@ export function AllergiesPanel({ encounter, nameOf }: RecordContext) {
                     onConfirm={() => revise.mutate({ allergy, status: "entered_in_error" })}
                   />
                 </span>
+              )}
+              {allergy.version_status === "conflict" && (
+                <ConflictChoice kind="allergies" id={allergy.id} allowed queryKey={key} />
               )}
             </li>
           ))}
@@ -265,7 +269,7 @@ export function ProblemsPanel({ encounter, nameOf }: RecordContext) {
                 <span className="badge bg-gray-200 text-gray-800">Resolved</span>
               )}
               <span className="text-sm">by {nameOf(problem.recorded_by_id)}</span>
-              {isOpen && (
+              {isOpen && problem.version_status === "current" && (
                 <span className="ml-auto flex flex-wrap gap-2">
                   {problem.clinical_status === "active" && (
                     <ConfirmAction
@@ -282,6 +286,9 @@ export function ProblemsPanel({ encounter, nameOf }: RecordContext) {
                     onConfirm={() => revise.mutate({ problem, status: "entered_in_error" })}
                   />
                 </span>
+              )}
+              {problem.version_status === "conflict" && (
+                <ConflictChoice kind="problems" id={problem.id} allowed queryKey={key} />
               )}
             </li>
           ))}

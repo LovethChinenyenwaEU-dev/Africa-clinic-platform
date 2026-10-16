@@ -8,6 +8,7 @@ import { errorMessage } from "@/lib/api-client";
 import { formatDateTime } from "@/lib/format";
 
 import { getNotes, noteAmendmentWrite, noteWrite } from "./api";
+import { ConflictChoice } from "./ConflictChoice";
 import { NOTE_KIND_LABELS } from "./labels";
 import type { Note } from "./schemas";
 import type { RecordContext } from "./VitalsPanel";
@@ -166,6 +167,16 @@ export function NotesPanel({ encounter, meId, nameOf }: RecordContext) {
                     </button>
                   )}
                 </div>
+              )}
+              {note.version_status === "conflict" && (
+                <ConflictChoice
+                  kind="notes"
+                  id={note.id}
+                  // A note is its author's own words: only the author chooses.
+                  allowed={note.recorded_by_id === meId && encounter.status !== "entered_in_error"}
+                  queryKey={["notes", encounter.id]}
+                  whoMayChoose="Only the note's author can choose between the two wordings."
+                />
               )}
             </li>
           ))}

@@ -214,3 +214,17 @@ export function noteAmendmentWrite(noteId: string, encounterId: string, body: st
     encounterId,
   };
 }
+
+// Conflicts (two devices changed the same thing; Week 8)
+
+export type ConflictKind = "vitals" | "notes" | "allergies" | "problems";
+export type Keep = "this" | "current";
+
+/**
+ * Settle a conflict: keep this version, or the one currently in use. The other goes
+ * to history; nothing is deleted. Sent directly, not through the outbox: the choice
+ * is made against what the server holds now.
+ */
+export async function resolveConflict(kind: ConflictKind, id: string, keep: Keep): Promise<void> {
+  await apiPost(`/${kind}/${q(id)}/resolve`, { keep }, z.unknown());
+}

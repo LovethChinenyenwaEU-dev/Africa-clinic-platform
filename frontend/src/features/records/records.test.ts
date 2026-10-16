@@ -4,6 +4,7 @@ import {
   allergyWrite,
   noteAmendmentWrite,
   noteWrite,
+  resolveConflict,
   signOff,
   startVisit,
   vitalsWrite,
@@ -168,4 +169,18 @@ describe("records api", () => {
     expect(await signOff({ ...ENCOUNTER, appointment_id: null })).toEqual({ visitCompleted: false });
     expect(fetchMock).toHaveBeenCalledTimes(1);
   });
+});
+
+describe("settling a conflict", () => {
+  it.each(["vitals", "notes", "allergies", "problems"] as const)(
+    "sends the choice for %s straight to the server",
+    async (kind) => {
+      fetchMock.mockImplementationOnce(async () => answer({ id: "x" }));
+
+      await resolveConflict(kind, "c1", "current");
+
+      expect(fetchMock.mock.calls[0][0]).toBe(`/api/backend/${kind}/c1/resolve`);
+      expect(JSON.parse(fetchMock.mock.calls[0][1].body)).toEqual({ keep: "current" });
+    },
+  );
 });

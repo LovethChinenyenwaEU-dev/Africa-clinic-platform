@@ -8,6 +8,7 @@ import { errorMessage } from "@/lib/api-client";
 import { formatTime } from "@/lib/format";
 
 import { getVitals, vitalsCorrectionWrite, vitalsWrite, type Readings } from "./api";
+import { ConflictChoice } from "./ConflictChoice";
 import { READING_LABELS } from "./labels";
 import {
   EMPTY_READINGS,
@@ -119,6 +120,12 @@ export function VitalsPanel({ encounter, meId, nameOf }: RecordContext) {
     set.status === "current" &&
     encounter.status !== "entered_in_error" &&
     (set.recorded_by_id === meId || encounter.clinician_id === meId);
+  // Same rule as the server: whoever recorded either set, or the encounter's owner.
+  const canChoose = (conflict: Vitals) =>
+    encounter.status !== "entered_in_error" &&
+    (conflict.recorded_by_id === meId ||
+      encounter.clinician_id === meId ||
+      Boolean(vitals.data?.some((set) => set.status === "current" && set.recorded_by_id === meId)));
   const failure = add.error ?? correct.error;
 
   return (
@@ -187,6 +194,14 @@ export function VitalsPanel({ encounter, meId, nameOf }: RecordContext) {
                     </button>
                   )}
                 </div>
+              )}
+              {set.status === "conflict" && (
+                <ConflictChoice
+                  kind="vitals"
+                  id={set.id}
+                  allowed={canChoose(set)}
+                  queryKey={["vitals", encounter.id]}
+                />
               )}
             </li>
           ))}
