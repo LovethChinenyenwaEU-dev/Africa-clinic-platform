@@ -11,6 +11,7 @@ import {
   prescriptionSchema,
   problemSchema,
   referralSchema,
+  summarySchema,
   vitalsSchema,
   type Allergy,
   type Encounter,
@@ -19,6 +20,7 @@ import {
   type Prescription,
   type Problem,
   type Referral,
+  type Summary,
   type ReadingField,
   type Vitals,
 } from "./schemas";
@@ -351,4 +353,30 @@ export function referralWrite(
 
 export function cancelReferral(referralId: string): Promise<Referral> {
   return apiPost(`/referrals/${q(referralId)}/cancel`, {}, referralSchema);
+}
+
+// The patient summary (FR-R4). Sent directly: approving needs the server's word.
+
+export function getSummaries(encounterId: string): Promise<Summary[]> {
+  return apiGet(`/encounters/${q(encounterId)}/summaries`, z.array(summarySchema));
+}
+
+export function startSummary(encounterId: string, body: string): Promise<Summary> {
+  return apiPost(
+    `/encounters/${q(encounterId)}/summaries`,
+    { id: newId(), body },
+    summarySchema,
+  );
+}
+
+export function editSummary(summaryId: string, body: string): Promise<Summary> {
+  return apiPost(`/summaries/${q(summaryId)}/draft`, { body }, summarySchema);
+}
+
+export function approveSummary(summaryId: string): Promise<Summary> {
+  return apiPost(`/summaries/${q(summaryId)}/approve`, {}, summarySchema);
+}
+
+export function withdrawSummary(summaryId: string): Promise<Summary> {
+  return apiPost(`/summaries/${q(summaryId)}/withdraw`, {}, summarySchema);
 }

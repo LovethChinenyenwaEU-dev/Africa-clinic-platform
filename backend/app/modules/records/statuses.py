@@ -93,3 +93,9 @@ class ReferralUrgency(StrEnum):
 class ReferralStatus(StrEnum):
     ACTIVE = "active"
     CANCELLED = "cancelled"  # written by mistake, or no longer needed; kept
+
+
+class SummaryStatus(StrEnum):
+    DRAFT = "draft"  # being written; only its author may change it; the patient never sees it
+    APPROVED = "approved"  # the encounter's clinician approved it: frozen, the patient may read it
+    WITHDRAWN = "withdrawn"  # approved, then found wrong: kept, hidden from the patient

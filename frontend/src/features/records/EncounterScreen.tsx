@@ -20,6 +20,7 @@ import { ENCOUNTER_STATUS_LABELS } from "./labels";
 import { NotesPanel } from "./NotesPanel";
 import { OutcomesPanel } from "./OutcomesPanel";
 import { PrescriptionsPanel } from "./PrescriptionsPanel";
+import { SummaryPanel } from "./SummaryPanel";
 import { VitalsPanel } from "./VitalsPanel";
 
 export function EncounterScreen({
@@ -223,6 +224,7 @@ export function EncounterScreen({
       <PrescriptionsPanel {...context} canPrescribe={canPrescribe} />
       <NotesPanel {...context} />
       <OutcomesPanel {...context} />
+      <SummaryPanel {...context} />
     </div>
   );
 }

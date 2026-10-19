@@ -146,3 +146,19 @@ export const referralSchema = z.object({
   synced_late: z.boolean().default(false),
 });
 export type Referral = z.infer<typeof referralSchema>;
+
+export const summarySchema = z.object({
+  id,
+  encounter_id: id,
+  patient_id: id,
+  body: z.string(),
+  status: z.enum(["draft", "approved", "withdrawn"]),
+  drafted_by_id: id,
+  drafted_at: z.string(),
+  updated_at: z.string(),
+  approved_by_id: id.nullable(),
+  approved_at: z.string().nullable(),
+  withdrawn_by_id: id.nullable(),
+  withdrawn_at: z.string().nullable(),
+});
+export type Summary = z.infer<typeof summarySchema>;

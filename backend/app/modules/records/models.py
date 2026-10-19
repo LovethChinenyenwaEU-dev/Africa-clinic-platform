@@ -244,3 +244,32 @@ class Referral(SQLModel, table=True):
     recorded_at: datetime = Field(default_factory=utcnow, sa_column=_time_column())
     written_at: datetime = Field(default_factory=utcnow, sa_column=_time_column())
     synced_late: bool = False
+
+
+class PatientSummary(SQLModel, table=True):
+    """A plain-language summary of a visit, for the patient (FR-R4).
+
+    A clinician drafts it; the clinician who opened the encounter approves it after
+    sign-off. From then on the wording never changes: if it is wrong, it is withdrawn
+    (kept, hidden from the patient) and a new one is written. Only approved summaries
+    ever reach the patient.
+    """
+
+    __tablename__ = "patient_summary"
+    __table_args__ = (
+        Index("ix_patient_summary_patient_status", "tenant_id", "patient_id", "status"),
+    )
+
+    id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
+    tenant_id: uuid.UUID = Field(foreign_key="tenant.id", index=True)
+    encounter_id: uuid.UUID = Field(foreign_key="encounter.id", index=True)
+    patient_id: uuid.UUID = Field(foreign_key="patient.id")
+    body: str
+    status: str  # draft, approved or withdrawn (statuses.py)
+    drafted_by_id: uuid.UUID = Field(foreign_key="staff.id")
+    drafted_at: datetime = Field(default_factory=utcnow, sa_column=_time_column())
+    updated_at: datetime = Field(default_factory=utcnow, sa_column=_time_column())
+    approved_by_id: uuid.UUID | None = Field(default=None, foreign_key="staff.id")
+    approved_at: datetime | None = Field(default=None, sa_column=_time_column(nullable=True))
+    withdrawn_by_id: uuid.UUID | None = Field(default=None, foreign_key="staff.id")
+    withdrawn_at: datetime | None = Field(default=None, sa_column=_time_column(nullable=True))

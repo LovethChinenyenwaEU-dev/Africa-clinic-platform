@@ -9,6 +9,24 @@ Roadmap: [README](./README.md#roadmap-12-week-mvp) · Brief: [docs/product-brief
 
 ---
 
+## 19 Oct 2026 (Mon): Week 9 Step 7, the patient summary
+
+**Done**
+- Week 9 Step 6 (follow-up and referral) confirmed green in the Codespace.
+- Week 9 Step 7: **the clinician-approved patient summary** (FR-R4). On the encounter, a doctor or nurse drafts a plain-language summary; "Start from this visit" fills in this visit's diagnoses, the active medicines, follow-ups and referrals, and always ends with when to seek urgent help. It leaves out the clinicians' own words (follow-up instructions, referral reasons). Only the draft's author edits it. The clinician who opened the encounter approves it, and only after sign-off, so it matches the record; from then on the wording never changes and it is what the patient will read (Step 8). A wrong one is withdrawn (kept, hidden from the patient) and a new one drafted. One summary at a time per visit. Migration 0023.
+
+**Hardest problem:** what a first draft may say. A summary built from the record could carry wording meant for clinicians. *Fix:* the draft builder takes only diagnoses, medicines and next steps, never free-text instructions or referral reasons, and a test checks that; the clinician still reads and approves every word.
+
+**Broke, and fixed:** nothing new.
+
+**Finished:** Week 9 Steps 1–6. Step 7 written, awaiting its Codespace run (needs `alembic upgrade head`). Migration head: 0023.
+
+**Pending:** as on 16 Oct.
+
+**Next:** Week 9 Step 8, the patient web experience: sign in with a one-time SMS code, see visits, book a remote slot, do the intake, join the consult and chat, read approved summaries.
+
+---
+
 ## 16 Oct 2026 (Fri): Week 8 finished (offline sync and conflict handling); Week 9 started
 
 **Done**
@@ -42,9 +60,9 @@ Roadmap: [README](./README.md#roadmap-12-week-mvp) · Brief: [docs/product-brief
 - *Test clean-up missed the new tables* (prescription, triage, availability, from Week 9 Steps 1–3): after each test the clean-up deletes rows table by table, and a prescription or triage still pointing at an encounter or visit blocks that delete. Fixed in `tests/conftest.py` by clearing the new tables first (plus teleconsult_intake). Lesson: every new table goes into the clean-up list in the same step.
 - *A proxy test used a header value with a line break:* real `Headers` objects refuse those before our code runs, so the test would have failed for the wrong reason. Replaced with a plain malformed value.
 
-**Finished:** Week 8 (all green in the Codespace). Week 9 Steps 1–5 green. Step 6 written, awaiting its Codespace run (needs `alembic upgrade head`). Migration head: 0022.
+**Finished:** Week 8 (all green in the Codespace). Week 9 Steps 1–5 green (Step 6 confirmed green on 19 Oct).
 
-**Pending:** as on 15 Oct. The conflict screen itself comes in Step 8 (the backend is ready).
+**Pending:** as on 15 Oct, plus merging duplicate patients (W11).
 
 **Next:** Week 9 Step 7, the clinician-approved patient summary (FR-R4).
 

@@ -53,6 +53,11 @@ class AuditAction(StrEnum):
     REFERRAL_WRITE = "referral.write"
     REFERRAL_VIEW = "referral.view"
     REFERRAL_CANCEL = "referral.cancel"
+    SUMMARY_DRAFT = "summary.draft"
+    SUMMARY_EDIT = "summary.edit"
+    SUMMARY_APPROVE = "summary.approve"  # the patient may now read it
+    SUMMARY_WITHDRAW = "summary.withdraw"
+    SUMMARY_VIEW = "summary.view"
     REMINDER_SEND = "reminder.send"
     ENCOUNTER_CREATE = "encounter.create"
     ENCOUNTER_CLOSE = "encounter.close"

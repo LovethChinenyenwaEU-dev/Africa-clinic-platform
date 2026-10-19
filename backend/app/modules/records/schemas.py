@@ -286,3 +286,25 @@ class ReferralResponse(BaseModel):
     recorded_at: datetime
     written_at: datetime
     synced_late: bool
+
+
+class SummaryText(BaseModel):
+    id: uuid.UUID | None = None  # for a new draft: made by the device
+    body: str = Field(max_length=8000)  # the service allows 4000 after trimming
+
+
+class SummaryResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: uuid.UUID
+    encounter_id: uuid.UUID
+    patient_id: uuid.UUID
+    body: str
+    status: str  # draft, approved or withdrawn
+    drafted_by_id: uuid.UUID
+    drafted_at: datetime
+    updated_at: datetime
+    approved_by_id: uuid.UUID | None
+    approved_at: datetime | None
+    withdrawn_by_id: uuid.UUID | None
+    withdrawn_at: datetime | None

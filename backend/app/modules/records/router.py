@@ -89,6 +89,8 @@ from app.modules.records.schemas import (
     ReviseAllergy,
     RevisePrescription,
     ReviseProblem,
+    SummaryResponse,
+    SummaryText,
     VitalsResponse,
     WriteNote,
     WriteReferral,
@@ -107,6 +109,17 @@ from app.modules.records.service import (
     list_patient_encounters,
     mark_entered_in_error,
     open_encounter,
+)
+from app.modules.records.summary import (
+    InvalidSummaryError,
+    NotSummaryAuthorError,
+    SummaryMoveError,
+    SummaryNotFoundError,
+    approve_summary,
+    draft_summary,
+    edit_draft,
+    list_encounter_summaries,
+    withdraw_summary,
 )
 from app.modules.records.vitals import (
     InvalidVitalsError,
@@ -932,3 +945,102 @@ def referral_cancelled(
         return cancel_referral(session, **_who(current_staff), referral_id=referral_id)
     except KNOWN_ERRORS + OUTCOME_ERRORS as error:
         raise _outcome_error(error) from None
+
+
+# The patient summary (FR-R4): drafted by a clinician, approved by the encounter's owner.
+
+SUMMARY_ERRORS = (
+    InvalidSummaryError,
+    SummaryNotFoundError,
+    SummaryMoveError,
+    NotSummaryAuthorError,
+)
+
+
+def _summary_error(error: Exception) -> HTTPException:
+    if isinstance(error, InvalidSummaryError):
+        return HTTPException(status_code=422, detail=str(error))
+    if isinstance(error, SummaryNotFoundError):
+        return HTTPException(status_code=404, detail=NOT_FOUND)
+    if isinstance(error, SummaryMoveError):
+        return HTTPException(status_code=409, detail=str(error))
+    if isinstance(error, NotSummaryAuthorError):
+        return HTTPException(status_code=403, detail=str(error))
+    return _http_error(error)
+
+
+@router.post(
+    "/encounters/{encounter_id}/summaries",
+    response_model=SummaryResponse,
+    status_code=status.HTTP_201_CREATED,
+    dependencies=WRITE,
+)
+def start_summary(
+    encounter_id: uuid.UUID,
+    body: SummaryText,
+    current_staff: CurrentStaff,
+    session: Session = Depends(get_session),
+):
+    try:
+        return draft_summary(
+            session,
+            **_who(current_staff),
+            encounter_id=encounter_id,
+            body=body.body,
+            summary_id=body.id,
+        )
+    except KNOWN_ERRORS + SUMMARY_ERRORS as error:
+        raise _summary_error(error) from None
+
+
+@router.get(
+    "/encounters/{encounter_id}/summaries",
+    response_model=list[SummaryResponse],
+    dependencies=READ,
+)
+def read_summaries(
+    encounter_id: uuid.UUID, current_staff: CurrentStaff, session: Session = Depends(get_session)
+):
+    try:
+        return list_encounter_summaries(session, **_who(current_staff), encounter_id=encounter_id)
+    except KNOWN_ERRORS + SUMMARY_ERRORS as error:
+        raise _summary_error(error) from None
+
+
+@router.post("/summaries/{summary_id}/draft", response_model=SummaryResponse, dependencies=WRITE)
+def change_summary_draft(
+    summary_id: uuid.UUID,
+    body: SummaryText,
+    current_staff: CurrentStaff,
+    session: Session = Depends(get_session),
+):
+    try:
+        return edit_draft(session, **_who(current_staff), summary_id=summary_id, body=body.body)
+    except KNOWN_ERRORS + SUMMARY_ERRORS as error:
+        raise _summary_error(error) from None
+
+
+@router.post(
+    "/summaries/{summary_id}/approve", response_model=SummaryResponse, dependencies=WRITE
+)
+def approve_patient_summary(
+    summary_id: uuid.UUID, current_staff: CurrentStaff, session: Session = Depends(get_session)
+):
+    """After sign-off, by the encounter's clinician. From now on the patient may read it."""
+    try:
+        return approve_summary(session, **_who(current_staff), summary_id=summary_id)
+    except KNOWN_ERRORS + SUMMARY_ERRORS as error:
+        raise _summary_error(error) from None
+
+
+@router.post(
+    "/summaries/{summary_id}/withdraw", response_model=SummaryResponse, dependencies=WRITE
+)
+def withdraw_patient_summary(
+    summary_id: uuid.UUID, current_staff: CurrentStaff, session: Session = Depends(get_session)
+):
+    """Hide an approved summary that turned out wrong. Kept."""
+    try:
+        return withdraw_summary(session, **_who(current_staff), summary_id=summary_id)
+    except KNOWN_ERRORS + SUMMARY_ERRORS as error:
+        raise _summary_error(error) from None

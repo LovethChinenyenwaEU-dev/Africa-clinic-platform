@@ -54,6 +54,11 @@ DOORS = [
     ("get", f"{API}/encounters/{ID}/referrals", {}),
     ("get", f"{API}/referrals/{ID}", {}),
     ("post", f"{API}/referrals/{ID}/cancel", {}),
+    ("post", f"{API}/encounters/{ID}/summaries", {"json": {"body": "x"}}),
+    ("get", f"{API}/encounters/{ID}/summaries", {}),
+    ("post", f"{API}/summaries/{ID}/draft", {"json": {"body": "x"}}),
+    ("post", f"{API}/summaries/{ID}/approve", {}),
+    ("post", f"{API}/summaries/{ID}/withdraw", {}),
 ]
 
 
@@ -69,6 +74,7 @@ def test_records_routes_are_registered():
         "prescriptions": "{prescription_id}",
         "follow-ups": "{follow_up_id}",
         "referrals": "{referral_id}",
+        "summaries": "{summary_id}",
     }
     for _, url, _ in DOORS:
         resource = url.removeprefix(f"{API}/").split("/")[0]
