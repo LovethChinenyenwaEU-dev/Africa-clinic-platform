@@ -132,7 +132,7 @@ This creates a demo clinic with clearly fake patients and five logins (`admin`, 
 - [x] W6 Encounters, records, audit log (vitals, allergies, problems, versioned notes; attachments, prescriptions and the patient summary moved to W9/W11)
 - [x] W7 Staff web app screens (patients and consent, today's queue, encounter record, audit log)
 - [x] W8 Offline sync and conflict handling (device outbox with idempotency keys, conflicts kept for a clinician to settle, late entries marked, offline reads wiped at sign-out and after 24h, service worker, offline registration with review; merging duplicate patients moved to W11)
-- [ ] W9 Teleconsult flow, prescriptions, clinician-approved patient summary, clinician schedules, triage, lightweight patient web experience
+- [x] W9 Teleconsult flow, prescriptions, clinician-approved patient summary, clinician schedules, triage, lightweight patient web experience (prescriptions for doctors; triage with 12 danger signs ordering the queue; weekly hours and free slots; intake with consent and in-person escalation; Jitsi room behind an adapter with video→audio→text and chat; follow-up and referral letter; approved summaries; patient sign-in by SMS code to see visits and summaries, book a remote slot, answer the intake and join the consult. Patient self-cancel and caregiver access later)
 - [ ] W10 Billing and one payment gateway, services and prices
 - [ ] W11 FHIR export, dashboards, attachments, admin screens and notification console, security pass (database row-level security, tamper-evident audit, MFA, device revocation)
 - [ ] W12 Deploy, backup/restore test, demo

@@ -9,6 +9,8 @@ import { formatDateTime } from "@/lib/format";
 import { forgetSavedPages } from "@/lib/sync/service-worker";
 
 import { getMe, getMySummaries, getMyVisits, signOutPatient, splitVisits, type MyVisit } from "./api";
+import { PatientRemoteCare } from "./PatientRemoteCare";
+import { PatientRemoteVisit } from "./PatientRemoteVisit";
 
 function VisitLine({ visit }: { visit: MyVisit }) {
   return (
@@ -85,6 +87,18 @@ export function PatientHome({ clinicId }: { clinicId: string }) {
           </details>
         )}
       </section>
+
+      {upcoming.map((visit) => (
+        <PatientRemoteVisit key={visit.appointment_id} visit={visit} />
+      ))}
+
+      {visits.data && (
+        <PatientRemoteCare
+          hasRemoteVisit={upcoming.some(
+            (visit) => visit.visit_type === "teleconsult" && visit.status !== "cancelled",
+          )}
+        />
+      )}
 
       <section aria-labelledby="my-summaries" className="card grid gap-3">
         <h2 id="my-summaries" className="mb-0">

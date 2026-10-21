@@ -17,7 +17,7 @@ from enum import StrEnum
 from sqlmodel import Session, col
 
 from app.core.tenant_scope import get_in_tenant, tenant_select
-from app.modules.audit.service import AuditAction, add_audit_event
+from app.modules.audit.service import PATIENT_PORTAL, AuditAction, add_audit_event
 from app.modules.scheduling.models import Appointment
 from app.modules.scheduling.statuses import AppointmentStatus
 from app.modules.telehealth.intake import remote_visit
@@ -189,8 +189,11 @@ def send_message(
     body: str,
     message_id: uuid.UUID | None = None,
     now: datetime | None = None,
+    by_patient: bool = False,
 ) -> ConsultMessage:
-    """The clinician writes in the chat. Sending the same message ID again adds nothing."""
+    """Write in the chat: the clinician running the visit, or the patient on their own
+    page (by_patient: actor_id is then the patient; the caller has checked the visit is
+    theirs). Sending the same message ID again adds nothing."""
     if message_id is not None:
         existing = get_in_tenant(session, ConsultMessage, tenant_id=tenant_id, row_id=message_id)
         if isinstance(existing, ConsultMessage):
@@ -201,14 +204,15 @@ def send_message(
     if len(text) > MAX_MESSAGE_LENGTH:
         raise InvalidConsultError(f"A message can be at most {MAX_MESSAGE_LENGTH} characters.")
     visit = _live(session, tenant_id=tenant_id, appointment_id=appointment_id)
-    _require_consulting(visit, actor_id)
+    if not by_patient:
+        _require_consulting(visit, actor_id)
 
     message = ConsultMessage(
         id=message_id or uuid.uuid4(),
         tenant_id=tenant_id,
         appointment_id=visit.id,
-        sender="staff",
-        sender_staff_id=actor_id,
+        sender="patient" if by_patient else "staff",
+        sender_staff_id=None if by_patient else actor_id,
         body=text,
         sent_at=now or datetime.now(UTC),
     )
@@ -220,6 +224,7 @@ def send_message(
         action=AuditAction.TELECONSULT_MESSAGE,
         patient_id=visit.patient_id,
         entity_id=message.id,
+        purpose=PATIENT_PORTAL if by_patient else None,
     )
     session.commit()
     session.refresh(message)
@@ -233,6 +238,7 @@ def list_messages(
     actor_id: uuid.UUID,
     appointment_id: uuid.UUID,
     since: datetime | None = None,
+    by_patient: bool = False,
 ) -> list[ConsultMessage]:
     """The chat, oldest first. Without `since` this is opening the chat (in the diary);
     with it, a quiet check for messages sent at or after that moment (the screen
@@ -246,6 +252,7 @@ def list_messages(
             action=AuditAction.TELECONSULT_CHAT_VIEW,
             patient_id=visit.patient_id,
             entity_id=visit.id,
+            purpose=PATIENT_PORTAL if by_patient else None,
         )
         session.commit()
     statement = tenant_select(ConsultMessage, tenant_id).where(

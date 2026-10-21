@@ -13,6 +13,10 @@ from app.modules.audit.models import AuditEvent
 SYSTEM_ACTOR_ID = uuid.UUID(int=0)
 
 
+# The purpose on every diary line a patient writes themselves, on their own page (Week 9).
+PATIENT_PORTAL = "patient_portal"
+
+
 class AuditAction(StrEnum):
     """Every kind of thing we write in the diary. Add a new one only when a feature needs it."""
 
@@ -63,6 +67,7 @@ class AuditAction(StrEnum):
     PORTAL_SIGN_IN = "portal.sign_in"
     PORTAL_VISITS_VIEW = "portal.visits_view"
     PORTAL_SUMMARIES_VIEW = "portal.summaries_view"
+    PORTAL_ROOM_VIEW = "portal.room_view"  # the patient joined the consult room
     REMINDER_SEND = "reminder.send"
     ENCOUNTER_CREATE = "encounter.create"
     ENCOUNTER_CLOSE = "encounter.close"

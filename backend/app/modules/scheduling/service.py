@@ -109,9 +109,21 @@ def book_appointment(
     duration_minutes: int = DEFAULT_DURATION_MINUTES,
     visit_type: str = VisitType.IN_PERSON.value,
     now: datetime | None = None,
+    via: str = "staff",
+    appointment_id: uuid.UUID | None = None,
 ) -> Appointment:
-    """Book a visit ahead of time. The appointment and its diary line are saved together."""
+    """Book a visit ahead of time. The appointment and its diary line are saved together.
+
+    via="patient_portal": the patient booked on their own page (Week 9); the patient is
+    the actor in the diary and no staff member is recorded. appointment_id may be made
+    by the device, so a booking sent twice is made once.
+    """
     current = now or datetime.now(UTC)
+    by_patient = via == "patient_portal"
+    if appointment_id is not None:
+        existing = get_appointment(session, tenant_id=tenant_id, appointment_id=appointment_id)
+        if existing is not None:
+            return existing
 
     starts_at = clean_start_time(starts_at, current)
     _check_duration(duration_minutes)
@@ -139,6 +151,7 @@ def book_appointment(
         raise SlotTakenError("That clinician already has an appointment at that time.")
 
     appointment = Appointment(
+        id=appointment_id or uuid.uuid4(),
         tenant_id=tenant_id,
         branch_id=branch_id,
         patient_id=patient_id,
@@ -148,7 +161,8 @@ def book_appointment(
         status=AppointmentStatus.BOOKED.value,
         starts_at=starts_at,
         ends_at=ends_at,
-        created_by_id=actor_id,
+        created_by_id=None if by_patient else actor_id,
+        booked_via="patient_portal" if by_patient else "staff",
     )
     session.add(appointment)
     session.flush()  # the reminder points at the appointment, so the appointment goes in first
@@ -165,6 +179,7 @@ def book_appointment(
         actor_id=actor_id,
         action=AuditAction.APPOINTMENT_CREATE,
         patient_id=patient_id,
+        purpose="patient_portal" if by_patient else None,
     )
     session.commit()
     session.refresh(appointment)

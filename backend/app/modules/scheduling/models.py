@@ -37,7 +37,9 @@ class Appointment(SQLModel, table=True):
         default=None, sa_column=_time_column(nullable=True)
     )
     completed_at: datetime | None = Field(default=None, sa_column=_time_column(nullable=True))
-    created_by_id: uuid.UUID = Field(foreign_key="staff.id")
+    # Who booked it: a staff member, or nobody when the patient booked on their own page.
+    created_by_id: uuid.UUID | None = Field(default=None, foreign_key="staff.id")
+    booked_via: str = "staff"  # staff or patient_portal
     created_at: datetime = Field(default_factory=utcnow, sa_column=_time_column())
 
 class Triage(SQLModel, table=True):

@@ -22,8 +22,8 @@ in the repository. Update this file when a gap is closed or a decision changes.
 | Multi-tenant clinics, branches | ✅ | `tenancy`, clinic-wall tests |
 | Users and roles (admin, front desk, nurse, doctor, billing) | ✅ | `identity`, one permission table |
 | Services and prices | ⬜ | Not on the roadmap. Needed for billing: **add to W10** |
-| Clinician schedules / availability | ⬜ | Not on the roadmap. Needed for teleconsult booking: **add to W9** |
-| Departments, escalation rules (onboarding) | ⬜ | Not on the roadmap. Escalation rules belong with teleconsult red flags: **W9** |
+| Clinician schedules / availability | ✅ | W9: weekly hours per clinician (in person or remote), free slots; patients may only book a free slot |
+| Departments, escalation rules (onboarding) | 🟡 | Escalation built in W9 (12 danger signs: emergency on the queue, in-person care for remote visits). Departments and clinic-configurable rules not built |
 | Patient registration, duplicate warnings | ✅ | Deterministic matching, human confirmation, never auto-merged |
 | Consent capture | ✅ | Versioned clinic wording, patient or caregiver, withdraw keeps history |
 | Audit log | ✅ | Append-only, reads logged, entity + staff/date filters, admin screen |
@@ -34,25 +34,25 @@ in the repository. Update this file when a gap is closed or a decision changes.
 |---|---|---|
 | Front-desk booking, walk-ins, check-in, cancel, no-show | ✅ | Queue screen, confirmed final actions, Lagos-day list |
 | Rescheduling | 🟡 | Backend done and tested; **no button on the screen yet** |
-| Triage | ⬜ | PRD P-03 lists "triage status" as Must; not built. **Add to W9** with red-flag screening |
+| Triage | ✅ | W9: urgency and danger signs set by a clinician; the queue orders by urgency; front desk sees urgency, not the signs |
 | Reminders with retries, one SMS/WhatsApp provider | 🟡 | Queue, worker, retries, consent check all done; **real provider not plugged in** (fake/none only) |
 | Admin notification console | ⬜ | No screen showing sent/failed reminders yet. **Add to W11** |
 | No-show tracking | 🟡 | Marking ✅; the no-show **rate report** is planned for the W11 dashboards |
-| Online / phone booking by patients | ⬜ | Needs the patient web experience (see §4) |
+| Online / phone booking by patients | 🟡 | W9: patients book free **remote** slots on their own page. In-person online booking and self-cancel not yet |
 
 ### Core longitudinal record
 | Item | Status | Where / plan |
 |---|---|---|
 | Demographics, encounters, vitals, problems/diagnoses, allergies, notes | ✅ | Versioned corrections, never overwritten (FR-R3) |
 | Attachments | ⬜ | W11 (needs object storage) |
-| Prescriptions | ⬜ | W9 |
-| Clinician-approved patient summary | ⬜ | W9 |
+| Prescriptions | ✅ | W9: doctors only, versioned, offline-ready; printed on the referral letter |
+| Clinician-approved patient summary | ✅ | W9: drafted from the visit, approved by the encounter owner after sign-off, frozen; the patient reads it on their own page |
 | Offline draft/outbox sync | ✅ | W8: device outbox, sent in order with idempotency keys; conflicts kept and settled by a clinician; late entries accepted and marked; offline registration with duplicate review |
 
 ### Teleconsult, billing, interoperability, operations
 | Item | Status | Plan |
 |---|---|---|
-| Teleconsult (availability, intake, consent, chat, video, audio/text fallback, note, follow-up, referral) | ⬜ | W9 |
+| Teleconsult (availability, intake, consent, chat, video, audio/text fallback, note, follow-up, referral) | ✅ | W9: all parts, with Jitsi behind a video adapter (self-hosted Jitsi recommended before going live) |
 | Billing (invoice, receipt, refunds, reconciliation, gateway + cash/transfer) | ⬜ | W10 |
 | FHIR-aligned export | ⬜ | W11. Names already follow FHIR where possible (Encounter, `entered_in_error`, problem-list vs encounter-diagnosis, ICD-10 codes) |
 | Retention settings, backup/restore, privacy/incident runbook | ⬜ | W11–W12 |

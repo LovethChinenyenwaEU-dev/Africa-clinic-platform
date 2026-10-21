@@ -9,6 +9,7 @@ ALLOWED_COLUMNS = {
     "consent_text_id",
     "granted_by",
     "recorded_by_id",
+    "recorded_via",  # staff or patient_portal (Week 9)
     "granted_at",
     "revoked_at",
     "revoked_by_id",

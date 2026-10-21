@@ -106,8 +106,14 @@ def grant_consent(
     patient_id: uuid.UUID,
     purpose: str,
     granted_by: str,
+    via: str = "staff",
 ) -> Consent:
-    """Record that a patient agreed. Saved together with its diary line, or not at all."""
+    """Record that a patient agreed. Saved together with its diary line, or not at all.
+
+    via="patient_portal": the patient agreed on their own page (Week 9). The patient is
+    then the actor in the diary, and no staff member is recorded.
+    """
+    by_patient = via == "patient_portal"
     purpose_value = _purpose(purpose)
     try:
         granted_by_value = GrantedBy(granted_by).value
@@ -133,7 +139,8 @@ def grant_consent(
         purpose=purpose_value,
         consent_text_id=text.id,
         granted_by=granted_by_value,
-        recorded_by_id=actor_id,
+        recorded_by_id=None if by_patient else actor_id,
+        recorded_via="patient_portal" if by_patient else "staff",
     )
     session.add(consent)
     add_audit_event(
@@ -142,7 +149,7 @@ def grant_consent(
         actor_id=actor_id,
         action=AuditAction.CONSENT_GRANT,
         patient_id=patient_id,
-        purpose=purpose_value,
+        purpose="patient_portal" if by_patient else purpose_value,
     )
     session.commit()
     session.refresh(consent)

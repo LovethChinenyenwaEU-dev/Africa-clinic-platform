@@ -22,7 +22,7 @@ from sqlmodel import Session, col, select
 
 from app.core.config import settings
 from app.core.tenant_scope import tenant_select
-from app.modules.audit.service import AuditAction, add_audit_event
+from app.modules.audit.service import PATIENT_PORTAL, AuditAction, add_audit_event
 from app.modules.identity.tokens import create_patient_token
 from app.modules.notifications.adapters import (
     MessageAdapter,
@@ -38,7 +38,7 @@ CODE_MINUTES = 10
 MAX_TRIES = 5
 MAX_CODES = 3
 CODES_WINDOW = timedelta(minutes=15)
-PORTAL = "patient_portal"  # the audit purpose for everything a patient does themselves
+PORTAL = PATIENT_PORTAL  # the audit purpose for everything a patient does themselves
 
 
 class SignInFailedError(Exception):

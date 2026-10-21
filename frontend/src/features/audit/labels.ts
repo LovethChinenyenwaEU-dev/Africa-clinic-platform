@@ -46,6 +46,7 @@ export const ACTION_LABELS: Record<string, string> = {
   "portal.sign_in": "Patient signed in",
   "portal.visits_view": "Patient viewed their visits",
   "portal.summaries_view": "Patient read their summaries",
+  "portal.room_view": "Patient joined the consult room",
   "reminder.send": "Sent a reminder",
   "encounter.create": "Opened an encounter",
   "encounter.close": "Signed off an encounter",

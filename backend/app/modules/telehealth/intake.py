@@ -15,7 +15,7 @@ from datetime import UTC, datetime
 from sqlmodel import Session, col
 
 from app.core.tenant_scope import get_in_tenant, tenant_select
-from app.modules.audit.service import AuditAction, add_audit_event
+from app.modules.audit.service import PATIENT_PORTAL, AuditAction, add_audit_event
 from app.modules.consent.service import has_active_consent
 from app.modules.scheduling.lifecycle import AppointmentNotFoundError, check_in
 from app.modules.scheduling.models import Appointment
@@ -85,9 +85,13 @@ def submit_intake(
     red_flags: list[str],
     intake_id: uuid.UUID | None = None,
     now: datetime | None = None,
+    by_patient: bool = False,
 ) -> TeleconsultIntake:
-    """Take the intake for a remote visit (staff, on the phone or at the desk)."""
+    """Take the intake for a remote visit: staff on the phone or at the desk, or the
+    patient on their own page (by_patient: actor_id is then the patient; the caller has
+    checked that the visit is theirs)."""
     current = now or datetime.now(UTC)
+    purpose = PATIENT_PORTAL if by_patient else None
     if intake_id is not None:
         existing = get_in_tenant(session, TeleconsultIntake, tenant_id=tenant_id, row_id=intake_id)
         if isinstance(existing, TeleconsultIntake):
@@ -113,8 +117,8 @@ def submit_intake(
         reason=text,
         red_flags=flags,
         outcome=outcome.value,
-        source="staff",
-        recorded_by_id=actor_id,
+        source="patient" if by_patient else "staff",
+        recorded_by_id=None if by_patient else actor_id,
         recorded_at=current,
     )
     session.add(intake)
@@ -125,6 +129,7 @@ def submit_intake(
         action=AuditAction.TELECONSULT_INTAKE,
         patient_id=visit.patient_id,
         entity_id=intake.id,
+        purpose=purpose,
     )
     if outcome is IntakeOutcome.ESCALATED:
         # FR-C6: the escalation itself is recorded, apart from the intake.
@@ -135,6 +140,7 @@ def submit_intake(
             action=AuditAction.TELECONSULT_ESCALATE,
             patient_id=visit.patient_id,
             entity_id=intake.id,
+            purpose=purpose,
         )
     session.commit()
     session.refresh(intake)
@@ -142,7 +148,12 @@ def submit_intake(
     if outcome is IntakeOutcome.READY and visit.status == AppointmentStatus.BOOKED.value:
         # Into the remote waiting room: the visit now shows on the queue.
         check_in(
-            session, tenant_id=tenant_id, actor_id=actor_id, appointment_id=visit.id, now=current
+            session,
+            tenant_id=tenant_id,
+            actor_id=actor_id,
+            appointment_id=visit.id,
+            now=current,
+            purpose=purpose,
         )
     return intake
 

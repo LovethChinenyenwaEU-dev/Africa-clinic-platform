@@ -52,7 +52,9 @@ class Consent(SQLModel, table=True):
     purpose: str
     consent_text_id: uuid.UUID = Field(foreign_key="consent_text.id")
     granted_by: str
-    recorded_by_id: uuid.UUID = Field(foreign_key="staff.id")
+    # Who recorded it: a staff member, or nobody when the patient agreed on their own page.
+    recorded_by_id: uuid.UUID | None = Field(default=None, foreign_key="staff.id")
+    recorded_via: str = "staff"  # staff or patient_portal
     granted_at: datetime = Field(
         default_factory=utcnow, sa_column=Column(DateTime(timezone=True), nullable=False)
     )

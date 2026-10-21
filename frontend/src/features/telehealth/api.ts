@@ -68,7 +68,10 @@ export function sendMessage(appointmentId: string, body: string): Promise<Messag
 }
 
 /** New messages added to what the screen has, once each, oldest first. */
-export function mergeMessages(known: Message[], fresh: Message[]): Message[] {
+export function mergeMessages<T extends { id: string; sent_at: string }>(
+  known: T[],
+  fresh: T[],
+): T[] {
   const byId = new Map(known.map((message) => [message.id, message]));
   for (const message of fresh) byId.set(message.id, message);
   return [...byId.values()].sort(

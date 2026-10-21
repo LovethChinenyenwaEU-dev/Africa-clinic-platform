@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-import { ApiError, patientGet } from "@/lib/api-client";
+import { ApiError, patientGet, patientPost } from "@/lib/api-client";
 
 /*
  * The patient's own pages (Week 9). Signing in goes through /api/patient-session,
@@ -87,4 +87,102 @@ export function splitVisits(visits: MyVisit[], now: Date = new Date()) {
   const upcoming = visits.filter((visit) => new Date(visit.ends_at) >= now);
   const past = visits.filter((visit) => new Date(visit.ends_at) < now);
   return { upcoming, past };
+}
+
+// Remote care, done by the patient (Week 9 Step 8b)
+
+const consentSchema = z.object({
+  consented: z.boolean(),
+  wording: z.string().nullable(),
+  version: z.number().nullable(),
+});
+export type RemoteCareConsent = z.infer<typeof consentSchema>;
+
+export const remoteSlotSchema = z.object({
+  clinician_id: z.string().uuid(),
+  clinician_name: z.string(),
+  starts_at: z.string(),
+  ends_at: z.string(),
+});
+export type RemoteSlot = z.infer<typeof remoteSlotSchema>;
+
+const intakeAnswerSchema = z.object({
+  outcome: z.enum(["ready", "escalated"]),
+  advice: z.string().nullable(),
+});
+export type IntakeAnswer = z.infer<typeof intakeAnswerSchema>;
+
+const roomSchema = z.object({
+  mode: z.enum(["video", "audio", "text"]),
+  video_url: z.string().nullable(),
+  audio_url: z.string().nullable(),
+});
+export type PatientRoom = z.infer<typeof roomSchema>;
+
+export const chatMessageSchema = z.object({
+  id: z.string().uuid(),
+  sender: z.string(), // patient or staff
+  body: z.string(),
+  sent_at: z.string(),
+});
+export type ChatMessage = z.infer<typeof chatMessageSchema>;
+
+const q = encodeURIComponent;
+
+export function getRemoteCareConsent(): Promise<RemoteCareConsent> {
+  return patientGet("/remote-care/consent", consentSchema);
+}
+
+export function agreeToRemoteCare(): Promise<RemoteCareConsent> {
+  return patientPost("/remote-care/consent", {}, consentSchema);
+}
+
+export function getRemoteSlots(fromDay: string): Promise<RemoteSlot[]> {
+  return patientGet(`/remote-slots?from_day=${q(fromDay)}`, z.array(remoteSlotSchema));
+}
+
+export function bookRemoteVisit(slot: RemoteSlot): Promise<MyVisit> {
+  return patientPost(
+    "/visits",
+    { id: crypto.randomUUID(), clinician_id: slot.clinician_id, starts_at: slot.starts_at },
+    myVisitSchema,
+  );
+}
+
+export function answerIntake(
+  visitId: string,
+  reason: string,
+  redFlags: string[],
+): Promise<IntakeAnswer> {
+  return patientPost(
+    `/visits/${q(visitId)}/intake`,
+    { id: crypto.randomUUID(), reason, red_flags: redFlags },
+    intakeAnswerSchema,
+  );
+}
+
+export function getMyRoom(visitId: string): Promise<PatientRoom> {
+  return patientGet(`/visits/${q(visitId)}/room`, roomSchema);
+}
+
+export function getMyChat(visitId: string, since?: string): Promise<ChatMessage[]> {
+  const query = since ? `?since=${q(since)}` : "";
+  return patientGet(`/visits/${q(visitId)}/messages${query}`, z.array(chatMessageSchema));
+}
+
+export function sendMyMessage(visitId: string, body: string): Promise<ChatMessage> {
+  return patientPost(
+    `/visits/${q(visitId)}/messages`,
+    { id: crypto.randomUUID(), body },
+    chatMessageSchema,
+  );
+}
+
+/** A remote visit's next step on the patient page. */
+export function remoteStep(visit: MyVisit): "intake" | "waiting" | "in_consult" | null {
+  if (visit.visit_type !== "teleconsult") return null;
+  if (visit.status === "booked") return "intake";
+  if (visit.status === "waiting") return "waiting";
+  if (visit.status === "in_consult") return "in_consult";
+  return null;
 }

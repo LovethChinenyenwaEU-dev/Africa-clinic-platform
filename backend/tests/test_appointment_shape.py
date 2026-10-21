@@ -16,6 +16,7 @@ ALLOWED_COLUMNS = {
     "consult_started_at",
     "completed_at",
     "created_by_id",
+    "booked_via",  # staff or patient_portal (Week 9)
     "created_at",
 }
 

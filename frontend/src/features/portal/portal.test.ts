@@ -2,7 +2,16 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { ApiError } from "@/lib/api-client";
 
-import { confirmCode, getMyVisits, requestCode, splitVisits, type MyVisit } from "./api";
+import {
+  answerIntake,
+  bookRemoteVisit,
+  confirmCode,
+  getMyVisits,
+  remoteStep,
+  requestCode,
+  splitVisits,
+  type MyVisit,
+} from "./api";
 import { patientHome, signInPageFor } from "./paths";
 
 const CLINIC = "11111111-1111-4111-8111-111111111111";
@@ -86,5 +95,50 @@ describe("the patient's own page", () => {
 
     expect(upcoming).toHaveLength(1);
     expect(past).toHaveLength(1);
+  });
+});
+
+describe("remote care on the patient page", () => {
+  const remote = (status: string): MyVisit => ({
+    appointment_id: crypto.randomUUID(),
+    starts_at: "2026-11-02T08:00:00Z",
+    ends_at: "2026-11-02T08:30:00Z",
+    visit_type: "teleconsult",
+    status,
+    clinician_name: "Test doctor",
+  });
+
+  it("shows the next step of each remote visit, and none for in-person ones", () => {
+    expect(remoteStep(remote("booked"))).toBe("intake");
+    expect(remoteStep(remote("waiting"))).toBe("waiting");
+    expect(remoteStep(remote("in_consult"))).toBe("in_consult");
+    expect(remoteStep(remote("done"))).toBeNull();
+    expect(remoteStep({ ...remote("booked"), visit_type: "in_person" })).toBeNull();
+  });
+
+  it("books a slot and answers the intake with IDs made on the device", async () => {
+    fetchMock.mockResolvedValue(new Response("{}", { status: 500 }));
+    const slot = {
+      clinician_id: "22222222-2222-4222-8222-222222222222",
+      clinician_name: "Test doctor",
+      starts_at: "2026-11-02T08:00:00Z",
+      ends_at: "2026-11-02T08:30:00Z",
+    };
+
+    await bookRemoteVisit(slot).catch(() => {});
+    await answerIntake("v1", "Cough", ["chest_pain"]).catch(() => {});
+
+    const [bookUrl, bookInit] = fetchMock.mock.calls[0];
+    expect(bookUrl).toBe("/api/patient/visits");
+    expect(JSON.parse(bookInit.body)).toMatchObject({
+      clinician_id: slot.clinician_id,
+      starts_at: slot.starts_at,
+    });
+    expect(JSON.parse(bookInit.body).id).toMatch(/^[0-9a-f-]{36}$/);
+    expect(fetchMock.mock.calls[1][0]).toBe("/api/patient/visits/v1/intake");
+    expect(JSON.parse(fetchMock.mock.calls[1][1].body)).toMatchObject({
+      reason: "Cough",
+      red_flags: ["chest_pain"],
+    });
   });
 });

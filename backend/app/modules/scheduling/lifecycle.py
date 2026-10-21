@@ -44,7 +44,12 @@ def _load_locked(
 
 
 def _save(
-    session: Session, appointment: Appointment, *, actor_id: uuid.UUID, action: AuditAction
+    session: Session,
+    appointment: Appointment,
+    *,
+    actor_id: uuid.UUID,
+    action: AuditAction,
+    purpose: str | None = None,
 ) -> Appointment:
     """Save the change and its diary line together, or neither."""
     add_audit_event(
@@ -53,6 +58,7 @@ def _save(
         actor_id=actor_id,
         action=action,
         patient_id=appointment.patient_id,
+        purpose=purpose,
     )
     session.add(appointment)
     session.commit()
@@ -67,8 +73,12 @@ def check_in(
     actor_id: uuid.UUID,
     appointment_id: uuid.UUID,
     now: datetime | None = None,
+    purpose: str | None = None,
 ) -> Appointment:
-    """The patient has arrived and is now waiting."""
+    """The patient has arrived and is now waiting. (A remote visit: their intake is done.)
+
+    purpose="patient_portal" when the patient checked in themselves, by their own intake.
+    """
     current = now or datetime.now(UTC)
     appointment = _load_locked(session, tenant_id=tenant_id, appointment_id=appointment_id)
     new_status = check_move(
@@ -78,7 +88,13 @@ def check_in(
 
     appointment.status = new_status.value
     appointment.checked_in_at = current
-    return _save(session, appointment, actor_id=actor_id, action=AuditAction.APPOINTMENT_CHECK_IN)
+    return _save(
+        session,
+        appointment,
+        actor_id=actor_id,
+        action=AuditAction.APPOINTMENT_CHECK_IN,
+        purpose=purpose,
+    )
 
 
 def start_consultation(
