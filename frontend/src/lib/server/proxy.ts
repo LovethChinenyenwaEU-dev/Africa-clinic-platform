@@ -4,7 +4,7 @@ import { NextResponse } from "next/server";
 
 import { REQUEST_TIMEOUT_MS, apiBase } from "./backend";
 import { isSameOrigin } from "./origin";
-import { clearSession, readSessionToken } from "./session";
+import { patientSession, staffSession, type CookieSession } from "./session";
 
 /*
  * The pass-through between our screens and the API.
@@ -17,7 +17,8 @@ import { clearSession, readSessionToken } from "./session";
 // Only plain names like "encounters" or a UUID. Never "..", slashes or odd characters.
 const SAFE_SEGMENT = /^[A-Za-z0-9_-][A-Za-z0-9_.-]*$/;
 // Signing in and out has its own route (/api/session) with its own rules.
-const BLOCKED_FIRST_SEGMENTS = new Set(["auth"]);
+// The patient pages have their own pass-through, with the patient's own cookie.
+const BLOCKED_FIRST_SEGMENTS = new Set(["auth", "patient-portal"]);
 // Big enough for the longest clinical note, small enough to stop abuse.
 export const MAX_BODY_BYTES = 64 * 1024;
 const DEVICE_ID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -45,19 +46,41 @@ export function backendPath(segments: string[]): string | null {
   return `/${segments.join("/")}`;
 }
 
-export async function forwardToBackend(request: Request, segments: string[]): Promise<Response> {
+/** Staff screens: /api/backend/... to the API, with the staff cookie's token. */
+export function forwardToBackend(request: Request, segments: string[]): Promise<Response> {
+  return forward(request, backendPath(segments), staffSession);
+}
+
+/**
+ * Patient pages: /api/patient/... to the API's /patient-portal/..., with the patient
+ * cookie's token, and nowhere else. Signing in has its own route (/api/patient-session).
+ */
+export function patientPath(segments: string[]): string | null {
+  if (segments.length === 0 || segments[0] === "sign-in") return null;
+  if (!segments.every((segment) => SAFE_SEGMENT.test(segment))) return null;
+  return `/patient-portal/${segments.join("/")}`;
+}
+
+export function forwardForPatient(request: Request, segments: string[]): Promise<Response> {
+  return forward(request, patientPath(segments), patientSession);
+}
+
+async function forward(
+  request: Request,
+  path: string | null,
+  session: CookieSession,
+): Promise<Response> {
   const isRead = request.method === "GET";
   // A page on another website must never be able to write as our signed-in user.
   if (!isRead && !isSameOrigin(request)) {
     return reply(REFUSED, 403);
   }
 
-  const path = backendPath(segments);
   if (path === null) {
     return reply(NOT_FOUND, 404);
   }
 
-  const token = await readSessionToken();
+  const token = await session.read();
   if (!token) {
     return reply(NOT_SIGNED_IN, 401);
   }
@@ -97,7 +120,7 @@ export async function forwardToBackend(request: Request, segments: string[]): Pr
   }
 
   if (answer.status === 401) {
-    await clearSession(); // the token expired or the account was switched off
+    await session.clear(); // the token expired or the account was switched off
     return reply(NOT_SIGNED_IN, 401);
   }
   if (answer.status >= 500) {

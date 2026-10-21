@@ -16,7 +16,7 @@ import {
   getStaff,
   type AuditFilters,
 } from "./api";
-import { SYSTEM_ACTOR_ID, describeAction, isRead } from "./labels";
+import { PATIENT_PORTAL, SYSTEM_ACTOR_ID, describeAction, isRead } from "./labels";
 
 const short = (id: string) => id.slice(0, 8);
 
@@ -192,7 +192,11 @@ export function AuditLog() {
                       <td className="py-2 pr-3 whitespace-nowrap">
                         {formatDateTime(event.occurred_at)}
                       </td>
-                      <td className="py-2 pr-3">{whoIs(event.actor_id)}</td>
+                      <td className="py-2 pr-3">
+                        {event.purpose === PATIENT_PORTAL
+                          ? "The patient, on their own page"
+                          : whoIs(event.actor_id)}
+                      </td>
                       <td className="py-2 pr-3">
                         {describeAction(event.action)}
                         {isRead(event.action) && (

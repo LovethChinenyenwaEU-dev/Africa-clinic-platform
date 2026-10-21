@@ -9,6 +9,25 @@ Roadmap: [README](./README.md#roadmap-12-week-mvp) · Brief: [docs/product-brief
 
 ---
 
+## 21 Oct 2026 (Wed): Week 9 Step 8a, the patient web pages (sign-in, visits, summaries)
+
+**Done**
+- Week 9 Step 7 (patient summary) confirmed green in the Codespace.
+- Week 9 Step 8a: **patients sign in and see their own record.** Each clinic has a patient link (`/patient/<clinic ID>`, shown on the staff home page for front desk to share). The patient types their phone number and date of birth; if both match exactly one patient of that clinic, a 6-digit code goes by SMS. The answer is the same either way, so nobody can find out who is registered. The code lasts 10 minutes, works once, allows 5 tries, and at most 3 are sent per phone every 15 minutes; only a keyed hash is stored. In development (SMS off) the code is shown on screen. The patient then sees their upcoming and past visits and the summaries their clinician approved (never drafts or withdrawn ones). Patients have their own token (marked as a patient token) and their own httpOnly cookie and pass-through: a patient token is refused on staff doors and a staff token on patient doors. Every patient action is in the audit log with the patient as the actor; the admin audit log shows it as "The patient, on their own page". Migration 0024.
+
+**Hardest problem:** families sharing one phone. A code to "whoever owns this number" would open a sibling's or a parent's record. *Fix:* phone **and** date of birth must match exactly one patient before any code is sent; a test signs a child in on the mother's phone.
+
+**Broke, and fixed**
+- *Shell commands with an apostrophe in the text failed before running* (nothing was written): files with such text are now written with the editor instead.
+
+**Finished:** Week 9 Steps 1–7. Step 8a written, awaiting its Codespace run (needs `alembic upgrade head`). Migration head: 0024.
+
+**Pending:** as on 16 Oct. A real SMS provider is now needed for patient sign-in outside development.
+
+**Next:** Week 9 Step 8b: on the patient pages, consent to remote care, book a remote slot, do the intake, join the consult and chat.
+
+---
+
 ## 19 Oct 2026 (Mon): Week 9 Step 7, the patient summary
 
 **Done**

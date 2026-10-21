@@ -63,10 +63,15 @@ function messageFrom(body: unknown, kind: ApiFailure): string {
   return API_MESSAGES[kind];
 }
 
-async function send<T>(path: string, schema: z.ZodType<T>, init: RequestInit): Promise<T> {
+async function send<T>(
+  path: string,
+  schema: z.ZodType<T>,
+  init: RequestInit,
+  base: string = BASE,
+): Promise<T> {
   let response: Response;
   try {
-    response = await fetch(`${BASE}${path}`, {
+    response = await fetch(`${base}${path}`, {
       ...init,
       // Every request says which device it came from, for the audit diary (FR-A2).
       headers: { ...(init.headers as Record<string, string>), "X-Device-Id": getDeviceId() },
@@ -121,4 +126,25 @@ export function apiPost<T>(
 /** The words to show a person for any failure, never anything raw. */
 export function errorMessage(error: unknown): string {
   return error instanceof ApiError ? error.message : API_MESSAGES.unavailable;
+}
+
+// The patient's own pages (Week 9) go through their own pass-through, with the
+// patient's cookie. Same checks on every answer as the staff screens.
+const PATIENT_BASE = "/api/patient";
+
+export function patientGet<T>(path: string, schema: z.ZodType<T>): Promise<T> {
+  return send(path, schema, { method: "GET" }, PATIENT_BASE);
+}
+
+export function patientPost<T>(path: string, body: unknown, schema: z.ZodType<T>): Promise<T> {
+  return send(
+    path,
+    schema,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body ?? {}),
+    },
+    PATIENT_BASE,
+  );
 }

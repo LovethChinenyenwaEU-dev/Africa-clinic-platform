@@ -7,7 +7,13 @@ const { cookieStore } = vi.hoisted(() => ({
 }));
 vi.mock("next/headers", () => ({ cookies: async () => cookieStore }));
 
-import { MAX_BODY_BYTES, backendPath, forwardToBackend } from "./proxy";
+import {
+  MAX_BODY_BYTES,
+  backendPath,
+  forwardForPatient,
+  forwardToBackend,
+  patientPath,
+} from "./proxy";
 
 const SITE = "http://localhost:3000";
 const ID = "11111111-1111-4111-8111-111111111111";
@@ -235,5 +241,44 @@ describe("forwardToBackend", () => {
     const response = await forwardToBackend(fakeRequest(), ["encounters", ID]);
 
     expect(response.status).toBe(502);
+  });
+});
+
+describe("the patient pass-through", () => {
+  it("reaches only the patient doors, with the patient cookie", async () => {
+    signedIn("patient-tok");
+    fetchMock.mockResolvedValueOnce(answer([]));
+
+    const response = await forwardForPatient(fakeRequest({ url: `${SITE}/api/patient/visits` }), [
+      "visits",
+    ]);
+
+    expect(response.status).toBe(200);
+    const [url, init] = fetchMock.mock.calls[0];
+    expect(url).toBe("http://backend.test/api/v1/patient-portal/visits");
+    expect(init.headers.Authorization).toBe("Bearer patient-tok");
+    expect(cookieStore.get).toHaveBeenCalledWith("clinic_patient_session");
+  });
+
+  it.each([[[]], [["sign-in", "finish"]], [["..", "encounters"]], [["visits", "a/b"]]])(
+    "refuses unsafe or sign-in paths: %j",
+    (segments) => {
+      expect(patientPath(segments)).toBeNull();
+    },
+  );
+
+  it("clears the patient cookie, not the staff one, when the token has expired", async () => {
+    signedIn("patient-tok");
+    fetchMock.mockResolvedValueOnce(answer({ detail: "Not signed in." }, 401));
+
+    await forwardForPatient(fakeRequest(), ["me"]);
+
+    expect(cookieStore.set).toHaveBeenCalledWith(
+      expect.objectContaining({ name: "clinic_patient_session", maxAge: 0 }),
+    );
+  });
+
+  it("keeps the staff pass-through away from the patient doors", () => {
+    expect(backendPath(["patient-portal", "me"])).toBeNull();
   });
 });

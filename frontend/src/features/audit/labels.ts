@@ -42,6 +42,10 @@ export const ACTION_LABELS: Record<string, string> = {
   "summary.approve": "Approved a patient summary",
   "summary.withdraw": "Withdrew a patient summary",
   "summary.view": "Viewed patient summaries",
+  "portal.code_sent": "Patient asked for a sign-in code",
+  "portal.sign_in": "Patient signed in",
+  "portal.visits_view": "Patient viewed their visits",
+  "portal.summaries_view": "Patient read their summaries",
   "reminder.send": "Sent a reminder",
   "encounter.create": "Opened an encounter",
   "encounter.close": "Signed off an encounter",
@@ -82,3 +86,6 @@ export function isRead(action: string): boolean {
 
 // The platform's own actor (the reminder worker). No staff row has this ID.
 export const SYSTEM_ACTOR_ID = "00000000-0000-0000-0000-000000000000";
+
+// The purpose on lines a patient wrote themselves, from their own web page (Week 9).
+export const PATIENT_PORTAL = "patient_portal";

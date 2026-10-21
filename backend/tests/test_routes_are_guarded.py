@@ -4,7 +4,12 @@ from app.main import app
 from app.modules.identity.dependencies import get_current_staff
 
 # Doors that are public on purpose. Adding a line here is a decision, so think first.
-PUBLIC_OPERATIONS = {("POST", "/api/v1/auth/login")}
+PUBLIC_OPERATIONS = {
+    ("POST", "/api/v1/auth/login"),
+    # A patient signs in with an SMS code: they cannot have a token before (Week 9).
+    ("POST", "/api/v1/patient-portal/sign-in/start"),
+    ("POST", "/api/v1/patient-portal/sign-in/finish"),
+}
 HTTP_METHODS = {"get", "post", "put", "patch", "delete"}
 PREFIX = "/api/v1"
 

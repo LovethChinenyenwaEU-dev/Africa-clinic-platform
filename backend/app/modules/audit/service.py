@@ -58,6 +58,11 @@ class AuditAction(StrEnum):
     SUMMARY_APPROVE = "summary.approve"  # the patient may now read it
     SUMMARY_WITHDRAW = "summary.withdraw"
     SUMMARY_VIEW = "summary.view"
+    # The patient's own pages: the patient is the actor, purpose "patient_portal".
+    PORTAL_CODE_SENT = "portal.code_sent"
+    PORTAL_SIGN_IN = "portal.sign_in"
+    PORTAL_VISITS_VIEW = "portal.visits_view"
+    PORTAL_SUMMARIES_VIEW = "portal.summaries_view"
     REMINDER_SEND = "reminder.send"
     ENCOUNTER_CREATE = "encounter.create"
     ENCOUNTER_CLOSE = "encounter.close"
