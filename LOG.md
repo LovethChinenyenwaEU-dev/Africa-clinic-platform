@@ -9,6 +9,23 @@ Roadmap: [README](./README.md#roadmap-12-week-mvp) · Brief: [docs/product-brief
 
 ---
 
+## 22 Oct 2026 (Thu): the Lafiya brand and the public site
+
+**Done**
+- Brand: the product is now **Lafiya** (Hausa for health). Logo (a doorway with a person in it), colours (clinic green, indigo for remote care, red, amber and green only for status) and fonts (Atkinson Hyperlegible for reading, Bricolage Grotesque for headings, IBM Plex Mono for numbers). Mockups of the brand sheet, the staff queue and the doctor's encounter on the design canvas.
+- Design system in the frontend: DaisyUI 5 with a `d-` prefix (so it never clashes with our `.card`, `.badge`, `.button`) and a single `lafiya` theme; shadcn/ui Button and Accordion coloured with our tokens; `cn()` helper; fonts through `next/font`. Existing screens pick up the new colours and fonts without code changes; the staff header and sign-in page show the logo; page titles say Lafiya.
+- Public page `/welcome`, laid out after the reference design the user supplied: header with a phone menu, hero, highlights, why Lafiya, six features, how a visit flows, demo request, roles, questions, contact and footer. Photos are Unsplash placeholders. The demo form says plainly that nothing is sent yet.
+
+**Hardest problem:** three sets of colour names in one app. DaisyUI, shadcn/ui and our own tokens all want `primary` or `accent`. *Fix:* DaisyUI is prefixed and its `accent` is set to the same green as ours; shadcn components are copied in and use our token classes instead of their own colour variables. *Lesson:* pick one source of colours and make the others point at it.
+
+**Finished:** brand and `/welcome`, awaiting the Codespace run (new npm packages).
+
+**Pending:** the demo form is not connected; real photos and contact details; restyling the staff and patient screens with the new components; the three phone mockups.
+
+**Next:** move the fixed test dates (before 2 Nov), then Week 10: billing with one payment gateway, services and prices.
+
+---
+
 ## 21 Oct 2026 (Wed): Week 9 finished: the patient web pages (Steps 8a and 8b)
 
 **Done**

@@ -1,6 +1,7 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
 
+import { Logo } from "@/components/brand/Logo";
 import { navFor } from "@/features/identity/navigation";
 import { ROLE_LABELS } from "@/features/identity/roles";
 import { SignOutButton } from "@/features/identity/SignOutButton";
@@ -20,8 +21,8 @@ export default async function StaffLayout({ children }: { children: ReactNode })
       <div className="min-h-screen">
         <header className="border-b border-line bg-white print:hidden">
           <div className="mx-auto flex max-w-5xl flex-wrap items-center gap-x-6 gap-y-2 px-4 py-3">
-            <Link href="/" className="font-bold text-accent">
-              Clinic Platform
+            <Link href="/" aria-label="Lafiya, home">
+              <Logo size="sm" />
             </Link>
             <StaffNav items={navFor(user.role)} />
             <div className="ml-auto flex items-center gap-3 text-sm">

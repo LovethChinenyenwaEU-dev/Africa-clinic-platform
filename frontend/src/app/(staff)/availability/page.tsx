@@ -1,7 +1,7 @@
 import { MyHours } from "@/features/scheduling/MyHours";
 import { requireUser } from "@/lib/server/require-user";
 
-export const metadata = { title: "My hours | Clinic Platform" };
+export const metadata = { title: "My hours | Lafiya" };
 
 // Doctors and nurses publish their own weekly hours (FR-C1).
 export default async function AvailabilityPage() {

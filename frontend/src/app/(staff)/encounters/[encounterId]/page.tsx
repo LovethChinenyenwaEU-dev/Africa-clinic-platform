@@ -4,7 +4,7 @@ import { can } from "@/features/identity/abilities";
 import { EncounterScreen } from "@/features/records/EncounterScreen";
 import { requireUser } from "@/lib/server/require-user";
 
-export const metadata = { title: "Encounter | Clinic Platform" };
+export const metadata = { title: "Encounter | Lafiya" };
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 

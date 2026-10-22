@@ -1,13 +1,76 @@
 @import "tailwindcss";
 
-/* Our colours as Tailwind tokens, so screens can write bg-accent, text-danger... */
+/*
+ * DaisyUI 5 with a "d-" prefix: its classes are d-btn, d-card, d-badge...
+ * Without the prefix they would clash with our own .card, .badge and .button.
+ * Built-in themes are off; the one theme is "lafiya" below.
+ */
+@plugin "daisyui" {
+  themes: false;
+  prefix: "d-";
+  logs: false;
+}
+
+/*
+ * The Lafiya brand for DaisyUI. "accent" is the same green as our own
+ * --color-accent token, so whichever one wins, the colour is the same.
+ */
+@plugin "daisyui/theme" {
+  name: "lafiya";
+  default: true;
+  color-scheme: light;
+  --color-base-100: #ffffff;
+  --color-base-200: #f5f8f7;
+  --color-base-300: #dce3e0;
+  --color-base-content: #0f1a17;
+  --color-primary: #0b6e4f;
+  --color-primary-content: #ffffff;
+  --color-secondary: #3538cd;
+  --color-secondary-content: #ffffff;
+  --color-accent: #0b6e4f;
+  --color-accent-content: #ffffff;
+  --color-neutral: #0f1a17;
+  --color-neutral-content: #ffffff;
+  --color-info: #3538cd;
+  --color-info-content: #ffffff;
+  --color-success: #067647;
+  --color-success-content: #ffffff;
+  --color-warning: #b54708;
+  --color-warning-content: #ffffff;
+  --color-error: #b42318;
+  --color-error-content: #ffffff;
+  --radius-selector: 1rem;
+  --radius-field: 0.625rem;
+  --radius-box: 1rem;
+  --size-selector: 0.25rem;
+  --size-field: 0.25rem;
+  --border: 1px;
+  --depth: 0;
+  --noise: 0;
+}
+
+/*
+ * The Lafiya colours and fonts as Tailwind tokens, so screens can write
+ * bg-accent, text-muted, font-display... The fonts come from next/font in
+ * the root layout, which sets the --font-* variables used here.
+ */
 @theme {
-  --color-ink: #1a1a1a;
-  --color-line: #c9c9c9;
-  --color-accent: #1b5e8c;
-  --color-danger: #b00020;
+  --color-ink: #0f1a17;
+  --color-muted: #4a5853;
+  --color-line: #dce3e0;
+  --color-accent: #0b6e4f;
+  --color-accent-dark: #064431;
+  --color-accent-soft: #e7f4ef;
+  --color-deep: #0a2a21;
+  --color-indigo: #3538cd;
+  --color-indigo-soft: #eef0ff;
+  --color-danger: #b42318;
   --color-focus: #f2a900;
-  --color-canvas: #f6f7f9;
+  --color-canvas: #f5f8f7;
+
+  --font-sans: var(--font-atkinson), system-ui, sans-serif;
+  --font-display: var(--font-bricolage), var(--font-atkinson), system-ui, sans-serif;
+  --font-mono: var(--font-plex-mono), ui-monospace, monospace;
 }
 
 /*
@@ -16,9 +79,15 @@
  * Unlayered CSS would silently beat every utility.
  */
 @layer base {
+  /* In-page links glide, and stop below the sticky header instead of under it. */
+  html {
+    scroll-behavior: smooth;
+    scroll-padding-top: 5.5rem;
+  }
+
   body {
     margin: 0;
-    font-family: system-ui, sans-serif;
+    font-family: var(--font-sans);
     color: var(--color-ink);
     background: var(--color-canvas);
     line-height: 1.5;
@@ -136,5 +205,34 @@
     border-radius: 999px;
     font-size: 0.8rem;
     font-weight: 600;
+  }
+}
+
+/* The shadcn/ui accordion opens and closes to its measured height. */
+@keyframes accordion-down {
+  from {
+    height: 0;
+  }
+  to {
+    height: var(--radix-accordion-content-height);
+  }
+}
+
+@keyframes accordion-up {
+  from {
+    height: var(--radix-accordion-content-height);
+  }
+  to {
+    height: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
   }
 }
