@@ -28,6 +28,8 @@ class Capability(StrEnum):
     INVOICE_READ = "invoice:read"  # who was billed for what: personal data
     INVOICE_WRITE = "invoice:write"  # start, change, issue and void invoices
     PAYMENT_RECORD = "payment:record"  # take cash or record a bank transfer
+    REFUND_REQUEST = "refund:request"  # ask for money back from a payment
+    REFUND_APPROVE = "refund:approve"  # decide refunds: admins only, never their own
 
 
 _EVERYONE = frozenset({Capability.BRANCH_READ})
@@ -66,11 +68,24 @@ _PRICE_SETTERS = _PRICE_READERS | {Capability.PRICE_WRITE}
 # Invoices: front desk and billing make them; admins read them (they approve refunds).
 # Nurses and doctors do not handle money.
 _INVOICE_READERS = frozenset({Capability.INVOICE_READ})
-_BILLERS = _INVOICE_READERS | {Capability.INVOICE_WRITE, Capability.PAYMENT_RECORD}
+_BILLERS = _INVOICE_READERS | {
+    Capability.INVOICE_WRITE,
+    Capability.PAYMENT_RECORD,
+    Capability.REFUND_REQUEST,
+}
+# FR-B3: refunds need two people. Billers ask; an admin, who cannot ask, decides.
+_REFUND_DECIDERS = frozenset({Capability.REFUND_APPROVE})
 
 # The one table that says who may do what. Change a rule here, nowhere else.
 ROLE_CAPABILITIES: dict[Role, frozenset[Capability]] = {
-    Role.ADMIN: _EVERYONE | _ADMIN_ONLY | _WORDING_READERS | _PRICE_SETTERS | _INVOICE_READERS,
+    Role.ADMIN: (
+        _EVERYONE
+        | _ADMIN_ONLY
+        | _WORDING_READERS
+        | _PRICE_SETTERS
+        | _INVOICE_READERS
+        | _REFUND_DECIDERS
+    ),
     Role.FRONT_DESK: _FRONT_LINE | _BILLERS,
     Role.NURSE: _FRONT_LINE | _CLINICIANS,
     Role.DOCTOR: _FRONT_LINE | _CLINICIANS | _PRESCRIBERS,

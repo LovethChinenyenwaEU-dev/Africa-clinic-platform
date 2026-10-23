@@ -81,8 +81,9 @@ class InvoiceSummaryResponse(BaseModel):
     voided_at: datetime | None
     void_reason: str | None
     paid_kobo: int = 0
+    refunded_kobo: int = 0  # approved refunds only
     balance_kobo: int = 0
-    payment_status: str = "not_issued"  # not_issued, unpaid, part_paid or paid
+    payment_status: str = "not_issued"  # not_issued, unpaid, part_paid, paid or refunded
 
 
 class RecordPayment(BaseModel):
@@ -107,9 +108,44 @@ class PaymentResponse(BaseModel):
     received_at: datetime
 
 
+class RequestRefund(BaseModel):
+    """Money back from one payment: how much, how it goes back, and why."""
+
+    id: uuid.UUID | None = None
+    amount_kobo: StrictInt
+    method: str = Field(max_length=20)
+    reason: str = Field(max_length=400)
+
+
+class DecideRefund(BaseModel):
+    """The admin's note. Needed to reject; optional to approve."""
+
+    note: str | None = Field(default=None, max_length=400)
+
+
+class RefundResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: uuid.UUID
+    invoice_id: uuid.UUID
+    payment_id: uuid.UUID
+    patient_id: uuid.UUID
+    amount_kobo: int
+    method: str
+    reason: str
+    status: str
+    refund_number: str | None
+    requested_by_id: uuid.UUID
+    requested_at: datetime
+    decided_by_id: uuid.UUID | None
+    decided_at: datetime | None
+    decision_note: str | None
+
+
 class InvoiceResponse(InvoiceSummaryResponse):
     lines: list[InvoiceLineResponse]
     payments: list[PaymentResponse]
+    refunds: list[RefundResponse]
 
 
 class ReceiptResponse(BaseModel):

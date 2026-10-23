@@ -105,6 +105,10 @@ class AuditAction(StrEnum):
     INVOICE_LIST = "invoice.list"  # opened a patient's invoices
     PAYMENT_RECORD = "payment.record"  # cash or a transfer received, with a receipt number
     RECEIPT_VIEW = "receipt.view"
+    REFUND_REQUEST = "refund.request"  # front desk or billing asked for money back
+    REFUND_APPROVE = "refund.approve"  # an admin who did not ask said yes
+    REFUND_REJECT = "refund.reject"
+    REFUND_LIST = "refund.list"  # opened the list of refunds
 
 def add_audit_event(
     session: Session,

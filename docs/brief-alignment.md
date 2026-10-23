@@ -53,7 +53,7 @@ in the repository. Update this file when a gap is closed or a decision changes.
 | Item | Status | Plan |
 |---|---|---|
 | Teleconsult (availability, intake, consent, chat, video, audio/text fallback, note, follow-up, referral) | ✅ | W9: all parts, with Jitsi behind a video adapter (self-hosted Jitsi recommended before going live) |
-| Billing (invoice, receipt, refunds, reconciliation, gateway + cash/transfer) | 🟡 | W10: invoices (Step 2) and cash/transfer payments with numbered, check-coded receipts (Step 3) done; refunds, Paystack and reconciliation next |
+| Billing (invoice, receipt, refunds, reconciliation, gateway + cash/transfer) | 🟡 | W10: invoices (Step 2) and cash/transfer payments with numbered, check-coded receipts (Step 3) and two-person refunds (Step 4) done; Paystack and reconciliation next |
 | FHIR-aligned export | ⬜ | W11. Names already follow FHIR where possible (Encounter, `entered_in_error`, problem-list vs encounter-diagnosis, ICD-10 codes) |
 | Retention settings, backup/restore, privacy/incident runbook | ⬜ | W11–W12 |
 | Dashboards (wait time, no-shows, completion, sync failures, revenue, record access) | ⬜ | W11 |

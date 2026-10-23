@@ -41,10 +41,21 @@ from app.modules.billing.prices import (
     change_price,
     list_prices,
 )
+from app.modules.billing.refunds import (
+    InvalidRefundError,
+    OwnRefundError,
+    RefundAlreadyDecidedError,
+    RefundNotFoundError,
+    approve_refund,
+    list_refunds,
+    reject_refund,
+    request_refund,
+)
 from app.modules.billing.schemas import (
     AddInvoiceLine,
     AddPrice,
     ChangePrice,
+    DecideRefund,
     InvoiceLineResponse,
     InvoiceResponse,
     InvoiceSummaryResponse,
@@ -52,6 +63,8 @@ from app.modules.billing.schemas import (
     PriceResponse,
     ReceiptResponse,
     RecordPayment,
+    RefundResponse,
+    RequestRefund,
     StartInvoice,
     VoidInvoice,
 )
@@ -155,6 +168,7 @@ def _summary(result: InvoiceView) -> InvoiceSummaryResponse:
     return summary.model_copy(
         update={
             "paid_kobo": result.paid_kobo,
+            "refunded_kobo": result.refunded_kobo,
             "balance_kobo": result.balance_kobo,
             "payment_status": result.payment_status.value,
         }
@@ -166,6 +180,7 @@ def _answer(result: InvoiceView) -> InvoiceResponse:
         **_summary(result).model_dump(),
         lines=[InvoiceLineResponse.model_validate(line) for line in result.lines],
         payments=[PaymentResponse.model_validate(payment) for payment in result.payments],
+        refunds=[RefundResponse.model_validate(refund) for refund in result.refunds],
     )
 
 
@@ -432,3 +447,119 @@ def read_receipt(
         received_by_name=receipt.received_by_name,
         check_code=receipt.check_code,
     )
+
+
+# --- refunds (Step 4) ---------------------------------------------------------------
+
+ASK_REFUNDS = [Depends(require(Capability.REFUND_REQUEST))]  # front desk and billing
+DECIDE_REFUNDS = [Depends(require(Capability.REFUND_APPROVE))]  # admins
+REFUND_ERRORS = (
+    InvalidRefundError,
+    RefundNotFoundError,
+    RefundAlreadyDecidedError,
+    OwnRefundError,
+    InvoiceNotFoundError,
+)
+
+
+def _refund_error(error: Exception) -> HTTPException:
+    if isinstance(error, InvalidRefundError):
+        return HTTPException(status_code=422, detail=str(error))
+    if isinstance(error, RefundAlreadyDecidedError):
+        return HTTPException(status_code=409, detail=str(error))
+    if isinstance(error, OwnRefundError):
+        return HTTPException(status_code=403, detail=str(error))
+    if isinstance(error, RefundNotFoundError | InvoiceNotFoundError):
+        return HTTPException(status_code=404, detail="Not found.")
+    raise error
+
+
+@router.post(
+    "/payments/{payment_id}/refunds",
+    response_model=RefundResponse,
+    status_code=status.HTTP_201_CREATED,
+    dependencies=ASK_REFUNDS,
+)
+def ask_for_refund(
+    payment_id: uuid.UUID,
+    body: RequestRefund,
+    current_staff: CurrentStaff,
+    session: Session = Depends(get_session),
+):
+    """Ask for money back from one payment. An admin decides."""
+    try:
+        return request_refund(
+            session,
+            tenant_id=current_staff.tenant_id,
+            actor_id=current_staff.id,
+            payment_id=payment_id,
+            amount_kobo=body.amount_kobo,
+            method=body.method,
+            reason=body.reason,
+            refund_id=body.id,
+        )
+    except REFUND_ERRORS as error:
+        raise _refund_error(error) from None
+
+
+@router.get("/refunds", response_model=list[RefundResponse], dependencies=DECIDE_REFUNDS)
+def read_refunds(
+    current_staff: CurrentStaff,
+    status: str | None = "requested",
+    session: Session = Depends(get_session),
+):
+    """Refunds of the clinic, oldest first. Waiting ones by default; status=approved or
+    rejected for the others."""
+    try:
+        return list_refunds(
+            session,
+            tenant_id=current_staff.tenant_id,
+            actor_id=current_staff.id,
+            status=status,
+        )
+    except REFUND_ERRORS as error:
+        raise _refund_error(error) from None
+
+
+@router.post(
+    "/refunds/{refund_id}/approve", response_model=RefundResponse, dependencies=DECIDE_REFUNDS
+)
+def approve(
+    refund_id: uuid.UUID,
+    body: DecideRefund,
+    current_staff: CurrentStaff,
+    session: Session = Depends(get_session),
+):
+    """Approve a refund someone else asked for."""
+    try:
+        return approve_refund(
+            session,
+            tenant_id=current_staff.tenant_id,
+            actor_id=current_staff.id,
+            refund_id=refund_id,
+            note=body.note,
+        )
+    except REFUND_ERRORS as error:
+        raise _refund_error(error) from None
+
+
+@router.post(
+    "/refunds/{refund_id}/reject", response_model=RefundResponse, dependencies=DECIDE_REFUNDS
+)
+def reject(
+    refund_id: uuid.UUID,
+    body: DecideRefund,
+    current_staff: CurrentStaff,
+    session: Session = Depends(get_session),
+):
+    """Reject a refund someone else asked for, saying why."""
+    try:
+        return reject_refund(
+            session,
+            tenant_id=current_staff.tenant_id,
+            actor_id=current_staff.id,
+            refund_id=refund_id,
+            note=body.note or "",
+        )
+    except REFUND_ERRORS as error:
+        raise _refund_error(error) from None

@@ -12,6 +12,8 @@ from app.modules.billing.models import (
     Payment,
     PriceItem,
     ReceiptCounter,
+    Refund,
+    RefundCounter,
 )
 from app.modules.consent.models import Consent, ConsentText
 from app.modules.idempotency.models import IdempotencyRecord
@@ -62,6 +64,8 @@ def session(run_id):
             # and the set it replaces) go together.
             for model in (
                 IdempotencyRecord,
+                Refund,
+                RefundCounter,
                 Payment,
                 ReceiptCounter,
                 InvoiceLine,

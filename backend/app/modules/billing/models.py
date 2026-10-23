@@ -153,3 +153,56 @@ class ReceiptCounter(SQLModel, table=True):
 
     tenant_id: uuid.UUID = Field(foreign_key="tenant.id", primary_key=True)
     last_number: int = 0
+
+
+class RefundStatus(StrEnum):
+    REQUESTED = "requested"  # waiting for an admin
+    APPROVED = "approved"  # the money goes back; counts against what was paid
+    REJECTED = "rejected"
+
+
+class Refund(SQLModel, table=True):
+    """Money given back from one payment. Front desk or billing asks; an admin who did
+    not ask approves or rejects (FR-B3). Never edited after the decision.
+
+    An approved refund is for something the patient did not get or was overcharged for,
+    so it lowers both what was paid and what is owed: the patient never owes it again.
+    """
+
+    __table_args__ = (
+        UniqueConstraint("tenant_id", "refund_number", name="uq_refund_tenant_number"),
+        CheckConstraint("amount_kobo > 0", name="ck_refund_amount"),
+        CheckConstraint(
+            "status IN ('requested', 'approved', 'rejected')", name="ck_refund_status"
+        ),
+        CheckConstraint("method IN ('cash', 'transfer')", name="ck_refund_method"),
+    )
+
+    id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
+    tenant_id: uuid.UUID = Field(foreign_key="tenant.id", index=True)
+    invoice_id: uuid.UUID = Field(foreign_key="invoice.id", index=True)
+    payment_id: uuid.UUID = Field(foreign_key="payment.id", index=True)
+    patient_id: uuid.UUID = Field(foreign_key="patient.id")
+    amount_kobo: int = Field(sa_column=Column(BigInteger, nullable=False))
+    method: str  # how the money goes back: cash or transfer
+    reason: str
+    status: str = RefundStatus.REQUESTED.value
+    refund_number: str | None = None  # "RFD-000042", once approved
+    requested_by_id: uuid.UUID = Field(foreign_key="staff.id")
+    requested_at: datetime = Field(
+        default_factory=utcnow, sa_column=Column(DateTime(timezone=True), nullable=False)
+    )
+    decided_by_id: uuid.UUID | None = Field(default=None, foreign_key="staff.id")
+    decided_at: datetime | None = Field(
+        default=None, sa_column=Column(DateTime(timezone=True), nullable=True)
+    )
+    decision_note: str | None = None
+
+
+class RefundCounter(SQLModel, table=True):
+    """The last refund number each clinic gave, locked while a number is taken."""
+
+    __tablename__ = "refund_counter"
+
+    tenant_id: uuid.UUID = Field(foreign_key="tenant.id", primary_key=True)
+    last_number: int = 0

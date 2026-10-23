@@ -84,6 +84,10 @@ export const ACTION_LABELS: Record<string, string> = {
   "invoice.list": "Viewed a patient's invoices",
   "payment.record": "Took a payment (cash or transfer)",
   "receipt.view": "Opened a receipt",
+  "refund.request": "Asked for a refund",
+  "refund.approve": "Approved a refund",
+  "refund.reject": "Rejected a refund",
+  "refund.list": "Viewed the refunds list",
 };
 
 /** Plain words for an action; an unknown code is shown as it is, never hidden. */
