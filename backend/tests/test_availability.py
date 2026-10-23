@@ -21,7 +21,6 @@ from app.modules.scheduling.availability import (
 from tests.dates import FRIDAY_BEFORE, MONDAY, utc
 from tests.scheduling_helpers import PASSWORD, book, build_clinic
 
-
 EARLY = utc(FRIDAY_BEFORE, 8)  # "now": the Friday before
 
 
