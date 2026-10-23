@@ -1,5 +1,6 @@
 """Week 9 Step 4: teleconsult intake, consent and the danger-sign screen (FR-C2, FR-C6)."""
 import uuid
+from datetime import timedelta
 
 import pytest
 from fastapi.testclient import TestClient
@@ -58,14 +59,14 @@ def remote_visit(session, clinic):
     return book(session, clinic, visit_type="teleconsult")
 
 
-def intake(session, clinic, visit, reason=REASON, red_flags=(), person="desk", **extra):
+def intake(session, clinic, visit, reason=REASON, red_flags=(), person="desk", now=NOW, **extra):
     return submit_intake(
         session,
         **who(clinic, person),
         appointment_id=visit.id,
         reason=reason,
         red_flags=list(red_flags),
-        now=NOW,
+        now=now,
         **extra,
     )
 
@@ -184,8 +185,10 @@ def test_the_newest_intake_counts_and_the_history_is_kept(session, clinics):
     consent_to_remote_care(session, clinic)
     visit = remote_visit(session, clinic)
     intake(session, clinic, visit, red_flags=["severe_pain"])
-    # The nurse calls back: the pain was mild after all.
-    intake(session, clinic, visit, person="nurse", reason="Mild back pain, two days.")
+    # The nurse calls back 20 minutes later: the pain was mild after all.
+    # (A later time, so "newest" is not a coin toss between two equal timestamps.)
+    later = NOW + timedelta(minutes=20)
+    intake(session, clinic, visit, person="nurse", reason="Mild back pain, two days.", now=later)
 
     history = intake_history(session, **who(clinic, "nurse"), appointment_id=visit.id)
 

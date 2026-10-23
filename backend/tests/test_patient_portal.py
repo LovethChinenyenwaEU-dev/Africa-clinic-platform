@@ -22,10 +22,18 @@ from app.modules.portal import signin
 from app.modules.portal.signin import SignInFailedError, finish_sign_in, start_sign_in
 from app.modules.records.service import close_encounter, open_encounter
 from app.modules.records.summary import approve_summary, draft_summary
-from tests.scheduling_helpers import PASSWORD, book, build_clinic
+from tests.scheduling_helpers import NOW, PASSWORD, book, build_clinic
 
 PHONE = "08031234567"
 BORN = date(1990, 5, 17)  # build_clinic's patient
+
+
+@pytest.fixture(autouse=True)
+def not_development(monkeypatch):
+    """Run as "test" wherever the tests run. The Codespace runs the API as "development",
+    which shows the sign-in code on screen; CI runs as "test". The answer must not
+    depend on where the tests happen to run."""
+    monkeypatch.setattr(settings, "environment", "test")
 
 
 @pytest.fixture
@@ -170,8 +178,8 @@ def test_the_patient_pages_through_the_api(session, run_id, clinics, sms):
     client = TestClient(app)
     clinic = clinics["a"]
     doctor = {"tenant_id": tenant(clinic), "actor_id": clinic["doctor"].id}
-    upcoming = book(session, clinic, now=datetime(2026, 10, 1, tzinfo=UTC))
-    book(session, clinics["b"], now=datetime(2026, 10, 1, tzinfo=UTC))  # another clinic's
+    upcoming = book(session, clinic, now=NOW - timedelta(days=30))
+    book(session, clinics["b"], now=NOW - timedelta(days=30))  # another clinic's
     # One visit with an approved summary, one with only a draft.
     approved_visit = open_encounter(session, **doctor, patient_id=clinic["patient"].id)
     approved = draft_summary(
