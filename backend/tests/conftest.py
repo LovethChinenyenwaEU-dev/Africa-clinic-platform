@@ -5,6 +5,7 @@ from sqlalchemy import delete
 from sqlmodel import Session, col, select
 
 from app.core.db import engine
+from app.modules.billing.models import PriceItem
 from app.modules.consent.models import Consent, ConsentText
 from app.modules.idempotency.models import IdempotencyRecord
 from app.modules.identity.models import Staff
@@ -75,6 +76,7 @@ def session(run_id):
                 ConsentText,
                 PatientLoginCode,
                 Patient,
+                PriceItem,
             ):
                 session.execute(delete(model).where(col(model.tenant_id).in_(tenant_ids)))
                 session.commit()

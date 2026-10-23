@@ -1,6 +1,7 @@
 from fastapi import APIRouter
 
 from app.modules.audit.router import router as audit_router
+from app.modules.billing.router import router as billing_router
 from app.modules.consent.router import router as consent_router
 from app.modules.identity.router import router as identity_router
 from app.modules.identity.staff_router import router as staff_router
@@ -17,6 +18,7 @@ api_router = APIRouter(prefix="/api/v1")
 # Each module registers its router here when it has one.
 api_router.include_router(audit_router)
 api_router.include_router(availability_router)
+api_router.include_router(billing_router)
 api_router.include_router(consent_router)
 api_router.include_router(identity_router)
 api_router.include_router(staff_router)

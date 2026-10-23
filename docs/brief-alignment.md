@@ -21,7 +21,7 @@ in the repository. Update this file when a gap is closed or a decision changes.
 |---|---|---|
 | Multi-tenant clinics, branches | ✅ | `tenancy`, clinic-wall tests |
 | Users and roles (admin, front desk, nurse, doctor, billing) | ✅ | `identity`, one permission table |
-| Services and prices | ⬜ | Not on the roadmap. Needed for billing: **add to W10** |
+| Services and prices | ✅ | W10 Step 1: `billing/prices.py`, price list in kobo, admin-only changes, every change in the audit log |
 | Clinician schedules / availability | ✅ | W9: weekly hours per clinician (in person or remote), free slots; patients may only book a free slot |
 | Departments, escalation rules (onboarding) | 🟡 | Escalation built in W9 (12 danger signs: emergency on the queue, in-person care for remote visits). Departments and clinic-configurable rules not built |
 | Patient registration, duplicate warnings | ✅ | Deterministic matching, human confirmation, never auto-merged |

@@ -73,6 +73,8 @@ export const ACTION_LABELS: Record<string, string> = {
   "prescription.revise": "Stopped or changed a prescription",
   "prescription.view": "Viewed prescriptions",
   "prescription.resolve": "Settled a prescription conflict",
+  "price.add": "Added a service to the price list",
+  "price.change": "Changed a price or retired a service",
 };
 
 /** Plain words for an action; an unknown code is shown as it is, never hidden. */

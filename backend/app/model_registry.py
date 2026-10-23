@@ -1,4 +1,5 @@
 from app.modules.audit import models as audit_models  # noqa: F401
+from app.modules.billing import models as billing_models  # noqa: F401
 from app.modules.consent import models as consent_models  # noqa: F401
 from app.modules.idempotency import models as idempotency_models  # noqa: F401
 from app.modules.identity import models as identity_models  # noqa: F401

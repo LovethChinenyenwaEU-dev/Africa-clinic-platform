@@ -9,7 +9,12 @@ from app.modules.identity.permissions import (
 )
 
 NON_ADMIN_ROLES = [Role.FRONT_DESK, Role.NURSE, Role.DOCTOR, Role.BILLING]
-ADMIN_ONLY = [Capability.BRANCH_WRITE, Capability.STAFF_READ, Capability.STAFF_MANAGE]
+ADMIN_ONLY = [
+    Capability.BRANCH_WRITE,
+    Capability.STAFF_READ,
+    Capability.STAFF_MANAGE,
+    Capability.PRICE_WRITE,
+]
 
 
 def test_every_role_has_an_entry_in_the_table():

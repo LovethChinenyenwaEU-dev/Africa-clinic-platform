@@ -94,6 +94,8 @@ class AuditAction(StrEnum):
     PRESCRIPTION_REVISE = "prescription.revise"  # stopped or corrected: a new version
     PRESCRIPTION_VIEW = "prescription.view"
     PRESCRIPTION_RESOLVE = "prescription.resolve"
+    PRICE_ADD = "price.add"  # an admin added a service to the price list
+    PRICE_CHANGE = "price.change"  # renamed, repriced, retired or brought back
 
 def add_audit_event(
     session: Session,

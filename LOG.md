@@ -9,6 +9,23 @@ Roadmap: [README](./README.md#roadmap-12-week-mvp) · Brief: [docs/product-brief
 
 ---
 
+## 23 Oct 2026 (Fri): test dates fixed; Week 10 started (price list)
+
+**Done**
+- **Test dates no longer expire.** New `backend/tests/dates.py`: `MONDAY` is always a Monday 8 to 14 days ahead, `FRIDAY_BEFORE` three days before it. The scheduling helpers, booking, availability, day list, demo data and patient portal tests count from it instead of 2 Nov 2026. Tests of pure functions (reminder wording, status moves, chart rules, audit filters) keep fixed dates on purpose: no clock is involved.
+- Week 10 decisions: **Paystack** behind an adapter; front desk and billing take payments and ask for refunds, **only an admin approves a refund, never their own request**; **naira only, stored as whole kobo**; invoices are **built per visit from the price list**, editable as a draft, frozen once issued.
+- Week 10 Step 1: **the price list.** Admins add services (name, optional code, price in kobo), change them, retire them (never deleted) and bring them back. No two active services of a clinic share a name, whatever the capitals (checked in code and by a unique index). Front desk, nurses, doctors and billing read the list. Every addition and change is in the audit log. New capabilities `price:read` and `price:write`. Migration 0026.
+
+**Hardest problem:** money in a web form. A float turns 0.1 + 0.2 into 0.30000000000000004, and `True` is an integer in Python. *Fix:* the API takes whole kobo only (`StrictInt`), the service refuses booleans and fractions, and the column is a BIGINT. *Lesson:* decide the unit of money before the first table.
+
+**Finished:** test date fix and Step 1, awaiting the Codespace run (`alembic upgrade head`). Migration head: 0026.
+
+**Pending:** the Lafiya `/welcome` page run (22 Oct). Paystack test keys are needed for Step 5.
+
+**Next:** Week 10 Step 2: invoices (a draft per visit from the price list, then issued and frozen).
+
+---
+
 ## 22 Oct 2026 (Thu): the Lafiya brand and the public site
 
 **Done**
