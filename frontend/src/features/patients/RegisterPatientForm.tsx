@@ -26,10 +26,10 @@ export function RegisterPatientForm() {
   const [form, setForm] = useState<FormState>(EMPTY);
   const [errors, setErrors] = useState<Partial<Record<Field, string>>>({});
   // The checked form waiting for the person's answer to "is this someone new?".
-  const [pending, setPending] = useState<RegisterPayload   // Registered with no network: kept on this device and sent when it returns.
+  const [pending, setPending] = useState<RegisterPayload | null>(null);
+  // Registered with no network: kept on this device and sent when it returns.
   const [savedOnDevice, setSavedOnDevice] = useState(false);
   const { online, queue } = useSync();
-| null>(null);
 
   const register = useMutation({
     mutationFn: ({ payload, confirmed }: { payload: RegisterPayload; confirmed: boolean }) =>
