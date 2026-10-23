@@ -164,10 +164,11 @@ def approve_refund(
     """Approve: the money goes back, and the refund gets its number."""
     clean_note = _text(note, "note") if note and note.strip() else None
     refund = _waiting(session, tenant_id=tenant_id, actor_id=actor_id, refund_id=refund_id)
+    # Take the number BEFORE changing the status: taking it queries the database, which
+    # first saves pending changes, and "approved without a number" breaks a check.
+    number = take_number(session, counter=RefundCounter, tenant_id=tenant_id, prefix="RFD")
     refund.status = RefundStatus.APPROVED.value
-    refund.refund_number = take_number(
-        session, counter=RefundCounter, tenant_id=tenant_id, prefix="RFD"
-    )
+    refund.refund_number = number
     refund.decided_by_id = actor_id
     refund.decided_at = now or datetime.now(UTC)
     refund.decision_note = clean_note
