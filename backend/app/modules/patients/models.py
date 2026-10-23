@@ -12,6 +12,14 @@ class Sex(StrEnum):
     OTHER = "other"
 
 
+class ReviewStatus(StrEnum):
+    """Where an offline registration stands after a possible duplicate was found (Week 8)."""
+
+    NEEDS_REVIEW = "needs_review"
+    CONFIRMED_NEW = "confirmed_new"
+    DUPLICATE = "duplicate"
+
+
 def utcnow() -> datetime:
     return datetime.now(UTC)
 
@@ -33,7 +41,8 @@ class Patient(SQLModel, table=True):
     created_by_id: uuid.UUID = Field(foreign_key="staff.id")
     created_at: datetime = Field(
         default_factory=utcnow, sa_column=Column(DateTime(timezone=True), nullable=False)
-    )    # Registered offline while a possible duplicate existed (Week 8): saved anyway, and
+    )
+    # Registered offline while a possible duplicate existed (Week 8): saved anyway, and
     # flagged for a person to decide. None for everyone registered the normal way.
     review_status: str | None = None  # needs_review, confirmed_new or duplicate
     # When the review found it is someone already registered. Nothing is merged or
