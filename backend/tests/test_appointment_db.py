@@ -1,5 +1,5 @@
 import uuid
-from datetime import UTC, date, datetime, timedelta
+from datetime import date, timedelta
 
 import pytest
 from sqlalchemy.exc import IntegrityError
@@ -9,9 +9,10 @@ from app.modules.identity.service import create_staff
 from app.modules.patients.service import create_patient
 from app.modules.scheduling.models import Appointment
 from app.modules.tenancy.service import create_branch, create_tenant
+from tests.dates import MONDAY, utc
 
 PASSWORD = "a-long-enough-password"
-START = datetime(2026, 11, 2, 9, 0, tzinfo=UTC)
+START = utc(MONDAY, 9)
 
 
 @pytest.fixture

@@ -1,4 +1,4 @@
-from datetime import UTC, date, datetime, timedelta
+from datetime import UTC, datetime, timedelta
 
 import pytest
 from fastapi.testclient import TestClient
@@ -14,10 +14,10 @@ from app.modules.identity.service import (
 from app.modules.scheduling.board import get_day_list, get_queue
 from app.modules.scheduling.lifecycle import cancel_appointment
 from app.modules.tenancy.service import create_branch
+from tests.dates import FRIDAY_BEFORE, MONDAY, utc
 from tests.scheduling_helpers import PASSWORD, book, build_clinic, walk_in
 
-EARLY = datetime(2026, 10, 30, 8, 0, tzinfo=UTC)  # "now" for booking, before every visit
-MONDAY = date(2026, 11, 2)
+EARLY = utc(FRIDAY_BEFORE, 8)  # "now" for booking, before every visit
 
 
 @pytest.fixture
@@ -46,7 +46,8 @@ def day_list(session, clinic, day=MONDAY, **changes):
 
 
 def at(hour_utc: int, minute: int = 0, day: int = 2) -> datetime:
-    return datetime(2026, 11, day, hour_utc, minute, tzinfo=UTC)
+    """A UTC moment; day 2 is MONDAY, day 1 the Sunday before, day 3 the Tuesday."""
+    return utc(MONDAY + timedelta(days=day - 2), hour_utc, minute)
 
 
 def test_the_day_list_shows_every_visit_of_the_lagos_day_with_names(session, clinics):
@@ -81,7 +82,8 @@ def test_lagos_midnight_decides_which_day_a_visit_belongs_to(session, clinics):
     tuesday = book(session, a, starts_at=at(23, 30, day=2), now=EARLY)
 
     monday_ids = [entry.appointment_id for entry in day_list(session, a)]
-    tuesday_ids = [entry.appointment_id for entry in day_list(session, a, day=date(2026, 11, 3))]
+    tuesday_list = day_list(session, a, day=MONDAY + timedelta(days=1))
+    tuesday_ids = [entry.appointment_id for entry in tuesday_list]
 
     assert monday_ids == [just_after_midnight.id]
     assert tuesday_ids == [tuesday.id]
@@ -137,7 +139,7 @@ def test_the_day_list_endpoint_answers_with_names_and_hides_other_details(
 def test_another_clinics_branch_is_not_found(client, session, run_id, clinics):
     response = client.get(
         "/api/v1/appointments/day",
-        params={"branch_id": str(clinics["a"]["branch"].id), "date": "2026-11-02"},
+        params={"branch_id": str(clinics["a"]["branch"].id), "date": MONDAY.isoformat()},
         headers=headers(session, run_id, "b", "front_desk"),
     )
 
@@ -209,7 +211,7 @@ def test_the_clinician_list_needs_a_token(client):
     assert client.get("/api/v1/staff/clinicians").status_code == 401
 
 
-QUEUE_NOW = datetime(2026, 11, 2, 9, 0, tzinfo=UTC)  # 10:00 on Monday in Lagos
+QUEUE_NOW = utc(MONDAY, 9)  # 10:00 on Monday in Lagos
 
 
 def queue(session, clinic):

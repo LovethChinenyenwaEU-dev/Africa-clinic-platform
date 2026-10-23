@@ -1,4 +1,4 @@
-from datetime import UTC, date, datetime, timedelta
+from datetime import date, timedelta
 
 from app.core.tenant_scope import tenant_select
 from app.modules.audit.service import list_audit_events
@@ -7,9 +7,10 @@ from app.modules.patients.service import create_patient
 from app.modules.scheduling.models import Appointment
 from app.modules.scheduling.service import book_appointment, register_walk_in
 from app.modules.tenancy.service import create_branch, create_tenant
+from tests.dates import MONDAY, utc
 
 PASSWORD = "a-long-enough-password"
-NOW = datetime(2026, 11, 2, 8, 0, tzinfo=UTC)
+NOW = utc(MONDAY, 8)
 START = NOW + timedelta(hours=1)  # 09:00 UTC
 
 

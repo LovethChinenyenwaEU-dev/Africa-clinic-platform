@@ -1,4 +1,3 @@
-from datetime import UTC, datetime
 
 import pytest
 from sqlmodel import col, select
@@ -11,9 +10,10 @@ from app.modules.identity.service import EmailAlreadyUsedError, create_staff, lo
 from app.modules.patients.models import Patient
 from app.modules.scheduling.models import Appointment
 from app.modules.tenancy.models import Tenant
+from tests.dates import MONDAY, utc
 
 PASSWORD = "a-long-enough-password"
-NOW = datetime(2026, 11, 2, 8, 0, tzinfo=UTC)
+NOW = utc(MONDAY, 8)
 
 
 def seed(session, run_id):

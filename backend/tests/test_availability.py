@@ -18,10 +18,11 @@ from app.modules.scheduling.availability import (
     list_availability,
     remove_availability,
 )
+from tests.dates import FRIDAY_BEFORE, MONDAY, utc
 from tests.scheduling_helpers import PASSWORD, book, build_clinic
 
-MONDAY = date(2026, 11, 2)
-EARLY = datetime(2026, 10, 30, 8, 0, tzinfo=UTC)  # "now": the Friday before
+
+EARLY = utc(FRIDAY_BEFORE, 8)  # "now": the Friday before
 
 
 def lagos(hour: int, minute: int = 0, day: date = MONDAY) -> datetime:
@@ -207,7 +208,7 @@ def test_hours_through_the_api(session, run_id, clinics):
     params = {
         "clinician_id": str(clinic["nurse"].id),
         "visit_type": "teleconsult",
-        "from_day": "2026-11-02",
+        "from_day": MONDAY.isoformat(),
     }
     slots_url = "/api/v1/availability/slots"
     desk_reads = client.get(slots_url, params=params, headers=bearer("front_desk"))

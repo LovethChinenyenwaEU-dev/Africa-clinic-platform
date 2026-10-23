@@ -1,5 +1,5 @@
 import uuid
-from datetime import UTC, date, datetime, timedelta, timezone
+from datetime import date, timedelta, timezone
 
 import pytest
 
@@ -17,9 +17,10 @@ from app.modules.scheduling.service import (
     register_walk_in,
 )
 from app.modules.tenancy.service import create_branch, create_tenant
+from tests.dates import MONDAY, utc
 
 PASSWORD = "a-long-enough-password"
-NOW = datetime(2026, 11, 2, 8, 0, tzinfo=UTC)
+NOW = utc(MONDAY, 8)
 START = NOW + timedelta(hours=1)  # 09:00 UTC
 
 
@@ -107,7 +108,7 @@ def test_booking_saves_the_visit_and_a_diary_line(session, clinics):
 
 
 def test_a_time_given_in_another_zone_is_stored_as_the_same_moment(session, clinics):
-    ten_in_lagos = datetime(2026, 11, 2, 10, 0, tzinfo=timezone(timedelta(hours=1)))
+    ten_in_lagos = START.astimezone(timezone(timedelta(hours=1)))  # 10:00 in Lagos
 
     appointment = book(session, clinics["a"], starts_at=ten_in_lagos)
 
@@ -124,7 +125,7 @@ def test_a_teleconsult_can_be_booked(session, clinics):
     [
         {"starts_at": NOW - timedelta(minutes=1)},
         {"starts_at": NOW + timedelta(days=366)},
-        {"starts_at": datetime(2026, 11, 2, 9, 0)},  # no time zone
+        {"starts_at": START.replace(tzinfo=None)},  # no time zone
         {"duration_minutes": 4},
         {"duration_minutes": 241},
         {"visit_type": "home_visit"},
