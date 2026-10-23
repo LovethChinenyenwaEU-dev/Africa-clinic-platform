@@ -17,13 +17,15 @@ export type CookieSession = {
 };
 
 function cookieSession(name: string): CookieSession {
-  const options = {
+  // Worked out each time a cookie is written, not once when this file loads,
+  // so "Secure" always follows the environment the server is running in.
+  const options = () => ({
     name,
     httpOnly: true, // JavaScript cannot read it
     secure: process.env.NODE_ENV === "production", // HTTPS only when deployed
     sameSite: "lax" as const, // not sent when another website tricks the browser
     path: "/",
-  };
+  });
   return {
     async read() {
       const store = await cookies();
@@ -31,11 +33,11 @@ function cookieSession(name: string): CookieSession {
     },
     async write(token) {
       const store = await cookies();
-      store.set({ ...options, value: token, maxAge: SESSION_MAX_AGE_SECONDS });
+      store.set({ ...options(), value: token, maxAge: SESSION_MAX_AGE_SECONDS });
     },
     async clear() {
       const store = await cookies();
-      store.set({ ...options, value: "", maxAge: 0 });
+      store.set({ ...options(), value: "", maxAge: 0 });
     },
   };
 }
