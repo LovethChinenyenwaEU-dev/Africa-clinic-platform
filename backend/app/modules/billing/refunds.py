@@ -18,6 +18,7 @@ from app.core.tenant_scope import get_in_tenant, tenant_select
 from app.modules.audit.service import AuditAction, add_audit_event
 from app.modules.billing.invoices import locked_invoice, take_number
 from app.modules.billing.models import (
+    MANUAL_METHODS,
     Payment,
     PaymentMethod,
     Refund,
@@ -97,10 +98,9 @@ def request_refund(
             return existing
     if isinstance(amount_kobo, bool) or not isinstance(amount_kobo, int) or amount_kobo <= 0:
         raise InvalidRefundError("The amount must be a whole number of kobo, above zero.")
-    try:
-        kind = PaymentMethod(method).value
-    except ValueError:
-        raise InvalidRefundError("The money goes back as cash or transfer.") from None
+    if method not in MANUAL_METHODS:
+        raise InvalidRefundError("The money goes back as cash or transfer.")
+    kind = PaymentMethod(method).value
     clean_reason = _text(reason, "reason")
     payment = get_in_tenant(session, Payment, tenant_id=tenant_id, row_id=payment_id)
     if not isinstance(payment, Payment):

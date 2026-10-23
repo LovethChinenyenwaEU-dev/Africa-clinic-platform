@@ -83,7 +83,9 @@ class InvoiceSummaryResponse(BaseModel):
     paid_kobo: int = 0
     refunded_kobo: int = 0  # approved refunds only
     balance_kobo: int = 0
-    payment_status: str = "not_issued"  # not_issued, unpaid, part_paid, paid or refunded
+    credit_kobo: int = 0  # paid beyond the total, to be given back
+    # not_issued, unpaid, part_paid, paid, overpaid or refunded
+    payment_status: str = "not_issued"
 
 
 class RecordPayment(BaseModel):
@@ -142,10 +144,35 @@ class RefundResponse(BaseModel):
     decision_note: str | None
 
 
+class StartOnlinePayment(BaseModel):
+    """A payment link. No amount: everything still owed. No email: the clinic's fallback."""
+
+    id: uuid.UUID | None = None
+    amount_kobo: StrictInt | None = None
+    email: str | None = Field(default=None, max_length=200)
+
+
+class OnlinePaymentResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: uuid.UUID
+    invoice_id: uuid.UUID
+    gateway: str
+    reference: str
+    amount_kobo: int
+    link: str
+    status: str
+    failure_reason: str | None
+    payment_id: uuid.UUID | None
+    created_at: datetime
+    completed_at: datetime | None
+
+
 class InvoiceResponse(InvoiceSummaryResponse):
     lines: list[InvoiceLineResponse]
     payments: list[PaymentResponse]
     refunds: list[RefundResponse]
+    online_payments: list[OnlinePaymentResponse]
 
 
 class ReceiptResponse(BaseModel):

@@ -9,7 +9,7 @@ Roadmap: [README](./README.md#roadmap-12-week-mvp) · Brief: [docs/product-brief
 
 ---
 
-## 23 Oct 2026 (Fri): CI green again; test dates fixed; Week 10 Steps 1 to 4 (prices, invoices, payments, refunds)
+## 23 Oct 2026 (Fri): CI green again; test dates fixed; Week 10 Steps 1 to 5 (prices, invoices, payments, refunds, Paystack)
 
 **Done**
 - **Test dates no longer expire.** New `backend/tests/dates.py`: `MONDAY` is always a Monday 8 to 14 days ahead, `FRIDAY_BEFORE` three days before it. The scheduling helpers, booking, availability, day list, demo data and patient portal tests count from it instead of 2 Nov 2026. Tests of pure functions (reminder wording, status moves, chart rules, audit filters) keep fixed dates on purpose: no clock is involved.
@@ -19,16 +19,17 @@ Roadmap: [README](./README.md#roadmap-12-week-mvp) · Brief: [docs/product-brief
 - Week 10 Step 2: **invoices.** Front desk or billing starts the invoice for a visit (one live invoice per visit; a cancelled visit is not billed) and adds services from the price list with a quantity; each line copies the name and price, so a later price change never changes it. A draft can lose lines or be voided with a reason. Issuing gives the clinic's next number (`INV-000001`, per clinic, from a locked counter so two at once never share one) and freezes it. Admins read invoices; nurses and doctors do not handle money. Every view and change is in the audit log with the patient. Migration 0027.
 - Week 10 Step 3: **payments and receipts.** Front desk or billing records cash, or a bank transfer with the bank's reference, against an issued invoice. Never more than is still owed: the invoice is locked while the balance is worked out. One transfer reference is recorded once per clinic (whatever the capitals), so a transfer cannot be counted twice. Each payment gets the clinic's next receipt number (`RCT-000001`). Payments are never edited or deleted (a refund will put mistakes right). Invoices now show paid, still owed and a status: unpaid, part paid or paid, worked out from the payments, never stored. A receipt shows the clinic, patient, invoice, amount, paid so far, balance, who took it, and a 10-character check code made with the server's secret. Admins can read receipts but not take money. Migration 0028.
 - Week 10 Step 4: **refunds with two people (FR-B3).** Front desk or billing asks for money back from one payment (amount, cash or transfer, and why). Only an admin decides, and never a request they made: the service refuses it and a database check refuses it again. Admins cannot ask at all. Requests still waiting count against the payment, so two requests can never give back more than was paid; a rejection frees the amount. An approval gets the clinic's next refund number (`RFD-000001`). An approved refund is for something not given or overcharged, so it lowers what was paid and what is owed alike: the invoice shows refunded, and a full refund shows the status "refunded". Admins have a list of refunds waiting. Migration 0029.
+- Week 10 Step 5: **Paystack behind an adapter (FR-B4).** `billing/gateway.py` holds the only Paystack code (initialize, verify, webhook signature); a fake gateway for tests and "none" (cash and transfer only, the default). Front desk or billing makes a payment link for what is owed; the gateway gets the amount and the invoice number only, never names or health details. Paystack's webhook is public but must carry a valid HMAC-SHA512 signature, and it is only a hint: the payment is counted after Paystack's own verify agrees on the amount and currency. Completing locks the link's row, so repeated webhooks or "check now" record exactly one payment; the database backs this up (one payment per link, one gateway reference per clinic). Staff cannot type in an online payment or refund to a card. Money that arrives after a bill was settled is still recorded and the invoice shows "overpaid" with the credit owed back. Migration 0030.
 
 **Hardest problem:** "it passes on my machine". A green Codespace only proves the files in the Codespace work; three broken files had been committed for a week. *Fix:* repair them, and read the Actions page after every push. *Lesson:* CI is the only check of what is actually committed.
 
 **Also hard:** money in a web form. A float turns 0.1 + 0.2 into 0.30000000000000004, and `True` is an integer in Python. *Fix:* the API takes whole kobo only (`StrictInt`), the service refuses booleans and fractions, and the column is a BIGINT. *Lesson:* decide the unit of money before the first table.
 
-**Finished:** CI fixes, test dates, Steps 1 to 3 (green on CI). Step 4 awaiting the Codespace run (`alembic upgrade head`). Migration head: 0029.
+**Finished:** CI fixes, test dates, Steps 1 to 4 (green on CI). Step 5 awaiting the Codespace run (`alembic upgrade head`). Migration head: 0030.
 
-**Pending:** Paystack test keys are needed for Step 5.
+**Pending:** to try Paystack itself (not needed for the tests): a Paystack test secret key in the Codespace `.env`, `PAYMENT_GATEWAY=paystack`, and the API port made public so Paystack can reach the webhook.
 
-**Next:** Week 10 Step 5: Paystack behind an adapter, with a verified webhook that never pays an invoice twice.
+**Next:** Week 10 Step 6: the daily takings (reconciliation): money in and out by method and person, overpaid invoices, unusual refunds.
 
 ---
 

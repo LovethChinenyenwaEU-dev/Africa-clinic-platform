@@ -24,6 +24,7 @@ from app.modules.billing.models import (
     InvoiceCounter,
     InvoiceLine,
     InvoiceStatus,
+    OnlinePayment,
     Payment,
     PriceItem,
     ReceiptCounter,
@@ -61,6 +62,9 @@ class PaymentStatus(StrEnum):
     PART_PAID = "part_paid"
     PAID = "paid"
     REFUNDED = "refunded"  # everything paid was given back
+    # More came in than was owed, e.g. a payment link paid after cash settled the bill.
+    # Someone must give the difference back (a refund); the daily takings show it.
+    OVERPAID = "overpaid"
 
 
 @dataclass(frozen=True)
@@ -69,6 +73,7 @@ class InvoiceView:
     lines: list[InvoiceLine]
     payments: list[Payment] = field(default_factory=list)
     refunds: list[Refund] = field(default_factory=list)  # asked, approved and rejected
+    online_payments: list[OnlinePayment] = field(default_factory=list)  # payment links
 
     @property
     def paid_kobo(self) -> int:
@@ -90,7 +95,14 @@ class InvoiceView:
         so it lowers what was paid and what is owed alike: the balance does not change."""
         if self.invoice.status != InvoiceStatus.ISSUED.value:
             return 0
-        return self.invoice.total_kobo - self.paid_kobo
+        return max(0, self.invoice.total_kobo - self.paid_kobo)
+
+    @property
+    def credit_kobo(self) -> int:
+        """Paid beyond the total and not yet given back: the clinic owes the patient this."""
+        if self.invoice.status != InvoiceStatus.ISSUED.value:
+            return 0
+        return max(0, self.paid_kobo - self.refunded_kobo - self.invoice.total_kobo)
 
     @property
     def payment_status(self) -> PaymentStatus:
@@ -98,6 +110,8 @@ class InvoiceView:
             return PaymentStatus.NOT_ISSUED
         if self.paid_kobo and self.refunded_kobo >= self.paid_kobo:
             return PaymentStatus.REFUNDED
+        if self.credit_kobo > 0:
+            return PaymentStatus.OVERPAID
         if self.balance_kobo <= 0:
             return PaymentStatus.PAID
         return PaymentStatus.PART_PAID if self.paid_kobo else PaymentStatus.UNPAID
@@ -374,6 +388,17 @@ def _refunds(session: Session, *, tenant_id: uuid.UUID, invoice_id: uuid.UUID) -
     return list(session.exec(statement).all())
 
 
+def _online(
+    session: Session, *, tenant_id: uuid.UUID, invoice_id: uuid.UUID
+) -> list[OnlinePayment]:
+    statement = (
+        tenant_select(OnlinePayment, tenant_id)
+        .where(col(OnlinePayment.invoice_id) == invoice_id)
+        .order_by(col(OnlinePayment.created_at), col(OnlinePayment.id))
+    )
+    return list(session.exec(statement).all())
+
+
 def view_lines(session: Session, *, tenant_id: uuid.UUID, invoice_id: uuid.UUID) -> InvoiceView:
     """The invoice, its lines and its payments, with no diary line: for answers to a
     change the person just made (that change is already in the diary)."""
@@ -384,6 +409,7 @@ def view_lines(session: Session, *, tenant_id: uuid.UUID, invoice_id: uuid.UUID)
         _lines(session, tenant_id=tenant_id, invoice_id=invoice.id),
         _payments(session, tenant_id=tenant_id, invoice_id=invoice.id),
         _refunds(session, tenant_id=tenant_id, invoice_id=invoice.id),
+        _online(session, tenant_id=tenant_id, invoice_id=invoice.id),
     )
 
 
@@ -425,6 +451,7 @@ def list_patient_invoices(
             _lines(session, tenant_id=tenant_id, invoice_id=invoice.id),
             _payments(session, tenant_id=tenant_id, invoice_id=invoice.id),
             _refunds(session, tenant_id=tenant_id, invoice_id=invoice.id),
+            _online(session, tenant_id=tenant_id, invoice_id=invoice.id),
         )
         for invoice in session.exec(statement).all()
     ]

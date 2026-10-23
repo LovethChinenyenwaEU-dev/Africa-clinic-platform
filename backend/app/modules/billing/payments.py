@@ -24,7 +24,13 @@ from app.core.config import settings
 from app.core.tenant_scope import get_in_tenant, tenant_select
 from app.modules.audit.service import AuditAction, add_audit_event
 from app.modules.billing.invoices import locked_invoice, take_number, view_lines
-from app.modules.billing.models import InvoiceStatus, Payment, PaymentMethod, ReceiptCounter
+from app.modules.billing.models import (
+    MANUAL_METHODS,
+    InvoiceStatus,
+    Payment,
+    PaymentMethod,
+    ReceiptCounter,
+)
 from app.modules.billing.money import naira
 from app.modules.identity.service import get_staff_in_tenant
 from app.modules.patients.service import patient_names
@@ -64,10 +70,10 @@ class Receipt:
 
 
 def _method(value: str) -> str:
-    try:
-        return PaymentMethod(value).value
-    except ValueError:
-        raise InvalidPaymentError("The method must be cash or transfer.") from None
+    # Online payments come only from the gateway check (online.py), never typed in.
+    if value not in MANUAL_METHODS:
+        raise InvalidPaymentError("The method must be cash or transfer.")
+    return PaymentMethod(value).value
 
 
 def _reference(method: str, reference: str | None) -> str | None:

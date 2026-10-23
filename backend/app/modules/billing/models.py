@@ -115,6 +115,12 @@ class InvoiceCounter(SQLModel, table=True):
 class PaymentMethod(StrEnum):
     CASH = "cash"
     TRANSFER = "transfer"  # a bank transfer the clinic has seen arrive
+    PAYSTACK = "paystack"  # paid online; only a verified gateway payment makes one
+
+
+# What staff may record by hand, or give back in a refund. Online payments are recorded
+# by the gateway check only, never typed in.
+MANUAL_METHODS = frozenset({PaymentMethod.CASH.value, PaymentMethod.TRANSFER.value})
 
 
 class Payment(SQLModel, table=True):
@@ -129,7 +135,9 @@ class Payment(SQLModel, table=True):
     __table_args__ = (
         UniqueConstraint("tenant_id", "receipt_number", name="uq_payment_tenant_receipt"),
         CheckConstraint("amount_kobo > 0", name="ck_payment_amount"),
-        CheckConstraint("method IN ('cash', 'transfer')", name="ck_payment_method"),
+        CheckConstraint(
+            "method IN ('cash', 'transfer', 'paystack')", name="ck_payment_method"
+        ),
     )
 
     id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
@@ -206,3 +214,48 @@ class RefundCounter(SQLModel, table=True):
 
     tenant_id: uuid.UUID = Field(foreign_key="tenant.id", primary_key=True)
     last_number: int = 0
+
+
+class OnlinePaymentStatus(StrEnum):
+    PENDING = "pending"  # the link is out; nothing confirmed yet
+    SUCCEEDED = "succeeded"  # the gateway confirmed it; a Payment row exists
+    FAILED = "failed"  # declined, abandoned, or the amount did not match
+
+
+class OnlinePayment(SQLModel, table=True):
+    """A payment link sent through the gateway, and what became of it.
+
+    The reference is ours, random and unique everywhere: the gateway's webhook only
+    carries the reference, so this is how a webhook finds its clinic and invoice.
+    When the gateway confirms the money, exactly one Payment is made (payment_id is
+    unique), however many times the webhook arrives.
+    """
+
+    __tablename__ = "online_payment"
+    __table_args__ = (
+        CheckConstraint("amount_kobo > 0", name="ck_online_payment_amount"),
+        CheckConstraint(
+            "status IN ('pending', 'succeeded', 'failed')", name="ck_online_payment_status"
+        ),
+    )
+
+    id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
+    tenant_id: uuid.UUID = Field(foreign_key="tenant.id", index=True)
+    invoice_id: uuid.UUID = Field(foreign_key="invoice.id", index=True)
+    patient_id: uuid.UUID = Field(foreign_key="patient.id")
+    gateway: str  # "paystack"
+    reference: str = Field(unique=True)  # "LFY-..."
+    amount_kobo: int = Field(sa_column=Column(BigInteger, nullable=False))
+    email: str
+    link: str
+    status: str = OnlinePaymentStatus.PENDING.value
+    failure_reason: str | None = None
+    gateway_transaction_id: str | None = None
+    payment_id: uuid.UUID | None = Field(default=None, foreign_key="payment.id", unique=True)
+    created_by_id: uuid.UUID = Field(foreign_key="staff.id")
+    created_at: datetime = Field(
+        default_factory=utcnow, sa_column=Column(DateTime(timezone=True), nullable=False)
+    )
+    completed_at: datetime | None = Field(
+        default=None, sa_column=Column(DateTime(timezone=True), nullable=True)
+    )

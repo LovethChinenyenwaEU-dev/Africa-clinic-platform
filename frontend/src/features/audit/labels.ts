@@ -88,6 +88,10 @@ export const ACTION_LABELS: Record<string, string> = {
   "refund.approve": "Approved a refund",
   "refund.reject": "Rejected a refund",
   "refund.list": "Viewed the refunds list",
+  "online_payment.start": "Sent a payment link",
+  "online_payment.paid": "An online payment went through",
+  "online_payment.failed": "An online payment failed",
+  "online_payment.check": "Checked an online payment with the gateway",
 };
 
 /** Plain words for an action; an unknown code is shown as it is, never hidden. */

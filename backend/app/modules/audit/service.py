@@ -109,6 +109,10 @@ class AuditAction(StrEnum):
     REFUND_APPROVE = "refund.approve"  # an admin who did not ask said yes
     REFUND_REJECT = "refund.reject"
     REFUND_LIST = "refund.list"  # opened the list of refunds
+    ONLINE_PAYMENT_START = "online_payment.start"  # a payment link was made
+    ONLINE_PAYMENT_PAID = "online_payment.paid"  # the gateway confirmed it; money recorded
+    ONLINE_PAYMENT_FAILED = "online_payment.failed"
+    ONLINE_PAYMENT_CHECK = "online_payment.check"  # staff asked the gateway; still waiting
 
 def add_audit_event(
     session: Session,

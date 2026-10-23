@@ -6,10 +6,12 @@ Changes are POSTs, because the staff pass-through only sends GET and POST.
 """
 import uuid
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Request, status
+from fastapi.concurrency import run_in_threadpool
 from sqlmodel import Session
 
 from app.core.db import get_session
+from app.modules.billing.gateway import GatewayUnavailableError
 from app.modules.billing.invoices import (
     InvalidInvoiceError,
     InvoiceLockedError,
@@ -24,6 +26,15 @@ from app.modules.billing.invoices import (
     view_lines,
     view_visit_invoice,
     void_invoice,
+)
+from app.modules.billing.online import (
+    BadSignatureError,
+    InvalidOnlinePaymentError,
+    OnlinePaymentNotAllowedError,
+    OnlinePaymentNotFoundError,
+    check_online_payment,
+    handle_webhook,
+    start_online_payment,
 )
 from app.modules.billing.payments import (
     DuplicateTransferError,
@@ -59,6 +70,7 @@ from app.modules.billing.schemas import (
     InvoiceLineResponse,
     InvoiceResponse,
     InvoiceSummaryResponse,
+    OnlinePaymentResponse,
     PaymentResponse,
     PriceResponse,
     ReceiptResponse,
@@ -66,6 +78,7 @@ from app.modules.billing.schemas import (
     RefundResponse,
     RequestRefund,
     StartInvoice,
+    StartOnlinePayment,
     VoidInvoice,
 )
 from app.modules.identity.dependencies import CurrentStaff, require
@@ -170,6 +183,7 @@ def _summary(result: InvoiceView) -> InvoiceSummaryResponse:
             "paid_kobo": result.paid_kobo,
             "refunded_kobo": result.refunded_kobo,
             "balance_kobo": result.balance_kobo,
+            "credit_kobo": result.credit_kobo,
             "payment_status": result.payment_status.value,
         }
     )
@@ -181,6 +195,9 @@ def _answer(result: InvoiceView) -> InvoiceResponse:
         lines=[InvoiceLineResponse.model_validate(line) for line in result.lines],
         payments=[PaymentResponse.model_validate(payment) for payment in result.payments],
         refunds=[RefundResponse.model_validate(refund) for refund in result.refunds],
+        online_payments=[
+            OnlinePaymentResponse.model_validate(row) for row in result.online_payments
+        ],
     )
 
 
@@ -563,3 +580,91 @@ def reject(
         )
     except REFUND_ERRORS as error:
         raise _refund_error(error) from None
+
+
+# --- online payment through the gateway (Step 5) -----------------------------------
+
+ONLINE_ERRORS = (
+    InvalidOnlinePaymentError,
+    OnlinePaymentNotAllowedError,
+    OnlinePaymentNotFoundError,
+    GatewayUnavailableError,
+    InvoiceNotFoundError,
+)
+
+
+def _online_error(error: Exception) -> HTTPException:
+    if isinstance(error, InvalidOnlinePaymentError):
+        return HTTPException(status_code=422, detail=str(error))
+    if isinstance(error, OnlinePaymentNotAllowedError):
+        return HTTPException(status_code=409, detail=str(error))
+    if isinstance(error, OnlinePaymentNotFoundError | InvoiceNotFoundError):
+        return HTTPException(status_code=404, detail="Not found.")
+    if isinstance(error, GatewayUnavailableError):
+        return HTTPException(status_code=503, detail=str(error))
+    raise error
+
+
+@router.post(
+    "/invoices/{invoice_id}/online-payments",
+    response_model=OnlinePaymentResponse,
+    status_code=status.HTTP_201_CREATED,
+    dependencies=TAKE_PAYMENTS,
+)
+def send_payment_link(
+    invoice_id: uuid.UUID,
+    body: StartOnlinePayment,
+    current_staff: CurrentStaff,
+    session: Session = Depends(get_session),
+):
+    """Make a payment link for an issued invoice (by default for everything owed)."""
+    try:
+        return start_online_payment(
+            session,
+            tenant_id=current_staff.tenant_id,
+            actor_id=current_staff.id,
+            invoice_id=invoice_id,
+            amount_kobo=body.amount_kobo,
+            email=body.email,
+            online_id=body.id,
+        )
+    except ONLINE_ERRORS as error:
+        raise _online_error(error) from None
+
+
+@router.post(
+    "/online-payments/{online_id}/check",
+    response_model=OnlinePaymentResponse,
+    dependencies=TAKE_PAYMENTS,
+)
+def check_payment_link(
+    online_id: uuid.UUID, current_staff: CurrentStaff, session: Session = Depends(get_session)
+):
+    """Ask the gateway now, instead of waiting for its webhook."""
+    try:
+        return check_online_payment(
+            session,
+            tenant_id=current_staff.tenant_id,
+            actor_id=current_staff.id,
+            online_id=online_id,
+        )
+    except ONLINE_ERRORS as error:
+        raise _online_error(error) from None
+
+
+@router.post("/paystack/webhook")
+async def paystack_webhook(request: Request, session: Session = Depends(get_session)):
+    """Paystack's call when a payment changes. Public, but only a correctly signed call
+    is read, and no money is counted until Paystack's own verify agrees."""
+    body = await request.body()
+    signature = request.headers.get("x-paystack-signature")
+    try:
+        outcome = await run_in_threadpool(
+            handle_webhook, session, body=body, signature=signature
+        )
+    except BadSignatureError:
+        raise HTTPException(status_code=401, detail="Bad signature.") from None
+    except GatewayUnavailableError:
+        # Paystack sends the webhook again later; by then it may answer verify.
+        raise HTTPException(status_code=503, detail="Try again later.") from None
+    return {"received": True, "outcome": outcome}

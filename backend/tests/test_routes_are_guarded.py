@@ -9,6 +9,9 @@ PUBLIC_OPERATIONS = {
     # A patient signs in with an SMS code: they cannot have a token before (Week 9).
     ("POST", "/api/v1/patient-portal/sign-in/start"),
     ("POST", "/api/v1/patient-portal/sign-in/finish"),
+    # Paystack tells us a payment went through. It cannot sign in; its HMAC signature
+    # is checked instead, and nothing is believed until the gateway confirms (Week 10).
+    ("POST", "/api/v1/billing/paystack/webhook"),
 }
 HTTP_METHODS = {"get", "post", "put", "patch", "delete"}
 PREFIX = "/api/v1"
