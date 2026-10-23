@@ -66,7 +66,7 @@ class InvoiceLineResponse(BaseModel):
 
 
 class InvoiceSummaryResponse(BaseModel):
-    """An invoice without its lines, for lists."""
+    """An invoice without its lines, for lists, with what is paid and still owed."""
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -80,7 +80,47 @@ class InvoiceSummaryResponse(BaseModel):
     issued_at: datetime | None
     voided_at: datetime | None
     void_reason: str | None
+    paid_kobo: int = 0
+    balance_kobo: int = 0
+    payment_status: str = "not_issued"  # not_issued, unpaid, part_paid or paid
+
+
+class RecordPayment(BaseModel):
+    """Money received. Cash, or a bank transfer with the bank's reference."""
+
+    id: uuid.UUID | None = None
+    method: str = Field(max_length=20)
+    amount_kobo: StrictInt
+    reference: str | None = Field(default=None, max_length=100)
+
+
+class PaymentResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: uuid.UUID
+    invoice_id: uuid.UUID
+    method: str
+    amount_kobo: int
+    reference: str | None
+    receipt_number: str
+    received_by_id: uuid.UUID
+    received_at: datetime
 
 
 class InvoiceResponse(InvoiceSummaryResponse):
     lines: list[InvoiceLineResponse]
+    payments: list[PaymentResponse]
+
+
+class ReceiptResponse(BaseModel):
+    """Everything a printed receipt shows."""
+
+    payment: PaymentResponse
+    clinic_name: str
+    patient_name: str
+    invoice_number: str
+    invoice_total_kobo: int
+    paid_to_date_kobo: int
+    balance_after_kobo: int
+    received_by_name: str
+    check_code: str

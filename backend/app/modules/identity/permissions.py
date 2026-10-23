@@ -27,6 +27,7 @@ class Capability(StrEnum):
     PRICE_WRITE = "price:write"  # add and change prices: admins only
     INVOICE_READ = "invoice:read"  # who was billed for what: personal data
     INVOICE_WRITE = "invoice:write"  # start, change, issue and void invoices
+    PAYMENT_RECORD = "payment:record"  # take cash or record a bank transfer
 
 
 _EVERYONE = frozenset({Capability.BRANCH_READ})
@@ -65,7 +66,7 @@ _PRICE_SETTERS = _PRICE_READERS | {Capability.PRICE_WRITE}
 # Invoices: front desk and billing make them; admins read them (they approve refunds).
 # Nurses and doctors do not handle money.
 _INVOICE_READERS = frozenset({Capability.INVOICE_READ})
-_BILLERS = _INVOICE_READERS | {Capability.INVOICE_WRITE}
+_BILLERS = _INVOICE_READERS | {Capability.INVOICE_WRITE, Capability.PAYMENT_RECORD}
 
 # The one table that says who may do what. Change a rule here, nowhere else.
 ROLE_CAPABILITIES: dict[Role, frozenset[Capability]] = {

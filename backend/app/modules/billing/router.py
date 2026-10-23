@@ -25,6 +25,14 @@ from app.modules.billing.invoices import (
     view_visit_invoice,
     void_invoice,
 )
+from app.modules.billing.payments import (
+    DuplicateTransferError,
+    InvalidPaymentError,
+    PaymentNotAllowedError,
+    PaymentNotFoundError,
+    record_payment,
+    view_receipt,
+)
 from app.modules.billing.prices import (
     InvalidPriceError,
     PriceNameTakenError,
@@ -40,7 +48,10 @@ from app.modules.billing.schemas import (
     InvoiceLineResponse,
     InvoiceResponse,
     InvoiceSummaryResponse,
+    PaymentResponse,
     PriceResponse,
+    ReceiptResponse,
+    RecordPayment,
     StartInvoice,
     VoidInvoice,
 )
@@ -139,10 +150,23 @@ def _invoice_error(error: Exception) -> HTTPException:
     raise error
 
 
-def _answer(result: InvoiceView) -> InvoiceResponse:
+def _summary(result: InvoiceView) -> InvoiceSummaryResponse:
     summary = InvoiceSummaryResponse.model_validate(result.invoice)
-    lines = [InvoiceLineResponse.model_validate(line) for line in result.lines]
-    return InvoiceResponse(**summary.model_dump(), lines=lines)
+    return summary.model_copy(
+        update={
+            "paid_kobo": result.paid_kobo,
+            "balance_kobo": result.balance_kobo,
+            "payment_status": result.payment_status.value,
+        }
+    )
+
+
+def _answer(result: InvoiceView) -> InvoiceResponse:
+    return InvoiceResponse(
+        **_summary(result).model_dump(),
+        lines=[InvoiceLineResponse.model_validate(line) for line in result.lines],
+        payments=[PaymentResponse.model_validate(payment) for payment in result.payments],
+    )
 
 
 @router.post(
@@ -217,14 +241,15 @@ def read_visit_invoice(
 def read_patient_invoices(
     patient_id: uuid.UUID, current_staff: CurrentStaff, session: Session = Depends(get_session)
 ):
-    """A patient's invoices, newest first."""
+    """A patient's invoices, newest first, with what is paid and still owed."""
     try:
-        return list_patient_invoices(
+        views = list_patient_invoices(
             session,
             tenant_id=current_staff.tenant_id,
             actor_id=current_staff.id,
             patient_id=patient_id,
         )
+        return [_summary(view) for view in views]
     except INVOICE_ERRORS as error:
         raise _invoice_error(error) from None
 
@@ -326,3 +351,84 @@ def void_visit_invoice(
         )
     except INVOICE_ERRORS as error:
         raise _invoice_error(error) from None
+
+
+# --- payments and receipts (Step 3) -----------------------------------------------
+
+TAKE_PAYMENTS = [Depends(require(Capability.PAYMENT_RECORD))]  # front desk and billing
+
+
+def _payment_error(error: Exception) -> HTTPException:
+    if isinstance(error, InvalidPaymentError):
+        return HTTPException(status_code=422, detail=str(error))
+    if isinstance(error, PaymentNotAllowedError | DuplicateTransferError):
+        return HTTPException(status_code=409, detail=str(error))
+    if isinstance(error, PaymentNotFoundError | InvoiceNotFoundError):
+        return HTTPException(status_code=404, detail="Not found.")
+    raise error
+
+
+PAYMENT_ERRORS = (
+    InvalidPaymentError,
+    PaymentNotAllowedError,
+    DuplicateTransferError,
+    PaymentNotFoundError,
+    InvoiceNotFoundError,
+)
+
+
+@router.post(
+    "/invoices/{invoice_id}/payments",
+    response_model=PaymentResponse,
+    status_code=status.HTTP_201_CREATED,
+    dependencies=TAKE_PAYMENTS,
+)
+def take_payment(
+    invoice_id: uuid.UUID,
+    body: RecordPayment,
+    current_staff: CurrentStaff,
+    session: Session = Depends(get_session),
+):
+    """Record cash or a bank transfer against an issued invoice. Never more than is owed."""
+    try:
+        return record_payment(
+            session,
+            tenant_id=current_staff.tenant_id,
+            actor_id=current_staff.id,
+            invoice_id=invoice_id,
+            method=body.method,
+            amount_kobo=body.amount_kobo,
+            reference=body.reference,
+            payment_id=body.id,
+        )
+    except PAYMENT_ERRORS as error:
+        raise _payment_error(error) from None
+
+
+@router.get(
+    "/payments/{payment_id}/receipt", response_model=ReceiptResponse, dependencies=READ_INVOICES
+)
+def read_receipt(
+    payment_id: uuid.UUID, current_staff: CurrentStaff, session: Session = Depends(get_session)
+):
+    """Everything the printed receipt shows, with its check code."""
+    try:
+        receipt = view_receipt(
+            session,
+            tenant_id=current_staff.tenant_id,
+            actor_id=current_staff.id,
+            payment_id=payment_id,
+        )
+    except PAYMENT_ERRORS as error:
+        raise _payment_error(error) from None
+    return ReceiptResponse(
+        payment=PaymentResponse.model_validate(receipt.payment),
+        clinic_name=receipt.clinic_name,
+        patient_name=receipt.patient_name,
+        invoice_number=receipt.invoice_number,
+        invoice_total_kobo=receipt.invoice_total_kobo,
+        paid_to_date_kobo=receipt.paid_to_date_kobo,
+        balance_after_kobo=receipt.balance_after_kobo,
+        received_by_name=receipt.received_by_name,
+        check_code=receipt.check_code,
+    )

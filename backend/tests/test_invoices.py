@@ -300,7 +300,7 @@ def test_reading_invoices_is_written_in_the_diary(session, clinics):
     view_invoice(session, **who(a, "billing"), invoice_id=invoice.id)
     listed = list_patient_invoices(session, **who(a, "billing"), patient_id=a["patient"].id)
 
-    assert [row.id for row in listed] == [invoice.id]
+    assert [row.invoice.id for row in listed] == [invoice.id]
     reads = [
         (e.action, e.actor_id, e.patient_id)
         for e in invoice_lines(session, a)

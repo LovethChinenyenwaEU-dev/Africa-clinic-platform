@@ -82,6 +82,8 @@ export const ACTION_LABELS: Record<string, string> = {
   "invoice.void": "Voided a draft invoice",
   "invoice.view": "Opened an invoice",
   "invoice.list": "Viewed a patient's invoices",
+  "payment.record": "Took a payment (cash or transfer)",
+  "receipt.view": "Opened a receipt",
 };
 
 /** Plain words for an action; an unknown code is shown as it is, never hidden. */

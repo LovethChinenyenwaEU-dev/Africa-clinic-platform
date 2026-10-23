@@ -9,7 +9,7 @@ Roadmap: [README](./README.md#roadmap-12-week-mvp) · Brief: [docs/product-brief
 
 ---
 
-## 23 Oct 2026 (Fri): CI green again; test dates fixed; Week 10 Steps 1 and 2 (prices, invoices)
+## 23 Oct 2026 (Fri): CI green again; test dates fixed; Week 10 Steps 1 to 3 (prices, invoices, payments)
 
 **Done**
 - **Test dates no longer expire.** New `backend/tests/dates.py`: `MONDAY` is always a Monday 8 to 14 days ahead, `FRIDAY_BEFORE` three days before it. The scheduling helpers, booking, availability, day list, demo data and patient portal tests count from it instead of 2 Nov 2026. Tests of pure functions (reminder wording, status moves, chart rules, audit filters) keep fixed dates on purpose: no clock is involved.
@@ -17,16 +17,17 @@ Roadmap: [README](./README.md#roadmap-12-week-mvp) · Brief: [docs/product-brief
 - Week 10 Step 1: **the price list.** Admins add services (name, optional code, price in kobo), change them, retire them (never deleted) and bring them back. No two active services of a clinic share a name, whatever the capitals (checked in code and by a unique index). Front desk, nurses, doctors and billing read the list. Every addition and change is in the audit log. New capabilities `price:read` and `price:write`. Migration 0026.
 - **CI repaired.** GitHub had not run since Week 8, and the first run (#73) was red. Three committed files were broken while the Codespace had good copies: `ReviewStatus` was missing from `patients/models.py`, a line was split in `RegisterPatientForm.tsx` (both from the W8 step 7c edit), and the frontend packages were never committed. Also fixed: the session cookie's Secure flag was decided at import time (W9 8a), portal tests depended on the container's environment, and an intake test was a coin toss between two equal timestamps. Backend 882 and frontend 295 tests green on CI.
 - Week 10 Step 2: **invoices.** Front desk or billing starts the invoice for a visit (one live invoice per visit; a cancelled visit is not billed) and adds services from the price list with a quantity; each line copies the name and price, so a later price change never changes it. A draft can lose lines or be voided with a reason. Issuing gives the clinic's next number (`INV-000001`, per clinic, from a locked counter so two at once never share one) and freezes it. Admins read invoices; nurses and doctors do not handle money. Every view and change is in the audit log with the patient. Migration 0027.
+- Week 10 Step 3: **payments and receipts.** Front desk or billing records cash, or a bank transfer with the bank's reference, against an issued invoice. Never more than is still owed: the invoice is locked while the balance is worked out. One transfer reference is recorded once per clinic (whatever the capitals), so a transfer cannot be counted twice. Each payment gets the clinic's next receipt number (`RCT-000001`). Payments are never edited or deleted (a refund will put mistakes right). Invoices now show paid, still owed and a status: unpaid, part paid or paid, worked out from the payments, never stored. A receipt shows the clinic, patient, invoice, amount, paid so far, balance, who took it, and a 10-character check code made with the server's secret. Admins can read receipts but not take money. Migration 0028.
 
 **Hardest problem:** "it passes on my machine". A green Codespace only proves the files in the Codespace work; three broken files had been committed for a week. *Fix:* repair them, and read the Actions page after every push. *Lesson:* CI is the only check of what is actually committed.
 
 **Also hard:** money in a web form. A float turns 0.1 + 0.2 into 0.30000000000000004, and `True` is an integer in Python. *Fix:* the API takes whole kobo only (`StrictInt`), the service refuses booleans and fractions, and the column is a BIGINT. *Lesson:* decide the unit of money before the first table.
 
-**Finished:** CI fixes, test dates and Step 1 (green on CI). Step 2 awaiting the Codespace run (`alembic upgrade head`). Migration head: 0027.
+**Finished:** CI fixes, test dates, Steps 1 and 2 (green on CI). Step 3 awaiting the Codespace run (`alembic upgrade head`). Migration head: 0028.
 
 **Pending:** Paystack test keys are needed for Step 5.
 
-**Next:** Week 10 Step 3: cash and transfer payments, receipts, and what is still owed.
+**Next:** Week 10 Step 4: refunds (desk or billing asks, an admin who did not ask approves).
 
 ---
 

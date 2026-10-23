@@ -103,6 +103,8 @@ class AuditAction(StrEnum):
     INVOICE_VOID = "invoice.void"  # a draft cancelled, with a reason
     INVOICE_VIEW = "invoice.view"
     INVOICE_LIST = "invoice.list"  # opened a patient's invoices
+    PAYMENT_RECORD = "payment.record"  # cash or a transfer received, with a receipt number
+    RECEIPT_VIEW = "receipt.view"
 
 def add_audit_event(
     session: Session,

@@ -9,8 +9,9 @@ payments and refunds (Steps 3 and 4) touch it.
 An invoice says who was seen and what for, so every view is in the audit log.
 """
 import uuid
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import UTC, datetime
+from enum import StrEnum
 
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.exc import IntegrityError
@@ -23,7 +24,9 @@ from app.modules.billing.models import (
     InvoiceCounter,
     InvoiceLine,
     InvoiceStatus,
+    Payment,
     PriceItem,
+    ReceiptCounter,
 )
 from app.modules.patients.service import patient_exists
 from app.modules.scheduling.service import get_appointment
@@ -46,10 +49,40 @@ class InvoiceLockedError(Exception):
     """The invoice is issued or void: it can no longer be changed."""
 
 
+class PaymentStatus(StrEnum):
+    """How much of an issued invoice is paid. Worked out from the payments, never stored,
+    so it can never disagree with them."""
+
+    NOT_ISSUED = "not_issued"  # a draft or a void: nothing is owed yet
+    UNPAID = "unpaid"
+    PART_PAID = "part_paid"
+    PAID = "paid"
+
+
 @dataclass(frozen=True)
 class InvoiceView:
     invoice: Invoice
     lines: list[InvoiceLine]
+    payments: list[Payment] = field(default_factory=list)
+
+    @property
+    def paid_kobo(self) -> int:
+        return sum(payment.amount_kobo for payment in self.payments)
+
+    @property
+    def balance_kobo(self) -> int:
+        """Still owed. Zero for a draft or a void."""
+        if self.invoice.status != InvoiceStatus.ISSUED.value:
+            return 0
+        return self.invoice.total_kobo - self.paid_kobo
+
+    @property
+    def payment_status(self) -> PaymentStatus:
+        if self.invoice.status != InvoiceStatus.ISSUED.value:
+            return PaymentStatus.NOT_ISSUED
+        if self.balance_kobo <= 0:
+            return PaymentStatus.PAID
+        return PaymentStatus.PART_PAID if self.paid_kobo else PaymentStatus.UNPAID
 
 
 def _invoice(
@@ -63,6 +96,11 @@ def _invoice(
     if row is None:
         raise InvoiceNotFoundError("Invoice not found.")
     return row
+
+
+def locked_invoice(session: Session, *, tenant_id: uuid.UUID, invoice_id: uuid.UUID) -> Invoice:
+    """The invoice, locked until the caller commits: for taking money against it."""
+    return _invoice(session, tenant_id=tenant_id, invoice_id=invoice_id, lock=True)
 
 
 def _draft(session: Session, *, tenant_id: uuid.UUID, invoice_id: uuid.UUID) -> Invoice:
@@ -217,22 +255,26 @@ def remove_line(
     return view_lines(session, tenant_id=tenant_id, invoice_id=invoice.id)
 
 
-def _next_number(session: Session, *, tenant_id: uuid.UUID) -> str:
-    """The clinic's next invoice number. The counter row stays locked until the caller
-    commits, so two invoices issued at the same moment never share a number."""
+def take_number(
+    session: Session,
+    *,
+    counter: type[InvoiceCounter] | type[ReceiptCounter],
+    tenant_id: uuid.UUID,
+    prefix: str,
+) -> str:
+    """The clinic's next number from a counter ("INV-000042", "RCT-000007"). The counter
+    row stays locked until the caller commits, so two at the same moment never share one."""
     session.execute(
-        pg_insert(InvoiceCounter)
+        pg_insert(counter)
         .values(tenant_id=tenant_id, last_number=0)
         .on_conflict_do_nothing(index_elements=["tenant_id"])
     )
-    counter = session.exec(
-        select(InvoiceCounter)
-        .where(col(InvoiceCounter.tenant_id) == tenant_id)
-        .with_for_update()
+    row = session.exec(
+        select(counter).where(col(counter.tenant_id) == tenant_id).with_for_update()
     ).one()
-    counter.last_number += 1
-    session.add(counter)
-    return f"INV-{counter.last_number:06d}"
+    row.last_number += 1
+    session.add(row)
+    return f"{prefix}-{row.last_number:06d}"
 
 
 def issue_invoice(
@@ -257,7 +299,9 @@ def issue_invoice(
         raise InvalidInvoiceError("Add at least one service before issuing the invoice.")
 
     invoice.total_kobo = sum(line.amount_kobo for line in lines)  # the lines have the last word
-    invoice.number = _next_number(session, tenant_id=tenant_id)
+    invoice.number = take_number(
+        session, counter=InvoiceCounter, tenant_id=tenant_id, prefix="INV"
+    )
     invoice.status = InvoiceStatus.ISSUED.value
     invoice.issued_by_id = actor_id
     invoice.issued_at = now or datetime.now(UTC)
@@ -294,12 +338,25 @@ def void_invoice(
     return view_lines(session, tenant_id=tenant_id, invoice_id=invoice.id)
 
 
+def _payments(session: Session, *, tenant_id: uuid.UUID, invoice_id: uuid.UUID) -> list[Payment]:
+    statement = (
+        tenant_select(Payment, tenant_id)
+        .where(col(Payment.invoice_id) == invoice_id)
+        .order_by(col(Payment.received_at), col(Payment.receipt_number))
+    )
+    return list(session.exec(statement).all())
+
+
 def view_lines(session: Session, *, tenant_id: uuid.UUID, invoice_id: uuid.UUID) -> InvoiceView:
-    """The invoice and its lines, with no diary line: for answers to a change the
-    person just made (that change is already in the diary)."""
+    """The invoice, its lines and its payments, with no diary line: for answers to a
+    change the person just made (that change is already in the diary)."""
     invoice = _invoice(session, tenant_id=tenant_id, invoice_id=invoice_id)
     session.refresh(invoice)
-    return InvoiceView(invoice, _lines(session, tenant_id=tenant_id, invoice_id=invoice.id))
+    return InvoiceView(
+        invoice,
+        _lines(session, tenant_id=tenant_id, invoice_id=invoice.id),
+        _payments(session, tenant_id=tenant_id, invoice_id=invoice.id),
+    )
 
 
 def view_invoice(
@@ -324,8 +381,9 @@ def view_visit_invoice(
 
 def list_patient_invoices(
     session: Session, *, tenant_id: uuid.UUID, actor_id: uuid.UUID, patient_id: uuid.UUID
-) -> list[Invoice]:
-    """A patient's invoices, newest first, voided drafts included (they say why)."""
+) -> list[InvoiceView]:
+    """A patient's invoices, newest first, voided drafts included (they say why),
+    each with what is paid and still owed."""
     if not patient_exists(session, tenant_id=tenant_id, patient_id=patient_id):
         raise InvoiceNotFoundError("Patient not found.")
     statement = (
@@ -333,7 +391,14 @@ def list_patient_invoices(
         .where(col(Invoice.patient_id) == patient_id)
         .order_by(col(Invoice.created_at).desc(), col(Invoice.id))
     )
-    rows = list(session.exec(statement).all())
+    rows = [
+        InvoiceView(
+            invoice,
+            _lines(session, tenant_id=tenant_id, invoice_id=invoice.id),
+            _payments(session, tenant_id=tenant_id, invoice_id=invoice.id),
+        )
+        for invoice in session.exec(statement).all()
+    ]
     add_audit_event(
         session,
         tenant_id=tenant_id,

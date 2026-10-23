@@ -110,3 +110,46 @@ class InvoiceCounter(SQLModel, table=True):
 
     tenant_id: uuid.UUID = Field(foreign_key="tenant.id", primary_key=True)
     last_number: int = 0
+
+
+class PaymentMethod(StrEnum):
+    CASH = "cash"
+    TRANSFER = "transfer"  # a bank transfer the clinic has seen arrive
+
+
+class Payment(SQLModel, table=True):
+    """Money received against an issued invoice. Never edited or deleted: a mistake is
+    put right by a refund (Step 4), so the record of what happened stays.
+
+    Each payment gets the clinic's next receipt number. A bank transfer must carry its
+    reference, and one transfer reference is recorded once per clinic (a unique index in
+    the migration), so the same transfer cannot be counted twice.
+    """
+
+    __table_args__ = (
+        UniqueConstraint("tenant_id", "receipt_number", name="uq_payment_tenant_receipt"),
+        CheckConstraint("amount_kobo > 0", name="ck_payment_amount"),
+        CheckConstraint("method IN ('cash', 'transfer')", name="ck_payment_method"),
+    )
+
+    id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
+    tenant_id: uuid.UUID = Field(foreign_key="tenant.id", index=True)
+    invoice_id: uuid.UUID = Field(foreign_key="invoice.id", index=True)
+    patient_id: uuid.UUID = Field(foreign_key="patient.id")
+    method: str
+    amount_kobo: int = Field(sa_column=Column(BigInteger, nullable=False))
+    reference: str | None = None  # the bank's transfer reference; optional for cash
+    receipt_number: str  # "RCT-000042"
+    received_by_id: uuid.UUID = Field(foreign_key="staff.id")
+    received_at: datetime = Field(
+        default_factory=utcnow, sa_column=Column(DateTime(timezone=True), nullable=False)
+    )
+
+
+class ReceiptCounter(SQLModel, table=True):
+    """The last receipt number each clinic gave, locked while a number is taken."""
+
+    __tablename__ = "receipt_counter"
+
+    tenant_id: uuid.UUID = Field(foreign_key="tenant.id", primary_key=True)
+    last_number: int = 0

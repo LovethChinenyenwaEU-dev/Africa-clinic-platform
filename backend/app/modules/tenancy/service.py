@@ -53,3 +53,8 @@ def get_branch(
     """One branch, but only if it belongs to this clinic."""
     branch = get_in_tenant(session, Branch, tenant_id=tenant_id, row_id=branch_id)
     return branch if isinstance(branch, Branch) else None
+
+def clinic_name(session: Session, *, tenant_id: uuid.UUID) -> str:
+    """The clinic's name, for printed papers such as receipts."""
+    tenant = session.get(Tenant, tenant_id)
+    return tenant.name if tenant is not None else ""
