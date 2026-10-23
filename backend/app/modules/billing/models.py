@@ -1,7 +1,8 @@
 import uuid
 from datetime import UTC, datetime
+from enum import StrEnum
 
-from sqlalchemy import BigInteger, CheckConstraint, Column, DateTime
+from sqlalchemy import BigInteger, CheckConstraint, Column, DateTime, UniqueConstraint
 from sqlmodel import Field, SQLModel
 
 
@@ -35,3 +36,77 @@ class PriceItem(SQLModel, table=True):
     updated_at: datetime | None = Field(
         default=None, sa_column=Column(DateTime(timezone=True), nullable=True)
     )
+
+
+class InvoiceStatus(StrEnum):
+    DRAFT = "draft"  # lines can still be added and removed
+    ISSUED = "issued"  # numbered and frozen: changed only by payments and refunds
+    VOID = "void"  # a draft made by mistake, cancelled before it was issued
+
+
+class Invoice(SQLModel, table=True):
+    """What a patient owes for one visit. Personal data: who was seen and what for.
+
+    One invoice per visit at a time (a unique index in the migration ignores void ones).
+    The number is given when the invoice is issued, in order, per clinic.
+    """
+
+    __table_args__ = (
+        UniqueConstraint("tenant_id", "number", name="uq_invoice_tenant_number"),
+        CheckConstraint("status IN ('draft', 'issued', 'void')", name="ck_invoice_status"),
+    )
+
+    id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
+    tenant_id: uuid.UUID = Field(foreign_key="tenant.id", index=True)
+    patient_id: uuid.UUID = Field(foreign_key="patient.id", index=True)
+    appointment_id: uuid.UUID = Field(foreign_key="appointment.id")
+    status: str = InvoiceStatus.DRAFT.value
+    number: str | None = None  # "INV-000042", once issued
+    total_kobo: int = Field(default=0, sa_column=Column(BigInteger, nullable=False))
+    created_by_id: uuid.UUID = Field(foreign_key="staff.id")
+    created_at: datetime = Field(
+        default_factory=utcnow, sa_column=Column(DateTime(timezone=True), nullable=False)
+    )
+    issued_by_id: uuid.UUID | None = Field(default=None, foreign_key="staff.id")
+    issued_at: datetime | None = Field(
+        default=None, sa_column=Column(DateTime(timezone=True), nullable=True)
+    )
+    voided_by_id: uuid.UUID | None = Field(default=None, foreign_key="staff.id")
+    voided_at: datetime | None = Field(
+        default=None, sa_column=Column(DateTime(timezone=True), nullable=True)
+    )
+    void_reason: str | None = None
+
+
+class InvoiceLine(SQLModel, table=True):
+    """One service on an invoice. The name and price are copied from the price list when
+    the line is added, so a later price change never changes this line."""
+
+    __tablename__ = "invoice_line"
+    __table_args__ = (
+        CheckConstraint("quantity BETWEEN 1 AND 100", name="ck_invoice_line_quantity"),
+        CheckConstraint("unit_price_kobo >= 0", name="ck_invoice_line_price"),
+    )
+
+    id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
+    tenant_id: uuid.UUID = Field(foreign_key="tenant.id", index=True)
+    invoice_id: uuid.UUID = Field(foreign_key="invoice.id", index=True)
+    price_item_id: uuid.UUID = Field(foreign_key="price_item.id")
+    description: str
+    unit_price_kobo: int = Field(sa_column=Column(BigInteger, nullable=False))
+    quantity: int = 1
+    amount_kobo: int = Field(sa_column=Column(BigInteger, nullable=False))
+    added_by_id: uuid.UUID = Field(foreign_key="staff.id")
+    added_at: datetime = Field(
+        default_factory=utcnow, sa_column=Column(DateTime(timezone=True), nullable=False)
+    )
+
+
+class InvoiceCounter(SQLModel, table=True):
+    """The last invoice number each clinic gave. Locked while a number is taken, so two
+    invoices issued at the same moment never get the same number."""
+
+    __tablename__ = "invoice_counter"
+
+    tenant_id: uuid.UUID = Field(foreign_key="tenant.id", primary_key=True)
+    last_number: int = 0

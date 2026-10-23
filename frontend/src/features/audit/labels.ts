@@ -75,6 +75,13 @@ export const ACTION_LABELS: Record<string, string> = {
   "prescription.resolve": "Settled a prescription conflict",
   "price.add": "Added a service to the price list",
   "price.change": "Changed a price or retired a service",
+  "invoice.create": "Started an invoice for a visit",
+  "invoice.line_add": "Added a service to an invoice",
+  "invoice.line_remove": "Removed a service from an invoice",
+  "invoice.issue": "Issued an invoice",
+  "invoice.void": "Voided a draft invoice",
+  "invoice.view": "Opened an invoice",
+  "invoice.list": "Viewed a patient's invoices",
 };
 
 /** Plain words for an action; an unknown code is shown as it is, never hidden. */

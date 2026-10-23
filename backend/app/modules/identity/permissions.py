@@ -25,6 +25,8 @@ class Capability(StrEnum):
     PRESCRIBE = "clinical:prescribe"  # write and change prescriptions: doctors only
     PRICE_READ = "price:read"  # the price list: no patient data
     PRICE_WRITE = "price:write"  # add and change prices: admins only
+    INVOICE_READ = "invoice:read"  # who was billed for what: personal data
+    INVOICE_WRITE = "invoice:write"  # start, change, issue and void invoices
 
 
 _EVERYONE = frozenset({Capability.BRANCH_READ})
@@ -60,14 +62,18 @@ _FRONT_LINE = (
 _PRESCRIBERS = frozenset({Capability.PRESCRIBE})
 # Setting prices is the owner's decision: admins only.
 _PRICE_SETTERS = _PRICE_READERS | {Capability.PRICE_WRITE}
+# Invoices: front desk and billing make them; admins read them (they approve refunds).
+# Nurses and doctors do not handle money.
+_INVOICE_READERS = frozenset({Capability.INVOICE_READ})
+_BILLERS = _INVOICE_READERS | {Capability.INVOICE_WRITE}
 
 # The one table that says who may do what. Change a rule here, nowhere else.
 ROLE_CAPABILITIES: dict[Role, frozenset[Capability]] = {
-    Role.ADMIN: _EVERYONE | _ADMIN_ONLY | _WORDING_READERS | _PRICE_SETTERS,
-    Role.FRONT_DESK: _FRONT_LINE,
+    Role.ADMIN: _EVERYONE | _ADMIN_ONLY | _WORDING_READERS | _PRICE_SETTERS | _INVOICE_READERS,
+    Role.FRONT_DESK: _FRONT_LINE | _BILLERS,
     Role.NURSE: _FRONT_LINE | _CLINICIANS,
     Role.DOCTOR: _FRONT_LINE | _CLINICIANS | _PRESCRIBERS,
-    Role.BILLING: _EVERYONE | _PATIENT_READERS | _PRICE_READERS,
+    Role.BILLING: _EVERYONE | _PATIENT_READERS | _PRICE_READERS | _BILLERS,
 }
 
 def capabilities_for(role: str) -> frozenset[Capability]:

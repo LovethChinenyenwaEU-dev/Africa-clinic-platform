@@ -96,6 +96,13 @@ class AuditAction(StrEnum):
     PRESCRIPTION_RESOLVE = "prescription.resolve"
     PRICE_ADD = "price.add"  # an admin added a service to the price list
     PRICE_CHANGE = "price.change"  # renamed, repriced, retired or brought back
+    INVOICE_CREATE = "invoice.create"  # started the invoice for a visit
+    INVOICE_LINE_ADD = "invoice.line_add"
+    INVOICE_LINE_REMOVE = "invoice.line_remove"
+    INVOICE_ISSUE = "invoice.issue"  # numbered and frozen
+    INVOICE_VOID = "invoice.void"  # a draft cancelled, with a reason
+    INVOICE_VIEW = "invoice.view"
+    INVOICE_LIST = "invoice.list"  # opened a patient's invoices
 
 def add_audit_event(
     session: Session,

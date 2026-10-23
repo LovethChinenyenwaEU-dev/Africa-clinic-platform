@@ -5,7 +5,7 @@ from sqlalchemy import delete
 from sqlmodel import Session, col, select
 
 from app.core.db import engine
-from app.modules.billing.models import PriceItem
+from app.modules.billing.models import Invoice, InvoiceCounter, InvoiceLine, PriceItem
 from app.modules.consent.models import Consent, ConsentText
 from app.modules.idempotency.models import IdempotencyRecord
 from app.modules.identity.models import Staff
@@ -55,6 +55,9 @@ def session(run_id):
             # and the set it replaces) go together.
             for model in (
                 IdempotencyRecord,
+                InvoiceLine,
+                Invoice,
+                InvoiceCounter,
                 Reminder,
                 ConsultMessage,
                 ConsultModeChange,
