@@ -257,11 +257,13 @@ def test_check_now_records_a_payment_whose_webhook_was_lost(session, clinics, ga
     a = clinics["a"]
     row = link(session, a)
 
-    still_waiting = check_online_payment(session, **who(a, "billing"), online_id=row.id)
+    # Read the status at once: both answers are the same row object in this session,
+    # so after the second check the first one would say "succeeded" too.
+    first_status = check_online_payment(session, **who(a, "billing"), online_id=row.id).status
     paystack_says(gateway, row.reference)
     done = check_online_payment(session, **who(a, "billing"), online_id=row.id)
 
-    assert still_waiting.status == "pending"
+    assert first_status == "pending"
     assert done.status == "succeeded"
     assert [e.action for e in actions(session, a)].count("online_payment.check") == 1
     paid = [e for e in actions(session, a) if e.action == "online_payment.paid"]
