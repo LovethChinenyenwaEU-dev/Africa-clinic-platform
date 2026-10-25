@@ -113,6 +113,8 @@ class AuditAction(StrEnum):
     ONLINE_PAYMENT_PAID = "online_payment.paid"  # the gateway confirmed it; money recorded
     ONLINE_PAYMENT_FAILED = "online_payment.failed"
     ONLINE_PAYMENT_CHECK = "online_payment.check"  # staff asked the gateway; still waiting
+    TAKINGS_VIEW = "takings.view"  # opened the daily takings
+    TAKINGS_EXPORT = "takings.export"  # downloaded the day as CSV
 
 def add_audit_event(
     session: Session,

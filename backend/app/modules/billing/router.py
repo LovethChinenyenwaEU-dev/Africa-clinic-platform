@@ -1,10 +1,13 @@
-"""Doors for billing. Step 1: the price list. Step 2: invoices.
+"""Doors for billing (Week 10): prices, invoices, payments and receipts, refunds,
+Paystack, and the daily takings.
 
 Everyone who books or takes payments reads the price list; only an admin
-changes it. Front desk and billing build and issue invoices; admins read them.
+changes it. Front desk and billing build invoices, take money and ask for refunds;
+admins read invoices, decide refunds and, with billing, read the takings.
 Changes are POSTs, because the staff pass-through only sends GET and POST.
 """
 import uuid
+from datetime import UTC, date, datetime
 
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 from fastapi.concurrency import run_in_threadpool
@@ -79,10 +82,14 @@ from app.modules.billing.schemas import (
     RequestRefund,
     StartInvoice,
     StartOnlinePayment,
+    TakingsExportResponse,
+    TakingsResponse,
     VoidInvoice,
 )
+from app.modules.billing.takings import daily_takings, takings_csv
 from app.modules.identity.dependencies import CurrentStaff, require
 from app.modules.identity.permissions import Capability
+from app.modules.scheduling.board import lagos_day
 
 router = APIRouter(prefix="/billing", tags=["billing"])
 
@@ -668,3 +675,39 @@ async def paystack_webhook(request: Request, session: Session = Depends(get_sess
         # Paystack sends the webhook again later; by then it may answer verify.
         raise HTTPException(status_code=503, detail="Try again later.") from None
     return {"received": True, "outcome": outcome}
+
+
+# --- the daily takings (Step 6) ---------------------------------------------------------
+
+READ_TAKINGS = [Depends(require(Capability.TAKINGS_READ))]  # admins and billing
+
+
+def _day(day: date | None) -> date:
+    return day or lagos_day(datetime.now(UTC))
+
+
+@router.get("/takings", response_model=TakingsResponse, dependencies=READ_TAKINGS)
+def read_takings(
+    current_staff: CurrentStaff,
+    day: date | None = None,
+    session: Session = Depends(get_session),
+):
+    """One Lagos day's money in and out, by method and person, and what to look at.
+    Today when no day is given."""
+    result = daily_takings(
+        session, tenant_id=current_staff.tenant_id, actor_id=current_staff.id, day=_day(day)
+    )
+    return TakingsResponse.model_validate(result)
+
+
+@router.get("/takings/export", response_model=TakingsExportResponse, dependencies=READ_TAKINGS)
+def export_takings(
+    current_staff: CurrentStaff,
+    day: date | None = None,
+    session: Session = Depends(get_session),
+):
+    """The day's payments and refunds as CSV (no patient names)."""
+    filename, text = takings_csv(
+        session, tenant_id=current_staff.tenant_id, actor_id=current_staff.id, day=_day(day)
+    )
+    return TakingsExportResponse(filename=filename, csv=text)

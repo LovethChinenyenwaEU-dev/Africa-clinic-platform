@@ -9,6 +9,22 @@ Roadmap: [README](./README.md#roadmap-12-week-mvp) · Brief: [docs/product-brief
 
 ---
 
+## 25 Oct 2026 (Sun): Week 10 Step 6, the daily takings
+
+**Done**
+- Step 5 confirmed green after one test fix: the "check now" test kept a row object and read its status after a later check had changed it (one object per row in a session). The payment code was right.
+- Week 10 Step 6: **the daily takings (reconciliation).** For one Lagos day (midnight to midnight Lagos time): money in by method and by the person who took it, refunds approved that day, the net per method (net cash is what should be in the drawer), and how many invoices were issued for how much. Things to look at: invoices paid beyond their total and not yet given back; refunds waiting for an admin; online payments that failed; and unusual refunds asked that day (the whole payment back, asked by the person who took the payment, or one person asking for more than three). A CSV export of the day's payments and refunds with numbers and amounts but no patient names, for an accountant (sent inside JSON, because the staff pass-through only carries JSON). Admins and billing only (`takings:read`); every view and export is in the audit log. No new tables.
+
+**Hardest problem:** what "a day" is. A payment at 23:30 UTC on Monday is 00:30 on Tuesday in Lagos. *Fix:* reuse the scheduling day bounds (Lagos midnight to midnight), and a test puts a payment just after midnight to prove it lands on Tuesday.
+
+**Finished:** Step 6 awaiting the Codespace run. Migration head: 0030 (no new migration).
+
+**Pending:** to try Paystack itself: a test secret key in the Codespace `.env`, `PAYMENT_GATEWAY=paystack`, and the API port public for the webhook.
+
+**Next:** Week 10 Step 7: the billing screens (price list, the visit's invoice and payments, receipts, refunds for admins, the daily takings).
+
+---
+
 ## 23 Oct 2026 (Fri): CI green again; test dates fixed; Week 10 Steps 1 to 5 (prices, invoices, payments, refunds, Paystack)
 
 **Done**
@@ -25,7 +41,7 @@ Roadmap: [README](./README.md#roadmap-12-week-mvp) · Brief: [docs/product-brief
 
 **Also hard:** money in a web form. A float turns 0.1 + 0.2 into 0.30000000000000004, and `True` is an integer in Python. *Fix:* the API takes whole kobo only (`StrictInt`), the service refuses booleans and fractions, and the column is a BIGINT. *Lesson:* decide the unit of money before the first table.
 
-**Finished:** CI fixes, test dates, Steps 1 to 4 (green on CI). Step 5 awaiting the Codespace run (`alembic upgrade head`). Migration head: 0030.
+**Finished:** CI fixes, test dates, Steps 1 to 5 (green on CI after a test fix on 25 Oct). Migration head: 0030.
 
 **Pending:** to try Paystack itself (not needed for the tests): a Paystack test secret key in the Codespace `.env`, `PAYMENT_GATEWAY=paystack`, and the API port made public so Paystack can reach the webhook.
 

@@ -1,5 +1,5 @@
 import uuid
-from datetime import datetime
+from datetime import date, datetime
 
 from pydantic import BaseModel, ConfigDict, Field, StrictInt
 
@@ -187,3 +187,54 @@ class ReceiptResponse(BaseModel):
     balance_after_kobo: int
     received_by_name: str
     check_code: str
+
+
+class MethodTotalResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    method: str
+    count: int
+    amount_kobo: int
+
+
+class StaffTotalResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    staff_id: uuid.UUID
+    name: str
+    payments: int
+    taken_kobo: int
+
+
+class FlagResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    kind: str
+    message: str
+    invoice_number: str | None
+    amount_kobo: int | None
+
+
+class TakingsResponse(BaseModel):
+    """One Lagos day's money. Net cash is what should be in the drawer."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    day: date
+    money_in: list[MethodTotalResponse]
+    money_out: list[MethodTotalResponse]
+    net_by_method: list[MethodTotalResponse]
+    total_in_kobo: int
+    total_out_kobo: int
+    net_kobo: int
+    by_staff: list[StaffTotalResponse]
+    invoices_issued: int
+    billed_kobo: int
+    flags: list[FlagResponse]
+
+
+class TakingsExportResponse(BaseModel):
+    """The CSV inside JSON: the staff pass-through only carries JSON."""
+
+    filename: str
+    csv: str

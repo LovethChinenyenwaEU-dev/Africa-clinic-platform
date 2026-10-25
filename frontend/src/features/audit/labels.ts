@@ -92,6 +92,8 @@ export const ACTION_LABELS: Record<string, string> = {
   "online_payment.paid": "An online payment went through",
   "online_payment.failed": "An online payment failed",
   "online_payment.check": "Checked an online payment with the gateway",
+  "takings.view": "Viewed the daily takings",
+  "takings.export": "Downloaded the daily takings",
 };
 
 /** Plain words for an action; an unknown code is shown as it is, never hidden. */

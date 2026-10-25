@@ -30,6 +30,7 @@ class Capability(StrEnum):
     PAYMENT_RECORD = "payment:record"  # take cash or record a bank transfer
     REFUND_REQUEST = "refund:request"  # ask for money back from a payment
     REFUND_APPROVE = "refund:approve"  # decide refunds: admins only, never their own
+    TAKINGS_READ = "takings:read"  # the daily takings and their export: admins and billing
 
 
 _EVERYONE = frozenset({Capability.BRANCH_READ})
@@ -75,6 +76,8 @@ _BILLERS = _INVOICE_READERS | {
 }
 # FR-B3: refunds need two people. Billers ask; an admin, who cannot ask, decides.
 _REFUND_DECIDERS = frozenset({Capability.REFUND_APPROVE})
+# The day's takings: whoever balances the money (billing) and the owner (admin).
+_TAKINGS_READERS = frozenset({Capability.TAKINGS_READ})
 
 # The one table that says who may do what. Change a rule here, nowhere else.
 ROLE_CAPABILITIES: dict[Role, frozenset[Capability]] = {
@@ -85,11 +88,12 @@ ROLE_CAPABILITIES: dict[Role, frozenset[Capability]] = {
         | _PRICE_SETTERS
         | _INVOICE_READERS
         | _REFUND_DECIDERS
+        | _TAKINGS_READERS
     ),
     Role.FRONT_DESK: _FRONT_LINE | _BILLERS,
     Role.NURSE: _FRONT_LINE | _CLINICIANS,
     Role.DOCTOR: _FRONT_LINE | _CLINICIANS | _PRESCRIBERS,
-    Role.BILLING: _EVERYONE | _PATIENT_READERS | _PRICE_READERS | _BILLERS,
+    Role.BILLING: _EVERYONE | _PATIENT_READERS | _PRICE_READERS | _BILLERS | _TAKINGS_READERS,
 }
 
 def capabilities_for(role: str) -> frozenset[Capability]:
