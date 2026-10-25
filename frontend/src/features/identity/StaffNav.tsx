@@ -3,20 +3,17 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
-import type { NavItem } from "./navigation";
-
-function isCurrent(pathname: string, href: string): boolean {
-  return href === "/" ? pathname === "/" : pathname === href || pathname.startsWith(`${href}/`);
-}
+import { currentHref, type NavItem } from "./navigation";
 
 export function StaffNav({ items }: { items: NavItem[] }) {
   const pathname = usePathname();
+  const active = currentHref(pathname, items);
 
   return (
     <nav aria-label="Main">
       <ul className="flex flex-wrap gap-4">
         {items.map((item) => {
-          const current = isCurrent(pathname, item.href);
+          const current = item.href === active;
           return (
             <li key={item.href}>
               <Link

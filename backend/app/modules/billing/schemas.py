@@ -238,3 +238,13 @@ class TakingsExportResponse(BaseModel):
 
     filename: str
     csv: str
+
+
+class VisitToBillResponse(BaseModel):
+    """One of a patient's visits, with its invoice if it has one."""
+
+    appointment_id: uuid.UUID
+    starts_at: datetime
+    status: str
+    visit_type: str
+    invoice: InvoiceSummaryResponse | None

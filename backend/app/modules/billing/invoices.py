@@ -33,6 +33,7 @@ from app.modules.billing.models import (
     RefundStatus,
 )
 from app.modules.patients.service import patient_exists
+from app.modules.scheduling.models import Appointment
 from app.modules.scheduling.service import get_appointment
 from app.modules.scheduling.statuses import AppointmentStatus
 
@@ -431,6 +432,72 @@ def view_visit_invoice(
     if invoice is None:
         raise InvoiceNotFoundError("This visit has no invoice yet.")
     return view_invoice(session, tenant_id=tenant_id, actor_id=actor_id, invoice_id=invoice.id)
+
+
+@dataclass(frozen=True)
+class VisitToBill:
+    """One of a patient's visits, with its live invoice if it has one."""
+
+    appointment_id: uuid.UUID
+    starts_at: datetime
+    status: str
+    visit_type: str
+    invoice: InvoiceView | None
+
+
+def billable_visits(
+    session: Session,
+    *,
+    tenant_id: uuid.UUID,
+    actor_id: uuid.UUID,
+    patient_id: uuid.UUID,
+    limit: int = 30,
+) -> list[VisitToBill]:
+    """A patient's recent visits (not cancelled), newest first, each with its invoice.
+    For billing staff, who do not see the diary or the queue. Written in the diary."""
+    if not patient_exists(session, tenant_id=tenant_id, patient_id=patient_id):
+        raise InvoiceNotFoundError("Patient not found.")
+    visits = session.exec(
+        tenant_select(Appointment, tenant_id)
+        .where(col(Appointment.patient_id) == patient_id)
+        .where(col(Appointment.status) != AppointmentStatus.CANCELLED.value)
+        .order_by(col(Appointment.starts_at).desc(), col(Appointment.id))
+        .limit(limit)
+    ).all()
+    live: dict[uuid.UUID, Invoice] = {}
+    if visits:
+        statement = (
+            tenant_select(Invoice, tenant_id)
+            .where(col(Invoice.appointment_id).in_([visit.id for visit in visits]))
+            .where(col(Invoice.status) != InvoiceStatus.VOID.value)
+        )
+        live = {invoice.appointment_id: invoice for invoice in session.exec(statement).all()}
+    rows: list[VisitToBill] = []
+    for visit in visits:
+        invoice = live.get(visit.id)
+        view = (
+            InvoiceView(
+                invoice,
+                _lines(session, tenant_id=tenant_id, invoice_id=invoice.id),
+                _payments(session, tenant_id=tenant_id, invoice_id=invoice.id),
+                _refunds(session, tenant_id=tenant_id, invoice_id=invoice.id),
+                _online(session, tenant_id=tenant_id, invoice_id=invoice.id),
+            )
+            if invoice is not None
+            else None
+        )
+        rows.append(
+            VisitToBill(visit.id, visit.starts_at, visit.status, visit.visit_type, view)
+        )
+    add_audit_event(
+        session,
+        tenant_id=tenant_id,
+        actor_id=actor_id,
+        action=AuditAction.INVOICE_LIST,
+        patient_id=patient_id,
+    )
+    session.commit()
+    return rows
 
 
 def list_patient_invoices(

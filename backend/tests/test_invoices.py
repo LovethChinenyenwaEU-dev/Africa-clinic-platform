@@ -407,3 +407,34 @@ def test_another_clinics_invoice_is_not_found_through_the_api(client, session, r
 
     assert read.status_code == 404
     assert issue_it.status_code == 404
+
+
+# --- visits to bill ---------------------------------------------------------------
+
+
+def test_billing_sees_a_patients_visits_with_their_invoices(client, session, run_id, clinics):
+    a = clinics["a"]
+    later = book(session, a, starts_at=a["visit"].starts_at.replace(hour=11))
+    cancelled = book(session, a, starts_at=a["visit"].starts_at.replace(hour=12))
+    cancel_appointment(session, **who(a), appointment_id=cancelled.id)
+    invoice = start(session, a)
+    add(session, a, invoice)
+    issue(session, a, invoice)
+    url = f"/api/v1/billing/patients/{a['patient'].id}/visits"
+
+    rows = client.get(url, headers=bearer(session, run_id, "a", "billing")).json()
+    by_nurse = client.get(url, headers=bearer(session, run_id, "a", "nurse"))
+    elsewhere = client.get(
+        f"/api/v1/billing/patients/{clinics['b']['patient'].id}/visits",
+        headers=bearer(session, run_id, "a", "billing"),
+    )
+
+    # Newest first, the cancelled one left out; the first visit has its issued invoice.
+    assert [r["appointment_id"] for r in rows] == [str(later.id), str(a["visit"].id)]
+    assert rows[0]["invoice"] is None
+    assert rows[1]["invoice"]["number"] == "INV-000001"
+    assert rows[1]["invoice"]["payment_status"] == "unpaid"
+    assert by_nurse.status_code == 403
+    assert elsewhere.status_code == 404
+    lines = [e for e in invoice_lines(session, a) if e.action == "invoice.list"]
+    assert [e.patient_id for e in lines] == [a["patient"].id]

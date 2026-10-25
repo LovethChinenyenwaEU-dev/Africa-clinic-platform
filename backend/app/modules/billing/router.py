@@ -21,6 +21,7 @@ from app.modules.billing.invoices import (
     InvoiceNotFoundError,
     InvoiceView,
     add_line,
+    billable_visits,
     issue_invoice,
     list_patient_invoices,
     remove_line,
@@ -84,6 +85,7 @@ from app.modules.billing.schemas import (
     StartOnlinePayment,
     TakingsExportResponse,
     TakingsResponse,
+    VisitToBillResponse,
     VoidInvoice,
 )
 from app.modules.billing.takings import daily_takings, takings_csv
@@ -291,6 +293,36 @@ def read_patient_invoices(
         return [_summary(view) for view in views]
     except INVOICE_ERRORS as error:
         raise _invoice_error(error) from None
+
+
+@router.get(
+    "/patients/{patient_id}/visits",
+    response_model=list[VisitToBillResponse],
+    dependencies=READ_INVOICES,
+)
+def read_visits_to_bill(
+    patient_id: uuid.UUID, current_staff: CurrentStaff, session: Session = Depends(get_session)
+):
+    """A patient's recent visits, newest first, each with its invoice (or none yet)."""
+    try:
+        rows = billable_visits(
+            session,
+            tenant_id=current_staff.tenant_id,
+            actor_id=current_staff.id,
+            patient_id=patient_id,
+        )
+    except INVOICE_ERRORS as error:
+        raise _invoice_error(error) from None
+    return [
+        VisitToBillResponse(
+            appointment_id=row.appointment_id,
+            starts_at=row.starts_at,
+            status=row.status,
+            visit_type=row.visit_type,
+            invoice=_summary(row.invoice) if row.invoice else None,
+        )
+        for row in rows
+    ]
 
 
 @router.post(

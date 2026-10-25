@@ -1,12 +1,18 @@
 import { describe, expect, it } from "vitest";
 
-import { canOpen, navFor } from "./navigation";
+import { canOpen, currentHref, navFor } from "./navigation";
 
 const labels = (role: Parameters<typeof navFor>[0]) => navFor(role).map((item) => item.label);
 
 describe("navFor", () => {
-  it("gives front desk patients and the queue", () => {
-    expect(labels("front_desk")).toEqual(["Home", "Patients", "Today's queue"]);
+  it("gives front desk patients, the queue and billing", () => {
+    expect(labels("front_desk")).toEqual([
+      "Home",
+      "Patients",
+      "Today's queue",
+      "Billing",
+      "Prices",
+    ]);
   });
 
   it("gives nurses and doctors their own weekly hours too", () => {
@@ -18,13 +24,23 @@ describe("navFor", () => {
     }
   });
 
-  it("gives admins the audit log and no patient screens", () => {
-    expect(labels("admin")).toEqual(["Home", "Audit log"]);
+  it("gives admins the audit log and prices, and no patient screens", () => {
+    expect(labels("admin")).toEqual(["Home", "Audit log", "Prices"]);
+    expect(canOpen("admin", "billing")).toBe(false); // finding a patient needs patient access
+    expect(canOpen("admin", "invoice")).toBe(true); // to decide refunds
     expect(canOpen("admin", "patients")).toBe(false);
   });
 
-  it("gives billing patients only, for now", () => {
-    expect(labels("billing")).toEqual(["Home", "Patients"]);
+  it("gives billing patients, billing and prices", () => {
+    expect(labels("billing")).toEqual(["Home", "Patients", "Billing", "Prices"]);
+  });
+
+  it("keeps nurses and doctors away from money", () => {
+    for (const role of ["nurse", "doctor"] as const) {
+      for (const screen of ["billing", "prices", "invoice"] as const) {
+        expect(canOpen(role, screen)).toBe(false);
+      }
+    }
   });
 
   it("never offers the audit log to anyone but admins", () => {
@@ -42,5 +58,17 @@ describe("the encounter screen", () => {
       expect(canOpen(role, "encounter")).toBe(false);
     }
     expect(labels("doctor")).not.toContain("Encounter");
+  });
+});
+
+describe("currentHref", () => {
+  const items = navFor("billing");
+
+  it("marks only the closest menu item", () => {
+    expect(currentHref("/billing/prices", items)).toBe("/billing/prices");
+    expect(currentHref("/billing", items)).toBe("/billing");
+    expect(currentHref("/billing/invoices/abc", items)).toBe("/billing");
+    expect(currentHref("/", items)).toBe("/");
+    expect(currentHref("/billingx", items)).toBeNull();
   });
 });

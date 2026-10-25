@@ -25,3 +25,20 @@ describe("run_consultation", () => {
     }
   });
 });
+
+describe("money", () => {
+  it("lets only admins set prices", () => {
+    expect(can("admin", "set_prices")).toBe(true);
+    for (const role of ["front_desk", "nurse", "doctor", "billing"] as const) {
+      expect(can(role, "set_prices")).toBe(false);
+    }
+  });
+
+  it("lets front desk and billing take payments, and nobody else", () => {
+    expect(can("front_desk", "take_payments")).toBe(true);
+    expect(can("billing", "take_payments")).toBe(true);
+    for (const role of ["admin", "nurse", "doctor"] as const) {
+      expect(can(role, "take_payments")).toBe(false);
+    }
+  });
+});
