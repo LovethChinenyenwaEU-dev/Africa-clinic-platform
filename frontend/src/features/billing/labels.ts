@@ -45,3 +45,13 @@ export const LINK_STATUS_LABELS: Record<string, string> = {
 export function label(labels: Record<string, string>, value: string): string {
   return labels[value] ?? value;
 }
+
+// The daily takings' "to look at" list (backend billing/takings.py).
+export const FLAG_TITLES: Record<string, string> = {
+  overpaid: "Paid more than the bill",
+  refund_waiting: "Refunds waiting for an admin",
+  online_failed: "Online payment failed",
+  whole_refund: "Whole payment asked back",
+  own_refund: "Refund of a payment the same person took",
+  many_refunds: "Many refunds asked by one person",
+};

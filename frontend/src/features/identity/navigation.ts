@@ -16,7 +16,9 @@ export type ScreenKey =
   | "audit"
   | "billing"
   | "prices"
-  | "invoice";
+  | "invoice"
+  | "refunds"
+  | "takings";
 
 // inMenu: false for screens reached from another screen (an encounter opens from the queue).
 type Screen = { href: string; label: string; roles: readonly Role[]; inMenu: boolean };
@@ -58,6 +60,15 @@ export const SCREENS: Record<ScreenKey, Screen> = {
     label: "Invoice",
     roles: ["admin", "front_desk", "billing"],
     inMenu: false,
+  },
+  // Admins decide refunds; never their own (FR-B3).
+  refunds: { href: "/billing/refunds", label: "Refunds", roles: ["admin"], inMenu: true },
+  // The day's money and what to look at.
+  takings: {
+    href: "/billing/takings",
+    label: "Takings",
+    roles: ["admin", "billing"],
+    inMenu: true,
   },
 };
 

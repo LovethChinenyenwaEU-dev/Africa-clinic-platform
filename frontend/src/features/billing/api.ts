@@ -9,6 +9,8 @@ import {
   priceSchema,
   receiptSchema,
   refundSchema,
+  takingsExportSchema,
+  takingsSchema,
   visitToBillSchema,
   type Invoice,
   type OnlinePayment,
@@ -16,6 +18,7 @@ import {
   type Price,
   type Receipt,
   type Refund,
+  type Takings,
   type VisitToBill,
 } from "./schemas";
 
@@ -136,4 +139,34 @@ export function sendPaymentLink(
 
 export function checkPaymentLink(onlineId: string): Promise<OnlinePayment> {
   return apiPost(`/billing/online-payments/${q(onlineId)}/check`, {}, onlinePaymentSchema);
+}
+
+// --- refund decisions (admins) ------------------------------------------------------
+
+/** The clinic's refunds: waiting ones by default. One diary line per look. */
+export function getRefunds(status: "requested" | "approved" | "rejected" = "requested") {
+  return apiGet(`/billing/refunds?status=${q(status)}`, z.array(refundSchema));
+}
+
+export function approveRefund(refundId: string, note: string): Promise<Refund> {
+  return apiPost(
+    `/billing/refunds/${q(refundId)}/approve`,
+    { note: note.trim() || null },
+    refundSchema,
+  );
+}
+
+export function rejectRefund(refundId: string, note: string): Promise<Refund> {
+  return apiPost(`/billing/refunds/${q(refundId)}/reject`, { note: note.trim() }, refundSchema);
+}
+
+// --- the daily takings (admins and billing) -------------------------------------------
+
+export function getTakings(day: string): Promise<Takings> {
+  return apiGet(`/billing/takings?day=${q(day)}`, takingsSchema);
+}
+
+/** The day as CSV. It comes inside JSON (the pass-through only carries JSON). */
+export function exportTakings(day: string): Promise<{ filename: string; csv: string }> {
+  return apiGet(`/billing/takings/export?day=${q(day)}`, takingsExportSchema);
 }

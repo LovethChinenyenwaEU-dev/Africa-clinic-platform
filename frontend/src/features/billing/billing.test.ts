@@ -1,15 +1,20 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import {
+  approveRefund,
   changePrice,
+  exportTakings,
   getPrices,
+  getRefunds,
+  getTakings,
+  rejectRefund,
   getVisitsToBill,
   recordPayment,
   requestRefund,
   sendPaymentLink,
 } from "./api";
-import { label, PAYMENT_STATUS_LABELS } from "./labels";
-import { invoiceSchema, visitToBillSchema, type Price } from "./schemas";
+import { FLAG_TITLES, label, PAYMENT_STATUS_LABELS } from "./labels";
+import { invoiceSchema, takingsSchema, visitToBillSchema, type Price } from "./schemas";
 
 const ID = "11111111-1111-4111-8111-111111111111";
 const NOW = "2026-11-02T09:00:00+00:00";
@@ -222,5 +227,89 @@ describe("labels", () => {
   it("falls back to the raw word for anything new", () => {
     expect(label(PAYMENT_STATUS_LABELS, "part_paid")).toBe("Part paid");
     expect(label(PAYMENT_STATUS_LABELS, "something_new")).toBe("something_new");
+  });
+});
+
+const takings = {
+  day: "2026-11-02",
+  money_in: [{ method: "cash", count: 2, amount_kobo: 700_000 }],
+  money_out: [{ method: "cash", count: 1, amount_kobo: 100_000 }],
+  net_by_method: [{ method: "cash", count: 3, amount_kobo: 600_000 }],
+  total_in_kobo: 700_000,
+  total_out_kobo: 100_000,
+  net_kobo: 600_000,
+  by_staff: [{ staff_id: ID, name: "Test front_desk", payments: 2, taken_kobo: 700_000 }],
+  invoices_issued: 2,
+  billed_kobo: 1_150_000,
+  flags: [{ kind: "refund_waiting", message: "1 waiting", invoice_number: null, amount_kobo: 100 }],
+};
+
+describe("refund decisions and takings", () => {
+  it("asks for waiting refunds by default, and for others when told", async () => {
+    fetchMock.mockImplementation(async () => answer([]));
+
+    await getRefunds();
+    await getRefunds("approved");
+
+    expect(sent(0).url).toBe("/api/backend/billing/refunds?status=requested");
+    expect(sent(1).url).toBe("/api/backend/billing/refunds?status=approved");
+  });
+
+  it("sends no empty note when approving, and the note when rejecting", async () => {
+    const refund = {
+      id: ID,
+      invoice_id: ID,
+      payment_id: ID,
+      patient_id: ID,
+      amount_kobo: 100,
+      method: "cash",
+      reason: "Overcharged",
+      status: "approved",
+      refund_number: "RFD-000001",
+      requested_by_id: ID,
+      requested_at: NOW,
+      decided_by_id: ID,
+      decided_at: NOW,
+      decision_note: null,
+    };
+    fetchMock.mockImplementation(async () => answer(refund));
+
+    await approveRefund(ID, "  ");
+    await rejectRefund(ID, " No proof ");
+
+    expect(sent(0).url).toBe(`/api/backend/billing/refunds/${ID}/approve`);
+    expect(sent(0).body).toEqual({ note: null });
+    expect(sent(1).url).toBe(`/api/backend/billing/refunds/${ID}/reject`);
+    expect(sent(1).body).toEqual({ note: "No proof" });
+  });
+
+  it("reads a day's takings and its export", async () => {
+    fetchMock
+      .mockResolvedValueOnce(answer(takings))
+      .mockResolvedValueOnce(answer({ filename: "takings-2026-11-02.csv", csv: "time,kind\n" }));
+
+    const day = await getTakings("2026-11-02");
+    const file = await exportTakings("2026-11-02");
+
+    expect(sent(0).url).toBe("/api/backend/billing/takings?day=2026-11-02");
+    expect(day.net_kobo).toBe(600_000);
+    expect(file.filename).toBe("takings-2026-11-02.csv");
+  });
+
+  it("refuses a takings answer with money that is not whole kobo", () => {
+    expect(takingsSchema.safeParse({ ...takings, net_kobo: 1.5 }).success).toBe(false);
+  });
+
+  it("has a title for every kind of flag the server sends", () => {
+    for (const kind of [
+      "overpaid",
+      "refund_waiting",
+      "online_failed",
+      "whole_refund",
+      "own_refund",
+      "many_refunds",
+    ]) {
+      expect(FLAG_TITLES[kind]).toBeTruthy();
+    }
   });
 });

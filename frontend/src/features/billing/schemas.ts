@@ -122,3 +122,32 @@ export const receiptSchema = z.object({
   check_code: z.string(),
 });
 export type Receipt = z.infer<typeof receiptSchema>;
+
+export const methodTotalSchema = z.object({ method: z.string(), count: z.number().int(), amount_kobo: kobo });
+export type MethodTotal = z.infer<typeof methodTotalSchema>;
+
+export const takingsSchema = z.object({
+  day: z.string(), // "YYYY-MM-DD", a Lagos day
+  money_in: z.array(methodTotalSchema),
+  money_out: z.array(methodTotalSchema),
+  net_by_method: z.array(methodTotalSchema),
+  total_in_kobo: kobo,
+  total_out_kobo: kobo,
+  net_kobo: kobo,
+  by_staff: z.array(
+    z.object({ staff_id: id, name: z.string(), payments: z.number().int(), taken_kobo: kobo }),
+  ),
+  invoices_issued: z.number().int(),
+  billed_kobo: kobo,
+  flags: z.array(
+    z.object({
+      kind: z.string(),
+      message: z.string(),
+      invoice_number: z.string().nullable(),
+      amount_kobo: kobo.nullable(),
+    }),
+  ),
+});
+export type Takings = z.infer<typeof takingsSchema>;
+
+export const takingsExportSchema = z.object({ filename: z.string(), csv: z.string() });

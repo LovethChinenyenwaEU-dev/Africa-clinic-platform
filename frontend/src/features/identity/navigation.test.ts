@@ -24,20 +24,27 @@ describe("navFor", () => {
     }
   });
 
-  it("gives admins the audit log and prices, and no patient screens", () => {
-    expect(labels("admin")).toEqual(["Home", "Audit log", "Prices"]);
+  it("gives admins the audit log, prices, refunds and takings, and no patient screens", () => {
+    expect(labels("admin")).toEqual(["Home", "Audit log", "Prices", "Refunds", "Takings"]);
     expect(canOpen("admin", "billing")).toBe(false); // finding a patient needs patient access
     expect(canOpen("admin", "invoice")).toBe(true); // to decide refunds
     expect(canOpen("admin", "patients")).toBe(false);
   });
 
-  it("gives billing patients, billing and prices", () => {
-    expect(labels("billing")).toEqual(["Home", "Patients", "Billing", "Prices"]);
+  it("gives billing patients, billing, prices and the takings", () => {
+    expect(labels("billing")).toEqual(["Home", "Patients", "Billing", "Prices", "Takings"]);
+  });
+
+  it("lets only admins decide refunds, and keeps the takings from the front desk", () => {
+    for (const role of ["front_desk", "billing"] as const) {
+      expect(canOpen(role, "refunds")).toBe(false);
+    }
+    expect(canOpen("front_desk", "takings")).toBe(false);
   });
 
   it("keeps nurses and doctors away from money", () => {
     for (const role of ["nurse", "doctor"] as const) {
-      for (const screen of ["billing", "prices", "invoice"] as const) {
+      for (const screen of ["billing", "prices", "invoice", "refunds", "takings"] as const) {
         expect(canOpen(role, screen)).toBe(false);
       }
     }

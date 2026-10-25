@@ -34,6 +34,13 @@ describe("money", () => {
     }
   });
 
+  it("lets only admins decide refunds", () => {
+    expect(can("admin", "decide_refunds")).toBe(true);
+    for (const role of ["front_desk", "nurse", "doctor", "billing"] as const) {
+      expect(can(role, "decide_refunds")).toBe(false);
+    }
+  });
+
   it("lets front desk and billing take payments, and nobody else", () => {
     expect(can("front_desk", "take_payments")).toBe(true);
     expect(can("billing", "take_payments")).toBe(true);

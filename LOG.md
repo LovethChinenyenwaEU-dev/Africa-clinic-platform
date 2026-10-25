@@ -9,20 +9,21 @@ Roadmap: [README](./README.md#roadmap-12-week-mvp) · Brief: [docs/product-brief
 
 ---
 
-## 25 Oct 2026 (Sun): Week 10 Steps 6 and 7a, the daily takings and the billing screens
+## 25 Oct 2026 (Sun): Week 10 finished: the daily takings and the billing screens
 
 **Done**
 - Step 5 confirmed green after one test fix: the "check now" test kept a row object and read its status after a later check had changed it (one object per row in a session). The payment code was right.
 - Week 10 Step 6: **the daily takings (reconciliation).** For one Lagos day (midnight to midnight Lagos time): money in by method and by the person who took it, refunds approved that day, the net per method (net cash is what should be in the drawer), and how many invoices were issued for how much. Things to look at: invoices paid beyond their total and not yet given back; refunds waiting for an admin; online payments that failed; and unusual refunds asked that day (the whole payment back, asked by the person who took the payment, or one person asking for more than three). A CSV export of the day's payments and refunds with numbers and amounts but no patient names, for an accountant (sent inside JSON, because the staff pass-through only carries JSON). Admins and billing only (`takings:read`); every view and export is in the audit log. No new tables.
 - Week 10 Step 7a: **the billing screens, part one.** Menu: Billing (front desk, billing) and Prices (admins change, front desk and billing read). Billing: find the patient, see their recent visits with each one's invoice and what is owed, and "Bill this visit". The invoice: services from the price list (with how many), remove a line, issue or void with a reason; then take cash or a transfer (never more than is owed), make a Paystack link and "Check now", ask for a refund on a payment, and see refunds and their status. A printable receipt with its check code. Money is typed in naira and turned into kobo by reading the text, never with floating point. New backend door `GET /billing/patients/{id}/visits` (billing staff cannot read the queue). The menu now marks only the closest item (/billing/prices is "Prices", not "Billing" too).
+- Week 10 Step 7b: **refund decisions and the daily takings screens.** Refunds (admins): waiting, approved and rejected lists with who asked and when; approve (optional note) or reject (note needed); a refund the admin asked for themselves shows "another admin must decide it". Takings (admins, billing): pick a Lagos day; money in, given back, net, and cash in the drawer; invoices issued; the things to look at; by method and by person; "Download CSV". **Week 10 is complete.**
 
 **Hardest problem:** what "a day" is. A payment at 23:30 UTC on Monday is 00:30 on Tuesday in Lagos. *Fix:* reuse the scheduling day bounds (Lagos midnight to midnight), and a test puts a payment just after midnight to prove it lands on Tuesday.
 
-**Finished:** Step 6 green on CI. Step 7a awaiting the Codespace run. Migration head: 0030 (no new migration).
+**Finished:** Steps 6 and 7a green on CI; 7b awaiting the Codespace run. Week 10 done (README ticked, brief check: billing done). Migration head: 0030.
 
 **Pending:** to try Paystack itself: a test secret key in the Codespace `.env`, `PAYMENT_GATEWAY=paystack`, and the API port public for the webhook.
 
-**Next:** Week 10 Step 7b: refund decisions for admins and the daily takings page; then README and brief check for Week 10.
+**Next:** go back to the frontend design (restyle the staff and patient screens with the Lafiya components), then Week 11 (FHIR-style export, dashboards, security hardening).
 
 ---
 

@@ -13,7 +13,8 @@ export type Ability =
   | "run_consultation"
   | "prescribe"
   | "set_prices"
-  | "take_payments";
+  | "take_payments"
+  | "decide_refunds";
 
 const FRONT_LINE: readonly Role[] = ["front_desk", "nurse", "doctor"];
 const CLINICIANS: readonly Role[] = ["nurse", "doctor"];
@@ -26,6 +27,7 @@ const ABILITIES: Record<Ability, readonly Role[]> = {
   prescribe: ["doctor"], // clinical:prescribe
   set_prices: ["admin"], // price:write
   take_payments: ["front_desk", "billing"], // invoice:write, payment:record, refund:request
+  decide_refunds: ["admin"], // refund:approve
 };
 
 export function can(role: Role, ability: Ability): boolean {
