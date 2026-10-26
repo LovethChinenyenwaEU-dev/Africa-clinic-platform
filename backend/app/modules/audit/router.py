@@ -6,7 +6,8 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlmodel import Session
 
 from app.core.db import get_session
-from app.modules.audit.schemas import AuditEventResponse
+from app.modules.audit.chain import view_audit_chain
+from app.modules.audit.schemas import AuditEventResponse, ChainCheckResponse
 from app.modules.audit.service import MAX_AUDIT_PAGE, InvalidAuditFilterError, view_audit_log
 from app.modules.identity.dependencies import CurrentStaff, require
 from app.modules.identity.permissions import Capability
@@ -46,3 +47,16 @@ def read_audit_events(
         )
     except InvalidAuditFilterError as error:
         raise HTTPException(status_code=422, detail=str(error)) from None
+
+
+@router.get(
+    "/chain",
+    response_model=ChainCheckResponse,
+    dependencies=[Depends(require(Capability.AUDIT_READ))],
+)
+def check_chain(current_staff: CurrentStaff, session: Session = Depends(get_session)):
+    """Check that no audit line of this clinic was changed, removed or slipped in.
+    Answers the first broken line, if any, and the latest line's number and hash."""
+    return view_audit_chain(
+        session, tenant_id=current_staff.tenant_id, actor_id=current_staff.id
+    )

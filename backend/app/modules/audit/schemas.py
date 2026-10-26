@@ -17,3 +17,15 @@ class AuditEventResponse(BaseModel):
     action: str
     purpose: str | None
     occurred_at: datetime
+
+class ChainCheckResponse(BaseModel):
+    """The tamper-evident check. Write head_seq and head_hash down to anchor the chain."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    ok: bool
+    lines_checked: int
+    broken_at: int | None
+    problem: str | None
+    head_seq: int
+    head_hash: str

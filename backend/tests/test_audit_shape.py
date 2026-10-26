@@ -11,6 +11,10 @@ ALLOWED_COLUMNS = {
     "action",
     "purpose",
     "occurred_at",
+    # The tamper-evident chain: a number and two hashes, still no personal data.
+    "chain_seq",
+    "prev_hash",
+    "row_hash",
 }
 
 

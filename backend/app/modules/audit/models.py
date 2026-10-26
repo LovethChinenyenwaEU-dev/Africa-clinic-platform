@@ -1,7 +1,7 @@
 import uuid
 from datetime import UTC, datetime
 
-from sqlalchemy import Column, DateTime, Index
+from sqlalchemy import BigInteger, Column, DateTime, FetchedValue, Index, String
 from sqlmodel import Field, SQLModel
 
 
@@ -29,4 +29,17 @@ class AuditEvent(SQLModel, table=True):
     purpose: str | None = None
     occurred_at: datetime = Field(
         default_factory=utcnow, sa_column=Column(DateTime(timezone=True), nullable=False)
+    )
+    # The tamper-evident chain (Week 11). The database writes these three when the line is
+    # added (a trigger), never the app: its number in this clinic's chain, the previous
+    # line's hash, and this line's own SHA-256 hash over every field and the previous hash.
+    # Changing or removing any earlier line breaks the chain from that point on.
+    chain_seq: int | None = Field(
+        default=None, sa_column=Column(BigInteger, server_default=FetchedValue(), nullable=True)
+    )
+    prev_hash: str | None = Field(
+        default=None, sa_column=Column(String, server_default=FetchedValue(), nullable=True)
+    )
+    row_hash: str | None = Field(
+        default=None, sa_column=Column(String, server_default=FetchedValue(), nullable=True)
     )

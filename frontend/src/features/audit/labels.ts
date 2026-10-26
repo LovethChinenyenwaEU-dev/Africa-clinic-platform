@@ -9,6 +9,7 @@ export const ACTION_LABELS: Record<string, string> = {
   "consent.revoke": "Withdrew consent",
   "consent.view": "Viewed consent",
   "audit.view": "Read this audit log",
+  "audit.verify": "Checked that the audit log is untouched",
   "appointment.create": "Booked or registered a visit",
   "appointment.check_in": "Checked a patient in",
   "appointment.start": "Started a consultation",

@@ -53,7 +53,7 @@ describe("auditQuery", () => {
 
 describe("labels", () => {
   it("has plain words for every action the backend writes", () => {
-    expect(Object.keys(ACTION_LABELS)).toHaveLength(94);
+    expect(Object.keys(ACTION_LABELS)).toHaveLength(95);
     expect(describeAction("note.view")).toBe("Viewed notes");
     expect(describeAction("vitals.resolve")).toBe("Settled a vitals conflict");
   });

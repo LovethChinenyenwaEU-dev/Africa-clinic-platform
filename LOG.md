@@ -9,6 +9,23 @@ Roadmap: [README](./README.md#roadmap-12-week-mvp) · Brief: [docs/product-brief
 
 ---
 
+## 26 Oct 2026 (Mon): Week 11 started: a tamper-evident audit log
+
+**Done**
+- Week 10 Step 7b confirmed green on CI.
+- Week 11 decisions: MFA with an **authenticator app** (TOTP, plus backup codes) for **admins and billing**; attachments **after the MVP**. Order: tamper-evident audit, database row-level security, MFA, one-device sign-out, dashboards, FHIR-aligned export, admin screens and the notification console.
+- Week 11 Step 1: **the audit log is tamper-evident (brief D3).** Each clinic's audit lines form a chain: every line stores its number, the previous line's hash and its own SHA-256 hash over all its fields. A database trigger writes them, so no code path can skip them or choose them (a test tries). A per-clinic chain head is locked while a line is numbered. One SQL function defines the hash for both writing and checking. Existing lines were chained by the migration, oldest first. `GET /audit/chain` (admins) recomputes the chain and names the first line that was changed, removed or slipped in, and gives the head (number and hash) to write down. Tests switch the append-only trigger off the way a database owner could, tamper, and see the check catch it. Migration 0031.
+
+**Hardest problem:** two lines added at the same moment must not get the same number, and the app must not be trusted to number them. *Fix:* the trigger locks the clinic's chain head row (SELECT ... FOR UPDATE) for the rest of the transaction. *Lesson:* integrity rules belong in the database when the threat is someone going around the app.
+
+**Finished:** Step 1 awaiting the Codespace run (`alembic upgrade head`). Migration head: 0031.
+
+**Pending:** frontend redesign with the Lafiya components (after Week 11); anchoring the chain head outside the database (W12 backups).
+
+**Next:** Week 11 Step 2: PostgreSQL row-level security as a second wall between clinics (brief D2).
+
+---
+
 ## 25 Oct 2026 (Sun): Week 10 finished: the daily takings and the billing screens
 
 **Done**

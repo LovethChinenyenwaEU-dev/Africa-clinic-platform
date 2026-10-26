@@ -12,7 +12,7 @@ in the repository. Update this file when a gap is closed or a decision changes.
 |---|---|---|---|
 | D1 | Backend: "modular TypeScript service (or Go equivalent)" | ✅ **Decided 15 Oct 2026: keep Python + FastAPI**, recorded in [ADR-0004](./adr/0004-python-backend.md). The modular design matches (ADR-0001). | Done. |
 | D2 | "PostgreSQL with tenant and **row-level** isolation" (SRS §5.3 says the same) | 🟡 Isolation is enforced in the application (every query goes through `tenant_select`, with clinic-wall tests on every endpoint). There is **no PostgreSQL row-level security** yet. | Add Postgres RLS as a second wall in the **W11 security pass**. |
-| D3 | "**Tamper-evident** audit trail" | 🟡 The audit log is **append-only**: a database trigger refuses any change or delete (ADR-0003). Not yet tamper-*evident*: nothing would show if someone with database-owner rights edited a row. | Add a hash chain (each line stores a hash of the previous one) in **W11**. |
+| D3 | "**Tamper-evident** audit trail" | ✅ Append-only (a trigger refuses changes and deletes, ADR-0003) **and** tamper-evident since W11: each clinic's lines form a SHA-256 hash chain written by a database trigger; `GET /audit/chain` finds the first changed, removed or inserted line and gives the head (number and hash) to write down. | Done in W11 Step 1. Anchoring the head outside the database (daily export) comes with W12 backups. |
 
 ## 2. MVP scope, line by line
 

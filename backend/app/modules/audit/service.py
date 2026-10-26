@@ -29,6 +29,7 @@ class AuditAction(StrEnum):
     CONSENT_REVOKE = "consent.revoke"
     CONSENT_VIEW = "consent.view"
     AUDIT_VIEW = "audit.view"
+    AUDIT_VERIFY = "audit.verify"  # an admin checked the tamper-evident chain
     APPOINTMENT_CREATE = "appointment.create"
     APPOINTMENT_CHECK_IN = "appointment.check_in"
     APPOINTMENT_START = "appointment.start"
