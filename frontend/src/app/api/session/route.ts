@@ -1,16 +1,13 @@
 import { NextResponse } from "next/server";
 
-import {
-  loginFormSchema,
-  meSchema,
-  tokenResponseSchema,
-} from "@/features/identity/schemas";
+import { loginFormSchema, loginResponseSchema, meSchema } from "@/features/identity/schemas";
 import {
   BackendRejectedError,
   callBackend,
 } from "@/lib/server/backend";
 import { isSameOrigin } from "@/lib/server/origin";
 import {
+  challengeSession,
   clearSession,
   readSessionToken,
   writeSessionToken,
@@ -45,13 +42,19 @@ export async function POST(request: Request) {
   }
 
   try {
-    const token = await callBackend("/auth/login", tokenResponseSchema, {
+    const answer = await callBackend("/auth/login", loginResponseSchema, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(form.data),
     });
-    await writeSessionToken(token.access_token);
-    return reply({ ok: true });
+    if ("access_token" in answer) {
+      await writeSessionToken(answer.access_token);
+      return reply({ ok: true });
+    }
+    // Admins and billing: the code step comes next. The challenge stays in its own
+    // httpOnly cookie; the page only learns which step (setup or verify).
+    await challengeSession.write(answer.challenge_token);
+    return reply({ mfa: answer.mfa });
   } catch (error) {
     return backendSaidNo(error) ? reply(WRONG_LOGIN, 401) : reply(UNAVAILABLE, 502);
   }

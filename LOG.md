@@ -9,7 +9,7 @@ Roadmap: [README](./README.md#roadmap-12-week-mvp) · Brief: [docs/product-brief
 
 ---
 
-## 1 Nov 2026 (Sun): Week 11 Step 3a, the second factor (backend)
+## 1 Nov 2026 (Sun): Week 11 Step 3, the second factor (backend and screens)
 
 **Done**
 - Week 11 Step 2 (row-level security) and the AfriPeak design confirmed green on CI and in the Codespace. The font packages had never been committed: added, which also stopped the service worker showing an old saved sign-in page.
@@ -17,9 +17,11 @@ Roadmap: [README](./README.md#roadmap-12-week-mvp) · Brief: [docs/product-brief
 
 **Hardest problem:** keeping 900 tests that sign in admins working. *Fix:* the second factor sits on the login door (start_sign_in); the plain login() stays for tests and scripts only, and its docstring says never to expose it.
 
-**Finished:** Step 3a awaiting the Codespace run (`alembic upgrade head`). Migration head: 0033. Until Step 3b, admins and billing cannot sign in on the web screens (the screens do not know the code step yet).
+**Finished:** Step 3a green on CI; Step 3b awaiting the Codespace run. Migration head: 0033.
 
-**Next:** Week 11 Step 3b: the sign-in screens for the code step, the set-up step and the backup codes.
+- Week 11 Step 3b: **the sign-in screens for the second factor.** After the password, admins and billing see either the code step (the app's code, or a backup code) or, the first time, the set-up: a button shows their key (grouped in fours, and a link that opens the app on a phone), they type the app's first code, then see their 10 backup codes once and must tick "I have kept these codes" to continue. The challenge stays in its own 5-minute httpOnly cookie, so the page's JavaScript never holds it; a new route `/api/session/mfa` swaps it for the normal session cookie. Clear messages for a wrong code, the 15-minute lock, and an expired step (with "Sign in again").
+
+**Next:** Week 11 Step 4: signing out one device (instead of all of a person's sessions).
 
 ---
 

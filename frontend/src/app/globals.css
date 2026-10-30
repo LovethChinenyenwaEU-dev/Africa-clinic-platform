@@ -156,6 +156,14 @@
     border-color: var(--color-accent);
   }
 
+  /* Ticks and choices are not text boxes: no tall padding. */
+  input[type="checkbox"],
+  input[type="radio"] {
+    min-height: 0;
+    padding: 0;
+    accent-color: var(--color-accent);
+  }
+
   [aria-invalid="true"] {
     border-color: var(--color-danger);
   }

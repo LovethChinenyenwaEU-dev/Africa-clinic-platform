@@ -15,6 +15,34 @@ export const tokenResponseSchema = z.object({
 });
 export type TokenResponse = z.infer<typeof tokenResponseSchema>;
 
+// Since Week 11 the login door answers either the token (most staff) or, for admins and
+// billing, the second-factor step: "setup" the first time, then "verify".
+export const loginResponseSchema = z.union([
+  tokenResponseSchema,
+  z.object({
+    mfa: z.enum(["setup", "verify"]),
+    challenge_token: z.string().min(1),
+    token_type: z.literal("bearer"),
+  }),
+]);
+export type LoginResponse = z.infer<typeof loginResponseSchema>;
+
+// The first-time set-up: what the person adds to their authenticator app.
+export const mfaSetupSchema = z.object({ secret: z.string().min(1), otpauth_uri: z.string() });
+export type MfaSetup = z.infer<typeof mfaSetupSchema>;
+
+// Set-up proved: signed in, with the backup codes shown this once.
+export const mfaConfirmedSchema = tokenResponseSchema.extend({
+  backup_codes: z.array(z.string()),
+});
+
+// What the person types: 6 digits from the app, or a backup code such as ABCD-EFGH.
+export const mfaCodeSchema = z
+  .string()
+  .trim()
+  .min(6, "Type the 6-digit code from your app.")
+  .max(20, "That code is too long.");
+
 // The roles the backend knows. If it ever sends a new one, parsing fails loudly
 // and we update this list on purpose, rather than the screen guessing.
 export const roleSchema = z.enum(["admin", "front_desk", "nurse", "doctor", "billing"]);

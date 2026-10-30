@@ -118,6 +118,8 @@ docker compose exec api python -m app.cli seed-demo
 
 This creates a demo clinic with clearly fake patients and five logins (`admin`, `front_desk`, `nurse`, `doctor`, `billing` at `@demo.example.com`), all with the password you type. It refuses to run unless `ENVIRONMENT` is `development` or `test`. Forgot the password? `python -m app.cli reset-demo-passwords` changes it for the demo logins only.
 
+The `admin` and `billing` demo logins need an authenticator app (Google Authenticator, Microsoft Authenticator or similar): the first sign-in shows a set-up key and then 10 backup codes. A lost phone is reset by another admin (`POST /api/v1/staff/{id}/mfa/reset`).
+
 ### Running in GitHub Codespaces
 
 - After the Codespace stops (for example the idle timeout), bring everything back with `docker compose up -d`.

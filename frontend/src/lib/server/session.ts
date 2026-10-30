@@ -16,7 +16,7 @@ export type CookieSession = {
   clear: () => Promise<void>;
 };
 
-function cookieSession(name: string): CookieSession {
+function cookieSession(name: string, maxAge: number = SESSION_MAX_AGE_SECONDS): CookieSession {
   // Worked out each time a cookie is written, not once when this file loads,
   // so "Secure" always follows the environment the server is running in.
   const options = () => ({
@@ -33,7 +33,7 @@ function cookieSession(name: string): CookieSession {
     },
     async write(token) {
       const store = await cookies();
-      store.set({ ...options(), value: token, maxAge: SESSION_MAX_AGE_SECONDS });
+      store.set({ ...options(), value: token, maxAge });
     },
     async clear() {
       const store = await cookies();
@@ -44,6 +44,13 @@ function cookieSession(name: string): CookieSession {
 
 export const staffSession = cookieSession(SESSION_COOKIE);
 export const patientSession = cookieSession(PATIENT_SESSION_COOKIE);
+
+// Between the password and the authenticator code (Week 11): the 5-minute challenge the
+// backend gives admins and billing. Kept in its own httpOnly cookie, so the page's
+// JavaScript never holds it, and it opens nothing but the code step.
+export const MFA_CHALLENGE_COOKIE = "clinic_mfa_challenge";
+export const MFA_CHALLENGE_SECONDS = 5 * 60;
+export const challengeSession = cookieSession(MFA_CHALLENGE_COOKIE, MFA_CHALLENGE_SECONDS);
 
 // The staff names used across the app since Week 7.
 export const readSessionToken = staffSession.read;

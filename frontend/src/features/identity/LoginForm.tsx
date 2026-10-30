@@ -4,24 +4,53 @@ import { useMutation } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import { useState, type FormEvent } from "react";
 
-import { LOGIN_MESSAGES, LoginError, login } from "./api";
+import { LOGIN_MESSAGES, LoginError, login, type LoginStep } from "./api";
 import { fieldErrorsFrom, type FieldErrors } from "./form-errors";
+import { BackupCodes, SetupStep, VerifyStep } from "./MfaSteps";
 import { loginFormSchema } from "./schemas";
+
+type Stage = "password" | "setup" | "verify" | { backupCodes: string[] };
 
 export function LoginForm() {
   const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
+  // Admins and billing have a second step after the password (Week 11).
+  const [stage, setStage] = useState<Stage>("password");
+
+  function enter() {
+    router.replace("/");
+    router.refresh();
+  }
 
   const signIn = useMutation({
     mutationFn: login,
-    onSuccess: () => {
-      router.replace("/");
-      router.refresh();
+    onSuccess: (step: LoginStep) => {
+      setPassword(""); // the password is done with either way
+      if (step === "done") enter();
+      else setStage(step);
     },
     onError: () => setPassword(""), // never leave a rejected password sitting in the box
   });
+
+  // The 5-minute step ran out: back to the password.
+  function restart() {
+    setStage("password");
+    signIn.reset();
+  }
+
+  if (stage === "verify") {
+    return <VerifyStep onDone={enter} onRestart={restart} />;
+  }
+  if (stage === "setup") {
+    return (
+      <SetupStep onSignedIn={(backupCodes) => setStage({ backupCodes })} onRestart={restart} />
+    );
+  }
+  if (typeof stage === "object") {
+    return <BackupCodes codes={stage.backupCodes} onContinue={enter} />;
+  }
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();

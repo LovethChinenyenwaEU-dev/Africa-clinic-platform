@@ -150,6 +150,28 @@ describe("POST /api/session (log in)", () => {
     expect(nonsense.status).toBe(502);
     expect(cookieStore.set).not.toHaveBeenCalled();
   });
+
+  it("keeps an admin's challenge in its own short cookie and tells the page only the step", async () => {
+    fetchMock.mockResolvedValueOnce(
+      answer({ mfa: "verify", challenge_token: "challenge-abc", token_type: "bearer" }),
+    );
+
+    const response = await POST(fakeRequest({ body: GOOD_LOGIN }));
+
+    expect(response.status).toBe(200);
+    const text = await response.text();
+    expect(JSON.parse(text)).toEqual({ mfa: "verify" });
+    expect(text).not.toContain("challenge-abc");
+    expect(cookieStore.set).toHaveBeenCalledTimes(1);
+    expect(cookieStore.set).toHaveBeenCalledWith(
+      expect.objectContaining({
+        name: "clinic_mfa_challenge",
+        value: "challenge-abc",
+        httpOnly: true,
+        maxAge: 300,
+      }),
+    );
+  });
 });
 
 describe("GET /api/session (who am I?)", () => {

@@ -68,7 +68,7 @@ in the repository. Update this file when a gap is closed or a decision changes.
 | Idempotency keys | ✅ | Device-made IDs on every create, plus the `Idempotency-Key` header with stored responses for every write (W8) |
 | Adapters behind retryable interfaces | ✅ | SMS adapter with fake/none; video, payments, labs follow the same pattern later |
 | Short-lived tokens | ✅ | 30 minutes; a switched-off staff member is refused on their very next request |
-| MFA for privileged staff | 🟡 | W11 Step 3a: admins and billing sign in with an authenticator app (TOTP, RFC 6238, no new library), 10 one-time backup codes, no code twice, 15-minute lock after 5 wrong codes, admin reset for a lost phone (never one's own). Sign-in screens in Step 3b. The secret is stored as text until the W12 key manager. |
+| MFA for privileged staff | ✅ | W11 Step 3: admins and billing sign in with an authenticator app (TOTP, RFC 6238, no new library): set-up screen with the key, 10 one-time backup codes shown once, no code twice, 15-minute lock after 5 wrong codes, admin reset for a lost phone (never one's own). The challenge between password and code stays in an httpOnly cookie. The secret is stored as text until the W12 key manager. |
 | Device/session revocation | 🟡 | Switching a person off cuts all their sessions at once; revoking **one device** is not built. W8 records the device on every audit line; revoking one device in **W11** |
 | Least-privilege RBAC | ✅ | Plus record-level rules (only the opener signs off, only the author amends) |
 | ABAC | ⬜ | Not planned for the MVP; the record-level rules cover today's needs |
