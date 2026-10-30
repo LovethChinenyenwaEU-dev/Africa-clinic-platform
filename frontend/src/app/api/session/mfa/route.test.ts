@@ -25,7 +25,8 @@ function fakeRequest(body: unknown, origin: string | null = "http://localhost:30
   return { headers, json: () => Promise.resolve(body) } as unknown as Request;
 }
 
-function withChallenge(value: string | undefined = "challenge-abc") {
+// null means no cookie at all (undefined would quietly take the default).
+function withChallenge(value: string | null = "challenge-abc") {
   cookieStore.get.mockImplementation((name: string) =>
     name === "clinic_mfa_challenge" && value ? { value } : undefined,
   );
@@ -46,7 +47,7 @@ describe("POST /api/session/mfa", () => {
   it("refuses other sites, and a missing or expired challenge, without asking the backend", async () => {
     withChallenge();
     const foreign = await POST(fakeRequest({ step: "setup" }, "https://evil.example"));
-    withChallenge(undefined);
+    withChallenge(null);
     const expired = await POST(fakeRequest({ step: "verify", code: "123456" }));
 
     expect(foreign.status).toBe(403);
