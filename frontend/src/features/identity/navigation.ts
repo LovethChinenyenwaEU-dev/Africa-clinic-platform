@@ -18,7 +18,8 @@ export type ScreenKey =
   | "prices"
   | "invoice"
   | "refunds"
-  | "takings";
+  | "takings"
+  | "account";
 
 // inMenu: false for screens reached from another screen (an encounter opens from the queue).
 type Screen = { href: string; label: string; roles: readonly Role[]; inMenu: boolean };
@@ -70,6 +71,8 @@ export const SCREENS: Record<ScreenKey, Screen> = {
     roles: ["admin", "billing"],
     inMenu: true,
   },
+  // "My devices": everyone, for their own sign-ins. Linked from the top bar, not the menu.
+  account: { href: "/account", label: "My devices", roles: EVERYONE, inMenu: false },
 };
 
 export type NavItem = { href: string; label: string };

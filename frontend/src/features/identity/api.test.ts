@@ -44,6 +44,15 @@ describe("login", () => {
     expect(JSON.parse(init.body)).toEqual(FORM);
   });
 
+  it("sends this device's id, so the sign-in shows in \"My devices\"", async () => {
+    fetchMock.mockResolvedValueOnce(answerWith(200));
+
+    await login(FORM);
+
+    const [, init] = fetchMock.mock.calls[0];
+    expect(init.headers["X-Device-Id"]).toMatch(/^[0-9a-f-]{36}$/i);
+  });
+
   it.each([
     [401, "wrong_login"],
     [422, "invalid_form"],

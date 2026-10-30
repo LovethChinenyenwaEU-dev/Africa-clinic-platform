@@ -69,7 +69,7 @@ in the repository. Update this file when a gap is closed or a decision changes.
 | Adapters behind retryable interfaces | ✅ | SMS adapter with fake/none; video, payments, labs follow the same pattern later |
 | Short-lived tokens | ✅ | 30 minutes; a switched-off staff member is refused on their very next request |
 | MFA for privileged staff | ✅ | W11 Step 3: admins and billing sign in with an authenticator app (TOTP, RFC 6238, no new library): set-up screen with the key, 10 one-time backup codes shown once, no code twice, 15-minute lock after 5 wrong codes, admin reset for a lost phone (never one's own). The challenge between password and code stays in an httpOnly cookie. The secret is stored as text until the W12 key manager. |
-| Device/session revocation | 🟡 | Switching a person off cuts all their sessions at once; revoking **one device** is not built. W8 records the device on every audit line; revoking one device in **W11** |
+| Device/session revocation | ✅ | Every sign-in is its own row and its token carries that row's id; every request checks the row is still open (W11). Signing out ends this device on the server at once; "My devices" lists where a person is signed in and signs any one out; an admin can end a staff member's device (API). Switching a person off still ends every device. Each end is in the audit log (`session.end`) |
 | Least-privilege RBAC | ✅ | Plus record-level rules (only the opener signs off, only the author amends) |
 | ABAC | ⬜ | Not planned for the MVP; the record-level rules cover today's needs |
 | Consent and purpose tracking | 🟡 | Consent purposes ✅. Audit lines have a `purpose` field, but staff are not asked "why" when opening a record |

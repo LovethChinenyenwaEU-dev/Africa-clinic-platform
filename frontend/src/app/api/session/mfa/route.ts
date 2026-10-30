@@ -10,6 +10,7 @@ import {
 import { BackendRejectedError, callBackend } from "@/lib/server/backend";
 import { isSameOrigin } from "@/lib/server/origin";
 import { challengeSession, writeSessionToken } from "@/lib/server/session";
+import { signInHeaders } from "@/lib/server/sign-in-headers";
 
 /*
  * The second sign-in step for admins and billing (Week 11). The challenge from the
@@ -51,10 +52,11 @@ function failure(error: unknown) {
   return reply(UNAVAILABLE, 502);
 }
 
-function post(body: unknown): RequestInit {
+// The device details go with the steps that sign a person in, to name the new sign-in.
+function post(body: unknown, request: Request): RequestInit {
   return {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: { "Content-Type": "application/json", ...signInHeaders(request) },
     body: JSON.stringify(body),
   };
 }
@@ -77,7 +79,7 @@ export async function POST(request: Request) {
       const setup = await callBackend(
         "/auth/mfa/setup",
         mfaSetupSchema,
-        post({ challenge_token: challenge }),
+        post({ challenge_token: challenge }, request),
       );
       return reply(setup); // the secret must reach the person: they add it to their app
     }
@@ -85,7 +87,7 @@ export async function POST(request: Request) {
       const done = await callBackend(
         "/auth/mfa/confirm",
         mfaConfirmedSchema,
-        post({ challenge_token: challenge, code: form.data.code }),
+        post({ challenge_token: challenge, code: form.data.code }, request),
       );
       await writeSessionToken(done.access_token);
       await challengeSession.clear();
@@ -94,7 +96,7 @@ export async function POST(request: Request) {
     const token = await callBackend(
       "/auth/mfa/verify",
       tokenResponseSchema,
-      post({ challenge_token: challenge, code: form.data.code }),
+      post({ challenge_token: challenge, code: form.data.code }, request),
     );
     await writeSessionToken(token.access_token);
     await challengeSession.clear();

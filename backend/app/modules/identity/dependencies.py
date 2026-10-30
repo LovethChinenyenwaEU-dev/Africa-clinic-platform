@@ -9,6 +9,7 @@ from app.core.db import get_session
 from app.core.tenant_wall import raise_tenant_wall
 from app.modules.identity.models import Staff
 from app.modules.identity.permissions import Capability, role_has
+from app.modules.identity.sessions import remember_session_id, session_is_open
 from app.modules.identity.tokens import InvalidTokenError, decode_access_token
 
 bearer_scheme = HTTPBearer(auto_error=False)
@@ -41,6 +42,11 @@ def get_current_staff(
     staff = session.get(Staff, claims.staff_id)
     if staff is None or not staff.is_active or staff.tenant_id != claims.tenant_id:
         raise _not_authenticated()
+    # This device's sign-in must still be open: signing out, or an admin ending it, stops
+    # the token at once (Week 11), not only when its 30 minutes run out.
+    if not session_is_open(session, claims):
+        raise _not_authenticated()
+    remember_session_id(session, claims.session_id)
     # From here on the database itself only shows this clinic's rows (row-level security).
     raise_tenant_wall(session, staff.tenant_id)
     return staff

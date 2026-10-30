@@ -1,5 +1,7 @@
 import { z } from "zod";
 
+import { getDeviceId } from "@/lib/device";
+
 import type { LoginForm } from "./schemas";
 
 export type LoginFailure =
@@ -42,7 +44,8 @@ async function send(url: string, body: unknown): Promise<Response> {
   try {
     return await fetch(url, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      // This device's id goes with every sign-in step, to name it in "My devices".
+      headers: { "Content-Type": "application/json", "X-Device-Id": getDeviceId() },
       body: JSON.stringify(body),
     });
   } catch {

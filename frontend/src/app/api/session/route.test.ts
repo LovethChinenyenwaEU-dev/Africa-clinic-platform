@@ -238,4 +238,47 @@ describe("DELETE /api/session (log out)", () => {
       expect.objectContaining({ name: "clinic_session", value: "", maxAge: 0, httpOnly: true }),
     );
   });
+
+  it("ends this device's sign-in on the backend first, so the token stops at once", async () => {
+    cookieStore.get.mockReturnValue({ value: "tok-1" });
+    fetchMock.mockResolvedValueOnce(answer({ signed_out: true }));
+
+    const response = await DELETE(fakeRequest());
+
+    expect(response.status).toBe(200);
+    const [url, init] = fetchMock.mock.calls[0];
+    expect(String(url)).toBe("http://backend.test/api/v1/auth/logout");
+    expect(init.method).toBe("POST");
+    expect(init.headers).toEqual({ Authorization: "Bearer tok-1" });
+  });
+
+  it("still clears the cookie when the backend cannot be reached", async () => {
+    cookieStore.get.mockReturnValue({ value: "tok-1" });
+    fetchMock.mockRejectedValueOnce(new Error("down"));
+
+    const response = await DELETE(fakeRequest());
+
+    expect(response.status).toBe(200);
+    expect(cookieStore.set).toHaveBeenCalledWith(
+      expect.objectContaining({ name: "clinic_session", value: "", maxAge: 0 }),
+    );
+  });
+});
+
+describe("the device details at sign-in", () => {
+  it("passes the browser's description and device id, to name the sign-in", async () => {
+    fetchMock.mockResolvedValueOnce(answer({ access_token: "tok-1", token_type: "bearer" }));
+    const request = fakeRequest({ body: GOOD_LOGIN });
+    const id = "0b7c6f1e-2d3a-4c5b-8e9f-1a2b3c4d5e6f";
+    request.headers.set("user-agent", "Chrome/129 (Windows)");
+    request.headers.set("x-device-id", id);
+
+    await POST(request);
+
+    const [, init] = fetchMock.mock.calls[0];
+    expect(init.headers).toMatchObject({
+      "User-Agent": "Chrome/129 (Windows)",
+      "X-Device-Id": id,
+    });
+  });
 });

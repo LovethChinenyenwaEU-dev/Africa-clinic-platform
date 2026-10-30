@@ -21,6 +21,7 @@ class TokenClaims:
     staff_id: uuid.UUID
     tenant_id: uuid.UUID
     role: str
+    session_id: uuid.UUID | None = None  # the sign-in it belongs to (Week 11)
 
 
 def _signing_key() -> str:
@@ -37,6 +38,7 @@ def create_access_token(
     role: str,
     now: datetime | None = None,
     minutes: int = ACCESS_TOKEN_MINUTES,
+    session_id: uuid.UUID | None = None,
 ) -> str:
     """Make a signed wristband. Only IDs and the role go on it, never secrets."""
     issued_at = now or datetime.now(UTC)
@@ -47,6 +49,8 @@ def create_access_token(
         "iat": issued_at,
         "exp": issued_at + timedelta(minutes=minutes),
     }
+    if session_id is not None:
+        payload["sid"] = str(session_id)  # the door checks this sign-in is still open
     return jwt.encode(payload, _signing_key(), algorithm=ALGORITHM)
 
 
@@ -65,6 +69,7 @@ def decode_access_token(token: str) -> TokenClaims:
             staff_id=uuid.UUID(payload["sub"]),
             tenant_id=uuid.UUID(payload["tenant_id"]),
             role=payload["role"],
+            session_id=uuid.UUID(payload["sid"]) if "sid" in payload else None,
         )
     except (jwt.PyJWTError, KeyError, ValueError):
         raise InvalidTokenError("Invalid or expired token.") from None

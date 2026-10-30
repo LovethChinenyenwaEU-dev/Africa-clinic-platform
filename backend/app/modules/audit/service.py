@@ -35,6 +35,7 @@ class AuditAction(StrEnum):
     MFA_BACKUP_USED = "mfa.backup_used"  # signed in with a one-time backup code
     MFA_FAIL = "mfa.fail"  # a wrong code
     MFA_RESET = "mfa.reset"  # an admin cleared someone's app (lost phone)
+    SESSION_END = "session.end"  # one device signed out (by the person, or an admin)
     APPOINTMENT_CREATE = "appointment.create"
     APPOINTMENT_CHECK_IN = "appointment.check_in"
     APPOINTMENT_START = "appointment.start"

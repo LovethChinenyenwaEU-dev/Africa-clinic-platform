@@ -24,7 +24,10 @@ export default async function StaffLayout({ children }: { children: ReactNode })
           <div className="mx-auto flex min-h-9 max-w-6xl flex-wrap items-center justify-between gap-x-4 px-4">
             <span>
               Signed in as <strong className="text-white">{user.full_name}</strong> ·{" "}
-              {ROLE_LABELS[user.role]}
+              {ROLE_LABELS[user.role]} ·{" "}
+              <Link href="/account" className="text-white underline underline-offset-2">
+                My devices
+              </Link>
             </span>
             <span className="hidden tracking-wide text-[#a9c3d5] sm:inline">
               Connected care, built for the realities of Africa

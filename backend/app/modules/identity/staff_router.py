@@ -6,9 +6,15 @@ from sqlmodel import Session
 from app.core.db import get_session
 from app.modules.identity.dependencies import CurrentStaff, require
 from app.modules.identity.mfa import OwnResetError, reset_mfa
+from app.modules.identity.models import Staff
 from app.modules.identity.passwords import WeakPasswordError
 from app.modules.identity.permissions import Capability
-from app.modules.identity.schemas import ClinicianResponse, StaffCreate, StaffResponse
+from app.modules.identity.schemas import (
+    ClinicianResponse,
+    DeviceResponse,
+    StaffCreate,
+    StaffResponse,
+)
 from app.modules.identity.service import (
     EmailAlreadyUsedError,
     InvalidRoleError,
@@ -18,6 +24,12 @@ from app.modules.identity.service import (
     list_active_clinicians,
     list_staff,
     set_staff_active,
+)
+from app.modules.identity.sessions import (
+    SessionNotFoundError,
+    current_session_id,
+    end_session,
+    list_devices,
 )
 
 router = APIRouter(prefix="/staff", tags=["staff"])
@@ -80,6 +92,90 @@ def add_staff(
             status_code=status.HTTP_409_CONFLICT,
             detail="A staff member with this email already exists.",
         ) from None
+
+
+# Signed-in devices (Week 11). The /me routes are declared before /{staff_id}, so "me" is
+# never read as a staff id.
+
+
+def _devices(session: Session, current_staff: CurrentStaff, staff_id: uuid.UUID):
+    if not _same_clinic(session, current_staff, staff_id):
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Not found.")
+    views = list_devices(
+        session,
+        tenant_id=current_staff.tenant_id,
+        staff_id=staff_id,
+        current_session_id=current_session_id(session),
+    )
+    return [
+        DeviceResponse(
+            id=view.session.id,
+            label=view.session.label,
+            created_at=view.session.created_at,
+            last_seen_at=view.session.last_seen_at,
+            current=view.current,
+        )
+        for view in views
+    ]
+
+
+def _end(session: Session, current_staff: CurrentStaff, staff_id: uuid.UUID, sid: uuid.UUID):
+    try:
+        end_session(
+            session,
+            tenant_id=current_staff.tenant_id,
+            actor_id=current_staff.id,
+            staff_id=staff_id,
+            session_id=sid,
+        )
+    except SessionNotFoundError:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Not found.") from None
+    return {"signed_out": True}  # 200 with a body: the staff pass-through cannot carry a 204
+
+
+def _same_clinic(session: Session, current_staff: CurrentStaff, staff_id: uuid.UUID) -> bool:
+    staff = session.get(Staff, staff_id)
+    return staff is not None and staff.tenant_id == current_staff.tenant_id
+
+
+@router.get("/me/sessions", response_model=list[DeviceResponse])
+def list_my_devices(current_staff: CurrentStaff, session: Session = Depends(get_session)):
+    """Where am I signed in? Any staff member, for their own devices."""
+    return _devices(session, current_staff, current_staff.id)
+
+
+@router.post("/me/sessions/{sid}/end")
+def end_my_device(
+    sid: uuid.UUID, current_staff: CurrentStaff, session: Session = Depends(get_session)
+):
+    """Sign one of my devices out (a phone left at the clinic, a shared computer)."""
+    return _end(session, current_staff, current_staff.id, sid)
+
+
+@router.get(
+    "/{staff_id}/sessions",
+    response_model=list[DeviceResponse],
+    dependencies=[Depends(require(Capability.STAFF_MANAGE))],
+)
+def list_staff_devices(
+    staff_id: uuid.UUID, current_staff: CurrentStaff, session: Session = Depends(get_session)
+):
+    """An admin sees where a staff member of the clinic is signed in."""
+    return _devices(session, current_staff, staff_id)
+
+
+@router.post(
+    "/{staff_id}/sessions/{sid}/end",
+    dependencies=[Depends(require(Capability.STAFF_MANAGE))],
+)
+def end_staff_device(
+    staff_id: uuid.UUID,
+    sid: uuid.UUID,
+    current_staff: CurrentStaff,
+    session: Session = Depends(get_session),
+):
+    """An admin signs one of a staff member's devices out (a lost or stolen phone)."""
+    return _end(session, current_staff, staff_id, sid)
 
 
 def _switch(session: Session, current_staff: CurrentStaff, staff_id: uuid.UUID, active: bool):

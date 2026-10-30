@@ -68,6 +68,15 @@ describe("the encounter screen", () => {
   });
 });
 
+describe("my devices", () => {
+  it("opens for every role, and sits in the top bar, not the menu", () => {
+    for (const role of ["admin", "front_desk", "nurse", "doctor", "billing"] as const) {
+      expect(canOpen(role, "account")).toBe(true);
+      expect(labels(role)).not.toContain("My devices");
+    }
+  });
+});
+
 describe("currentHref", () => {
   const items = navFor("billing");
 

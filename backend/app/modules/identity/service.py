@@ -6,7 +6,7 @@ from app.core.tenant_scope import get_in_tenant, tenant_select
 from app.modules.identity.models import Role, Staff
 from app.modules.identity.passwords import check_password_rules, hash_password, verify_password
 from app.modules.identity.permissions import Capability, role_has
-from app.modules.identity.tokens import create_access_token
+from app.modules.identity.sessions import open_session
 
 
 class EmailAlreadyUsedError(Exception):
@@ -186,8 +186,4 @@ def login(session: Session, *, email: str, password: str) -> str:
     and billing for their authenticator code first; never expose this one to the web.
     """
     staff = authenticate(session, email=email, password=password)
-    return create_access_token(
-        staff_id=staff.id,
-        tenant_id=staff.tenant_id,
-        role=staff.role,
-    )
+    return open_session(session, staff=staff, label="Script or test")

@@ -15,6 +15,7 @@ export const ACTION_LABELS: Record<string, string> = {
   "mfa.backup_used": "Signed in with a backup code",
   "mfa.fail": "Typed a wrong sign-in code",
   "mfa.reset": "Reset someone's authenticator app",
+  "session.end": "Signed a device out",
   "appointment.create": "Booked or registered a visit",
   "appointment.check_in": "Checked a patient in",
   "appointment.start": "Started a consultation",

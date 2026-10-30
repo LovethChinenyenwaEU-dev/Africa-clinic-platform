@@ -1,4 +1,5 @@
 import uuid
+from datetime import datetime
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -84,6 +85,7 @@ class StaffResponse(BaseModel):
     role: str
     is_active: bool
 
+
 class ClinicianResponse(BaseModel):
     """A doctor or nurse to choose from. No email, no account details."""
 
@@ -92,3 +94,13 @@ class ClinicianResponse(BaseModel):
     id: uuid.UUID
     full_name: str
     role: str
+
+
+class DeviceResponse(BaseModel):
+    """One signed-in device. No token, no device id: only what a person recognises."""
+
+    id: uuid.UUID
+    label: str
+    created_at: datetime
+    last_seen_at: datetime
+    current: bool  # the device asking

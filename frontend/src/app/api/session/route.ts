@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { z } from "zod";
 
 import { loginFormSchema, loginResponseSchema, meSchema } from "@/features/identity/schemas";
 import {
@@ -12,6 +13,7 @@ import {
   readSessionToken,
   writeSessionToken,
 } from "@/lib/server/session";
+import { signInHeaders } from "@/lib/server/sign-in-headers";
 
 type Message = { message: string };
 
@@ -44,7 +46,7 @@ export async function POST(request: Request) {
   try {
     const answer = await callBackend("/auth/login", loginResponseSchema, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", ...signInHeaders(request) },
       body: JSON.stringify(form.data),
     });
     if ("access_token" in answer) {
@@ -81,10 +83,20 @@ export async function GET() {
   }
 }
 
-// Log out.
+const signedOutSchema = z.object({ signed_out: z.literal(true) });
+
+// Log out. The backend ends this device's sign-in first, so a copy of the token stops
+// working at once (Week 11). The cookie is cleared even if the backend cannot be reached.
 export async function DELETE(request: Request) {
   if (!isSameOrigin(request)) {
     return reply(REFUSED, 403);
+  }
+  const token = await readSessionToken();
+  if (token) {
+    await callBackend("/auth/logout", signedOutSchema, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${token}` },
+    }).catch(() => {}); // already ended or expired: nothing more to do
   }
   await clearSession();
   return reply({ ok: true });

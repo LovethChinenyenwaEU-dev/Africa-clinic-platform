@@ -32,9 +32,9 @@ from app.modules.audit.service import AuditAction, add_audit_event
 from app.modules.identity import totp
 from app.modules.identity.models import Role, Staff, StaffBackupCode, StaffMfa
 from app.modules.identity.service import StaffNotFoundError, authenticate, get_staff_in_tenant
+from app.modules.identity.sessions import open_session
 from app.modules.identity.tokens import (
     InvalidTokenError,
-    create_access_token,
     create_challenge_token,
     decode_challenge_token,
 )
@@ -91,8 +91,8 @@ def needs_mfa(staff: Staff) -> bool:
     return staff.role in MFA_ROLES
 
 
-def _token(staff: Staff) -> str:
-    return create_access_token(staff_id=staff.id, tenant_id=staff.tenant_id, role=staff.role)
+def _token(session: Session, staff: Staff, label: str | None) -> str:
+    return open_session(session, staff=staff, label=label)
 
 
 def _hash_backup(code: str) -> str:
@@ -118,11 +118,13 @@ def _audit(session: Session, staff: Staff, action: AuditAction) -> None:
     )
 
 
-def start_sign_in(session: Session, *, email: str, password: str) -> SignInStep:
+def start_sign_in(
+    session: Session, *, email: str, password: str, label: str | None = None
+) -> SignInStep:
     """The password step. Raises InvalidCredentialsError for a wrong password."""
     staff = authenticate(session, email=email, password=password)
     if not needs_mfa(staff):
-        return SignInStep(access_token=_token(staff))
+        return SignInStep(access_token=_token(session, staff, label))
     row = _mfa_row(session, staff.id)
     step = "verify" if row is not None and row.confirmed_at is not None else "setup"
     challenge = create_challenge_token(staff_id=staff.id, tenant_id=staff.tenant_id)
@@ -176,7 +178,12 @@ def begin_setup(session: Session, *, challenge_token: str) -> SetUp:
 
 
 def confirm_setup(
-    session: Session, *, challenge_token: str, code: str, now: datetime | None = None
+    session: Session,
+    *,
+    challenge_token: str,
+    code: str,
+    now: datetime | None = None,
+    label: str | None = None,
 ) -> Confirmed:
     """The first code proves the app works. Answers the access token and the backup codes."""
     current = now or datetime.now(UTC)
@@ -208,11 +215,16 @@ def confirm_setup(
     session.add(row)
     _audit(session, staff, AuditAction.MFA_ENROLL)
     session.commit()
-    return Confirmed(access_token=_token(staff), backup_codes=codes)
+    return Confirmed(access_token=_token(session, staff, label), backup_codes=codes)
 
 
 def verify_sign_in(
-    session: Session, *, challenge_token: str, code: str, now: datetime | None = None
+    session: Session,
+    *,
+    challenge_token: str,
+    code: str,
+    now: datetime | None = None,
+    label: str | None = None,
 ) -> str:
     """The code from the app, or one backup code. Answers the access token."""
     current = now or datetime.now(UTC)
@@ -246,7 +258,7 @@ def verify_sign_in(
     session.add(row)
     _audit(session, staff, action)
     session.commit()
-    return _token(staff)
+    return _token(session, staff, label)
 
 
 def reset_mfa(
