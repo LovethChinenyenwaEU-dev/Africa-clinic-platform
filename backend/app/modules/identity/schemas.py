@@ -17,6 +17,43 @@ class TokenResponse(BaseModel):
     token_type: str = "bearer"
 
 
+class LoginResponse(BaseModel):
+    """After the password: the wristband, or (admins and billing) the second-factor step.
+
+    Everyone else gets access_token straight away, as before. Admins and billing get no
+    token yet: mfa says which step ("setup" the first time, then "verify") and
+    challenge_token carries them to it for 5 minutes.
+    """
+
+    access_token: str | None = None
+    token_type: str = "bearer"
+    mfa: str | None = None
+    challenge_token: str | None = None
+
+
+class MfaChallenge(BaseModel):
+    challenge_token: str = Field(min_length=1, max_length=2000)
+
+
+class MfaCode(MfaChallenge):
+    """A 6-digit code from the app, or a backup code such as ABCD-EFGH."""
+
+    code: str = Field(min_length=6, max_length=20)
+
+
+class MfaSetupResponse(BaseModel):
+    """What the person adds to their app: type the secret, or open or scan the link."""
+
+    secret: str
+    otpauth_uri: str
+
+
+class MfaConfirmedResponse(TokenResponse):
+    """Signed in, and the backup codes: shown this once, never again."""
+
+    backup_codes: list[str]
+
+
 class MeResponse(BaseModel):
     """What we are willing to say about the logged-in person. No password_hash, ever."""
 

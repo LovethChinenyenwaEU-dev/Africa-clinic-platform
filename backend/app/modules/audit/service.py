@@ -30,6 +30,11 @@ class AuditAction(StrEnum):
     CONSENT_VIEW = "consent.view"
     AUDIT_VIEW = "audit.view"
     AUDIT_VERIFY = "audit.verify"  # an admin checked the tamper-evident chain
+    MFA_ENROLL = "mfa.enroll"  # set up an authenticator app
+    MFA_VERIFY = "mfa.verify"  # signed in with the app's code
+    MFA_BACKUP_USED = "mfa.backup_used"  # signed in with a one-time backup code
+    MFA_FAIL = "mfa.fail"  # a wrong code
+    MFA_RESET = "mfa.reset"  # an admin cleared someone's app (lost phone)
     APPOINTMENT_CREATE = "appointment.create"
     APPOINTMENT_CHECK_IN = "appointment.check_in"
     APPOINTMENT_START = "appointment.start"

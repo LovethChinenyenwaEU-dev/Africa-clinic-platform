@@ -18,7 +18,7 @@ from app.modules.billing.models import (
 )
 from app.modules.consent.models import Consent, ConsentText
 from app.modules.idempotency.models import IdempotencyRecord
-from app.modules.identity.models import Staff
+from app.modules.identity.models import Staff, StaffBackupCode, StaffMfa
 from app.modules.notifications.models import Reminder
 from app.modules.patients.models import Patient
 from app.modules.portal.models import PatientLoginCode
@@ -93,6 +93,8 @@ def session(run_id):
                 Consent,
                 ConsentText,
                 PatientLoginCode,
+                StaffBackupCode,
+                StaffMfa,
                 Patient,
                 PriceItem,
             ):

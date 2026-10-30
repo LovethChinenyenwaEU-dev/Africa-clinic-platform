@@ -6,6 +6,11 @@ from app.modules.identity.dependencies import get_current_staff
 # Doors that are public on purpose. Adding a line here is a decision, so think first.
 PUBLIC_OPERATIONS = {
     ("POST", "/api/v1/auth/login"),
+    # The second-factor steps: the person has no token yet, only a 5-minute challenge
+    # from the right password, checked inside each step (Week 11).
+    ("POST", "/api/v1/auth/mfa/setup"),
+    ("POST", "/api/v1/auth/mfa/confirm"),
+    ("POST", "/api/v1/auth/mfa/verify"),
     # A patient signs in with an SMS code: they cannot have a token before (Week 9).
     ("POST", "/api/v1/patient-portal/sign-in/start"),
     ("POST", "/api/v1/patient-portal/sign-in/finish"),

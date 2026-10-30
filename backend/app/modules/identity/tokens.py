@@ -115,3 +115,47 @@ def decode_patient_token(token: str) -> PatientClaims:
         )
     except (jwt.PyJWTError, KeyError, ValueError):
         raise InvalidTokenError("Invalid or expired token.") from None
+
+
+# Sign-in with a second factor (Week 11): after the right password, admins and billing get
+# a short "challenge" token, marked kind=mfa_challenge. It opens nothing but the code step:
+# the staff and patient doors refuse it (it has a kind, and no role).
+
+CHALLENGE_TOKEN_MINUTES = 5
+
+
+@dataclass(frozen=True)
+class ChallengeClaims:
+    staff_id: uuid.UUID
+    tenant_id: uuid.UUID
+
+
+def create_challenge_token(
+    *, staff_id: uuid.UUID, tenant_id: uuid.UUID, now: datetime | None = None
+) -> str:
+    issued_at = now or datetime.now(UTC)
+    payload = {
+        "sub": str(staff_id),
+        "tenant_id": str(tenant_id),
+        "kind": "mfa_challenge",
+        "iat": issued_at,
+        "exp": issued_at + timedelta(minutes=CHALLENGE_TOKEN_MINUTES),
+    }
+    return jwt.encode(payload, _signing_key(), algorithm=ALGORITHM)
+
+
+def decode_challenge_token(token: str) -> ChallengeClaims:
+    try:
+        payload = jwt.decode(
+            token,
+            _signing_key(),
+            algorithms=[ALGORITHM],
+            options={"require": ["exp", "sub"]},
+        )
+        if payload.get("kind") != "mfa_challenge":
+            raise InvalidTokenError("Not a sign-in challenge.")
+        return ChallengeClaims(
+            staff_id=uuid.UUID(payload["sub"]), tenant_id=uuid.UUID(payload["tenant_id"])
+        )
+    except (jwt.PyJWTError, KeyError, ValueError):
+        raise InvalidTokenError("Invalid or expired sign-in challenge.") from None

@@ -5,6 +5,7 @@ from sqlmodel import Session
 
 from app.core.db import get_session
 from app.modules.identity.dependencies import CurrentStaff, require
+from app.modules.identity.mfa import OwnResetError, reset_mfa
 from app.modules.identity.passwords import WeakPasswordError
 from app.modules.identity.permissions import Capability
 from app.modules.identity.schemas import ClinicianResponse, StaffCreate, StaffResponse
@@ -124,3 +125,25 @@ def activate_staff(
 ):
     """Switch a staff member back on."""
     return _switch(session, current_staff, staff_id, active=True)
+
+
+@router.post(
+    "/{staff_id}/mfa/reset",
+    dependencies=[Depends(require(Capability.STAFF_MANAGE))],
+)
+def reset_staff_mfa(
+    staff_id: uuid.UUID,
+    current_staff: CurrentStaff,
+    session: Session = Depends(get_session),
+):
+    """A lost phone: clear this person's authenticator app. They set it up again at their
+    next sign-in. Another admin must do it; nobody resets their own."""
+    try:
+        reset_mfa(
+            session, tenant_id=current_staff.tenant_id, actor_id=current_staff.id, staff_id=staff_id
+        )
+    except OwnResetError as error:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=str(error)) from None
+    except StaffNotFoundError:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Not found.") from None
+    return {"reset": True}  # 200 with a body: the staff pass-through cannot carry a 204

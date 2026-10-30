@@ -180,7 +180,11 @@ def authenticate(session: Session, *, email: str, password: str) -> Staff:
 
 
 def login(session: Session, *, email: str, password: str) -> str:
-    """Check the password and hand back a wristband (access token)."""
+    """Check the password and hand back a wristband (access token), with no second factor.
+
+    For tests and scripts only. The login door uses mfa.start_sign_in, which asks admins
+    and billing for their authenticator code first; never expose this one to the web.
+    """
     staff = authenticate(session, email=email, password=password)
     return create_access_token(
         staff_id=staff.id,

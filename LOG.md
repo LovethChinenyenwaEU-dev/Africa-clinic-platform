@@ -9,6 +9,20 @@ Roadmap: [README](./README.md#roadmap-12-week-mvp) · Brief: [docs/product-brief
 
 ---
 
+## 1 Nov 2026 (Sun): Week 11 Step 3a, the second factor (backend)
+
+**Done**
+- Week 11 Step 2 (row-level security) and the AfriPeak design confirmed green on CI and in the Codespace. The font packages had never been committed: added, which also stopped the service worker showing an old saved sign-in page.
+- Week 11 Step 3a: **admins and billing sign in with an authenticator app (FR-T4).** The right password gives them a 5-minute challenge instead of a token (everyone else still gets their token straight away, same answer as before). First time: a secret to add to the app (text and an otpauth:// link), proved by a first code, then 10 one-time backup codes shown once. After that: the app's code or a backup code. TOTP written with the standard library and tested against the RFC 4226 and RFC 6238 examples. One step of clock drift allowed; no code works twice; five wrong codes lock sign-in for 15 minutes. An admin resets a lost phone for someone else, never for themselves. The challenge token opens nothing else (staff and patient doors refuse it). Backup codes are stored as keyed hashes; the secret as text until the W12 key manager. New tables behind the row-level security wall. Migration 0033.
+
+**Hardest problem:** keeping 900 tests that sign in admins working. *Fix:* the second factor sits on the login door (start_sign_in); the plain login() stays for tests and scripts only, and its docstring says never to expose it.
+
+**Finished:** Step 3a awaiting the Codespace run (`alembic upgrade head`). Migration head: 0033. Until Step 3b, admins and billing cannot sign in on the web screens (the screens do not know the code step yet).
+
+**Next:** Week 11 Step 3b: the sign-in screens for the code step, the set-up step and the backup codes.
+
+---
+
 ## 30 Oct 2026 (Fri): the AfriPeak Health design; Week 11 Step 2 (row-level security)
 
 **Done**
