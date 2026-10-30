@@ -4,7 +4,7 @@ import type { ComponentProps } from "react";
 
 import { cn } from "@/lib/utils";
 
-// shadcn/ui Button, coloured with the Lafiya tokens instead of shadcn's own variables.
+// shadcn/ui Button, coloured with the AfriPeak Health tokens instead of shadcn's own variables.
 const buttonVariants = cva(
   "inline-flex shrink-0 items-center justify-center gap-2 whitespace-nowrap rounded-[10px] font-bold transition-[background-color,color,border-color,transform] disabled:pointer-events-none disabled:opacity-60 [&_svg]:pointer-events-none [&_svg]:shrink-0",
   {

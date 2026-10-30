@@ -5,6 +5,7 @@ from fastapi.security import HTTPAuthorizationCredentials
 from sqlmodel import Session
 
 from app.core.db import get_session
+from app.core.tenant_wall import raise_tenant_wall
 from app.modules.identity.dependencies import bearer_scheme
 from app.modules.identity.tokens import InvalidTokenError, decode_patient_token
 from app.modules.patients.models import Patient
@@ -30,6 +31,8 @@ def get_current_patient(
     patient = session.get(Patient, claims.patient_id)
     if patient is None or patient.tenant_id != claims.tenant_id:
         raise refused
+    # From here on the database itself only shows this clinic's rows (row-level security).
+    raise_tenant_wall(session, patient.tenant_id)
     return patient
 
 

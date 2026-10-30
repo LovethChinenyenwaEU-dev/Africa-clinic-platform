@@ -4,7 +4,7 @@ import { can } from "@/features/identity/abilities";
 import { PatientDetails } from "@/features/patients/PatientDetails";
 import { requireUser } from "@/lib/server/require-user";
 
-export const metadata = { title: "Patient | Lafiya" };
+export const metadata = { title: "Patient | AfriPeak Health" };
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 

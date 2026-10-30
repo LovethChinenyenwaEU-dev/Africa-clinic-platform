@@ -4,7 +4,7 @@ import { can } from "@/features/identity/abilities";
 import { ReviewQueue } from "@/features/patients/ReviewQueue";
 import { requireUser } from "@/lib/server/require-user";
 
-export const metadata = { title: "Registrations to review | Lafiya" };
+export const metadata = { title: "Registrations to review | AfriPeak Health" };
 
 // Whoever may register patients decides on offline registrations (backend: patient:write).
 export default async function ReviewPage() {

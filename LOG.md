@@ -9,15 +9,20 @@ Roadmap: [README](./README.md#roadmap-12-week-mvp) · Brief: [docs/product-brief
 
 ---
 
-## 30 Oct 2026 (Fri): the AfriPeak Health landing page
+## 30 Oct 2026 (Fri): the AfriPeak Health design; Week 11 Step 2 (row-level security)
 
 **Done**
 - The user's own landing page design (AfriPeak Health) is now the public page. It is kept **exactly as designed** in `landing/`, its own small Next.js app (Next 14, Tailwind 3, DaisyUI 4), because putting it inside the clinic app (Next 16, Tailwind 4, DaisyUI 5 with a `d-` prefix) would have changed its buttons, cards and form fields and let its global CSS restyle the staff screens. It runs on port 3001 (`docker compose` service `landing`), and CI builds it in its own job. The clinic app's `/welcome` and the sign-in page's links now go to it (`LANDING_URL`). The earlier Lafiya page (`frontend/src/features/site`) is kept but no longer shown.
 - The landing page calls no backend endpoint. Points where its wording or links differ from what the backend does were listed for the user (no changes made to the design).
 
-**Pending:** the user's decisions on those points; the clinic app is still branded Lafiya.
+- **The clinic app now wears the AfriPeak Health design** (as the user asked): the landing page's colours (deep green, teal, soft green, paper background), fonts (Poppins headings, Roboto text, Raleway menu, served by Fontsource), 8px buttons that lift and turn teal, 16px cards with a soft green shadow, form fields, the brand mark and small capitals, and the deep-green top bar over a white sticky header. Done at the design-system level (tokens, base classes, header, logo), so every staff and patient screen changed at once; page titles say AfriPeak Health. The landing page itself was not touched.
+- Week 11 Step 2: **row-level security (brief D2).** A role `clinic_app` that owns no table, and a `tenant_wall` policy on every table with a tenant_id. Once a request knows who is signed in (staff or patient), each transaction runs `SET LOCAL ROLE clinic_app` with `app.tenant_id` set, so a query that forgets its clinic filter finds nothing and nothing can be written into another clinic. Work with nobody signed in (sign-in, SMS sign-in, webhook, worker) keeps the owner role. Settings are transaction-local, so pooled connections never carry a wall over. Outside the wall on purpose: `staff` and the audit chain counter. All API tests now run behind the wall. Migration 0032.
 
-**Next:** Week 11 Step 2: PostgreSQL row-level security.
+**Hardest problem:** PostgreSQL never applies row-level security to the table owner or a superuser, which is what the app connects as. *Fix:* a separate role without ownership, switched to with SET LOCAL ROLE only for signed-in work. *Lesson:* check who the rule applies to before trusting it.
+
+**Pending:** the user's decisions on the landing page points; MFA next.
+
+**Next:** Week 11 Step 3: MFA (authenticator app) for admins and billing.
 
 ---
 

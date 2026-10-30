@@ -5,7 +5,7 @@ import { LoginForm } from "@/features/identity/LoginForm";
 import { getCurrentUser } from "@/lib/server/current-user";
 import { landingUrl } from "@/lib/server/landing";
 
-export const metadata = { title: "Sign in | Lafiya" };
+export const metadata = { title: "Sign in | AfriPeak Health" };
 
 export default async function LoginPage() {
   let signedIn = false;
@@ -20,13 +20,20 @@ export default async function LoginPage() {
 
   return (
     <main className="page">
-      <a href={landingUrl()} aria-label="About the platform" className="mb-8 inline-block">
+      <a href={landingUrl()} aria-label="About AfriPeak Health" className="mb-10 inline-block">
         <Logo tagline />
       </a>
-      <h1>Sign in</h1>
+      <p className="eyebrow">Staff sign in</p>
+      <h1>Welcome back</h1>
+      <p className="mb-6 text-muted">
+        Sign in to see today&apos;s patients, records and payments.
+      </p>
       <LoginForm />
       <p className="mt-6 text-sm text-muted">
-        New here? <a href={landingUrl()} className="font-bold text-accent">See what it does</a>
+        New here?{" "}
+        <a href={landingUrl()} className="font-bold text-accent hover:text-teal">
+          See what AfriPeak Health does
+        </a>
       </p>
     </main>
   );

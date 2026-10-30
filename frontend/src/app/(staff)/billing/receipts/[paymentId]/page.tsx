@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import { ReceiptView } from "@/features/billing/ReceiptView";
 import { requireUser } from "@/lib/server/require-user";
 
-export const metadata = { title: "Receipt | Lafiya" };
+export const metadata = { title: "Receipt | AfriPeak Health" };
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 

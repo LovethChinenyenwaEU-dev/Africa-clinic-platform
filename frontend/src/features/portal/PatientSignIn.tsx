@@ -4,6 +4,7 @@ import { useMutation } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import { useState, type FormEvent } from "react";
 
+import { Logo } from "@/components/brand/Logo";
 import { errorMessage } from "@/lib/api-client";
 import { todayInLagos } from "@/lib/format";
 
@@ -46,6 +47,7 @@ export function PatientSignIn({ clinicId }: { clinicId: string }) {
 
   return (
     <main className="mx-auto grid max-w-md gap-5 px-4 py-8">
+      <Logo size="sm" tagline />
       <h1 className="mb-0">Your clinic record</h1>
       <p>
         Sign in with the phone number the clinic has for you. We send a code by SMS; no

@@ -3,6 +3,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 
+import { Logo } from "@/components/brand/Logo";
 import { STATUS_LABELS, VISIT_TYPE_LABELS } from "@/features/scheduling/labels";
 import { errorMessage } from "@/lib/api-client";
 import { formatDateTime } from "@/lib/format";
@@ -50,6 +51,7 @@ export function PatientHome({ clinicId }: { clinicId: string }) {
 
   return (
     <main className="mx-auto grid max-w-2xl gap-5 px-4 py-6">
+      <Logo size="sm" tagline />
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h1 className="mb-0">{me.data ? `Hello, ${me.data.full_name}` : "Your clinic record"}</h1>
         <button

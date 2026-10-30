@@ -6,6 +6,7 @@ from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlmodel import Session
 
 from app.core.db import get_session
+from app.core.tenant_wall import raise_tenant_wall
 from app.modules.identity.models import Staff
 from app.modules.identity.permissions import Capability, role_has
 from app.modules.identity.tokens import InvalidTokenError, decode_access_token
@@ -40,6 +41,8 @@ def get_current_staff(
     staff = session.get(Staff, claims.staff_id)
     if staff is None or not staff.is_active or staff.tenant_id != claims.tenant_id:
         raise _not_authenticated()
+    # From here on the database itself only shows this clinic's rows (row-level security).
+    raise_tenant_wall(session, staff.tenant_id)
     return staff
 
 

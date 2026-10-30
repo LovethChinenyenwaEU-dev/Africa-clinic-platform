@@ -11,7 +11,7 @@ export function StaffNav({ items }: { items: NavItem[] }) {
 
   return (
     <nav aria-label="Main">
-      <ul className="flex flex-wrap gap-4">
+      <ul className="flex flex-wrap gap-x-7 gap-y-1 font-nav text-[13px] font-bold text-[#4f6575]">
         {items.map((item) => {
           const current = item.href === active;
           return (
@@ -19,7 +19,7 @@ export function StaffNav({ items }: { items: NavItem[] }) {
               <Link
                 href={item.href}
                 aria-current={current ? "page" : undefined}
-                className={current ? "font-semibold text-accent underline" : "hover:text-accent"}
+                className={current ? "text-teal" : "hover:text-teal"}
               >
                 {item.label}
               </Link>
