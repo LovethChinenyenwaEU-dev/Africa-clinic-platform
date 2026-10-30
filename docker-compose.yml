@@ -62,6 +62,8 @@ services:
       API_INTERNAL_URL: http://api:8000
       # Exact extra addresses allowed to sign in and write, read from .env (see .env.example).
       TRUSTED_ORIGINS: ${TRUSTED_ORIGINS:-}
+      # Where the public landing page is (landing/ on port 3001). In Codespaces, its forwarded address.
+      LANDING_URL: ${LANDING_URL:-http://localhost:3001}
     volumes:
       - ./frontend:/app
       - /app/node_modules
@@ -71,6 +73,16 @@ services:
     depends_on:
       api:
         condition: service_healthy
+
+  # The public landing page (AfriPeak Health), its own app: http://localhost:3001
+  landing:
+    build: ./landing
+    volumes:
+      - ./landing:/app
+      - /app/node_modules
+      - /app/.next
+    ports:
+      - "3001:3000"
 
 volumes:
   pgdata:

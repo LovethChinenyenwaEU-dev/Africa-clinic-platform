@@ -100,9 +100,28 @@ jobs:
       - name: Test
         run: npm test
 
+  landing:
+    name: Landing page (build)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: landing
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build
+        run: npm run build
+
   compose-smoke:
     name: Full stack starts with one command
-    needs: [backend, frontend]
+    needs: [backend, frontend, landing]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4

@@ -9,12 +9,27 @@ Roadmap: [README](./README.md#roadmap-12-week-mvp) · Brief: [docs/product-brief
 
 ---
 
+## 30 Oct 2026 (Fri): the AfriPeak Health landing page
+
+**Done**
+- The user's own landing page design (AfriPeak Health) is now the public page. It is kept **exactly as designed** in `landing/`, its own small Next.js app (Next 14, Tailwind 3, DaisyUI 4), because putting it inside the clinic app (Next 16, Tailwind 4, DaisyUI 5 with a `d-` prefix) would have changed its buttons, cards and form fields and let its global CSS restyle the staff screens. It runs on port 3001 (`docker compose` service `landing`), and CI builds it in its own job. The clinic app's `/welcome` and the sign-in page's links now go to it (`LANDING_URL`). The earlier Lafiya page (`frontend/src/features/site`) is kept but no longer shown.
+- The landing page calls no backend endpoint. Points where its wording or links differ from what the backend does were listed for the user (no changes made to the design).
+
+**Pending:** the user's decisions on those points; the clinic app is still branded Lafiya.
+
+**Next:** Week 11 Step 2: PostgreSQL row-level security.
+
+---
+
 ## 26 Oct 2026 (Mon): Week 11 started: a tamper-evident audit log
 
 **Done**
 - Week 10 Step 7b confirmed green on CI.
 - Week 11 decisions: MFA with an **authenticator app** (TOTP, plus backup codes) for **admins and billing**; attachments **after the MVP**. Order: tamper-evident audit, database row-level security, MFA, one-device sign-out, dashboards, FHIR-aligned export, admin screens and the notification console.
 - Week 11 Step 1: **the audit log is tamper-evident (brief D3).** Each clinic's audit lines form a chain: every line stores its number, the previous line's hash and its own SHA-256 hash over all its fields. A database trigger writes them, so no code path can skip them or choose them (a test tries). A per-clinic chain head is locked while a line is numbered. One SQL function defines the hash for both writing and checking. Existing lines were chained by the migration, oldest first. `GET /audit/chain` (admins) recomputes the chain and names the first line that was changed, removed or slipped in, and gives the head (number and hash) to write down. Tests switch the append-only trigger off the way a database owner could, tamper, and see the check catch it. Migration 0031.
+
+**Broke, and fixed**
+- *The frontend build failed on CI with "Can't resolve '@vercel/turbopack-next/internal/font/google/font'"* for all three fonts. Cause: `next/font/google` downloads the fonts from Google during the build, and that download failed on the CI runner. Fix: the fonts are now Fontsource npm packages, served by our own app, so the build needs no network and no browser contacts Google (better for privacy and for offline use too).
 
 **Hardest problem:** two lines added at the same moment must not get the same number, and the app must not be trusted to number them. *Fix:* the trigger locks the clinic's chain head row (SELECT ... FOR UPDATE) for the rest of the transaction. *Lesson:* integrity rules belong in the database when the threat is someone going around the app.
 

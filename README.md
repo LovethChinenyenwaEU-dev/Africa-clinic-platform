@@ -105,6 +105,7 @@ docker compose up --build
 ```
 
 - App: http://localhost:3000
+- Public landing page (AfriPeak Health, `landing/`, its own Next.js app): http://localhost:3001
 - API docs: http://localhost:8000/docs
 - Run tests: `docker compose exec api pytest` (backend) and `docker compose exec web npm test` (frontend)
 - Reminder worker: starts with the stack as the `worker` service. Watch it with `docker compose logs -f worker`. `SMS_PROVIDER=none` in `.env` means nothing is really sent.
