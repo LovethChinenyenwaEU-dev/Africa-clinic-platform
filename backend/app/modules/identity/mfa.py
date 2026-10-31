@@ -280,3 +280,25 @@ def reset_mfa(
         entity_id=staff.id,
     )
     session.commit()
+
+
+def mfa_statuses(session: Session, *, tenant_id: uuid.UUID, staff: list[Staff]) -> dict:
+    """For the admin's staff list: "set_up", "waiting" (they set it up at their next
+    sign-in) or "not_needed" (their role signs in with a password only)."""
+    confirmed = set(
+        session.exec(
+            select(StaffMfa.staff_id)
+            .where(col(StaffMfa.tenant_id) == tenant_id)
+            .where(col(StaffMfa.confirmed_at).is_not(None))
+        ).all()
+    )
+    return {
+        person.id: (
+            "not_needed"
+            if person.role not in MFA_ROLES
+            else "set_up"
+            if person.id in confirmed
+            else "waiting"
+        )
+        for person in staff
+    }

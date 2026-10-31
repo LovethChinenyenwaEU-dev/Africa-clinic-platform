@@ -86,6 +86,12 @@ class StaffResponse(BaseModel):
     is_active: bool
 
 
+class StaffListItem(StaffResponse):
+    """A line of the admin's staff list: also where their authenticator app stands."""
+
+    mfa: str  # set_up, waiting (at their next sign-in) or not_needed (their role)
+
+
 class ClinicianResponse(BaseModel):
     """A doctor or nurse to choose from. No email, no account details."""
 

@@ -10,6 +10,7 @@ import type { Role } from "./schemas";
 export type ScreenKey =
   | "home"
   | "dashboard"
+  | "staff"
   | "patients"
   | "queue"
   | "availability"
@@ -31,6 +32,8 @@ export const SCREENS: Record<ScreenKey, Screen> = {
   home: { href: "/", label: "Home", roles: EVERYONE, inMenu: true },
   // The clinic's numbers (Week 11): counts and sums only, so admins can read it.
   dashboard: { href: "/dashboard", label: "Dashboard", roles: ["admin"], inMenu: true },
+  // Add staff, switch them off and on, their devices and authenticator apps (Week 11).
+  staff: { href: "/staff", label: "Staff", roles: ["admin"], inMenu: true },
   // Admins supervise through the diary and have no patient access (ADR-0003).
   patients: {
     href: "/patients",

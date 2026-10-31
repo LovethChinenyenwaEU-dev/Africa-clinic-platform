@@ -17,7 +17,7 @@ Roadmap: [README](./README.md#roadmap-12-week-mvp) · Brief: [docs/product-brief
 
 **Hardest problem:** keeping 900 tests that sign in admins working. *Fix:* the second factor sits on the login door (start_sign_in); the plain login() stays for tests and scripts only, and its docstring says never to expose it.
 
-**Finished:** Steps 3a, 3b and 4 green on CI; Steps 5a, 5b and 6a green; Step 6b awaiting the Codespace run (no migration). Migration head: 0034.
+**Finished:** Steps 3a, 3b and 4 green on CI; Steps 5 and 6 green; Step 7a awaiting the Codespace run (no migration). Migration head: 0034.
 
 - Week 11 Step 3b: **the sign-in screens for the second factor.** After the password, admins and billing see either the code step (the app's code, or a backup code) or, the first time, the set-up: a button shows their key (grouped in fours, and a link that opens the app on a phone), they type the app's first code, then see their 10 backup codes once and must tick "I have kept these codes" to continue. The challenge stays in its own 5-minute httpOnly cookie, so the page's JavaScript never holds it; a new route `/api/session/mfa` swaps it for the normal session cookie. Clear messages for a wrong code, the 15-minute lock, and an expired step (with "Sign in again").
 
@@ -33,7 +33,9 @@ Roadmap: [README](./README.md#roadmap-12-week-mvp) · Brief: [docs/product-brief
 
 - Week 11 Step 6b: **the export button.** Doctors and nurses see "Export the record (FHIR)" on the patient page: they choose why (the patient asked for a copy; a referral; a transfer), then "Download record (FHIR)" saves `patient-record-<first 8 characters of the id>-<day>.fhir.json` (never the patient's name in a file name). If sharing consent is missing, the backend's message says so. The page reminds them the file holds the whole record (send securely, delete afterwards). The audit log now shows why each record was exported.
 
-**Next:** Week 11 Step 7: admin screens (staff, devices, MFA reset) and the notification console.
+- Week 11 Step 7a: **the Staff screen for admins** (`/staff`, "Staff" in the admin menu). Add a staff member (name, email, role, a first password of at least 10 characters, checked on the screen first; admins and billing are told they will set up an authenticator app). The list shows each person's role, email, active or switched off, and where their authenticator app stands (set up, will set up at next sign-in, or password only for their role); the backend's staff list now says this (`mfa`). For anyone but yourself: switch off or back on (with a question first; the backend still keeps the last admin), see their signed-in devices and sign one out, and reset their authenticator app after a lost phone. Your own row links to "My devices" instead.
+
+**Next:** Week 11 Step 7b: branch and consent-wording screens; Step 7c: the notification console (sent and failed reminders).
 
 ---
 

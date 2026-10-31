@@ -28,6 +28,7 @@ describe("navFor", () => {
     expect(labels("admin")).toEqual([
       "Home",
       "Dashboard",
+      "Staff",
       "Audit log",
       "Prices",
       "Refunds",
@@ -61,6 +62,7 @@ describe("navFor", () => {
     for (const role of ["front_desk", "nurse", "doctor", "billing"] as const) {
       expect(canOpen(role, "audit")).toBe(false);
       expect(canOpen(role, "dashboard")).toBe(false);
+      expect(canOpen(role, "staff")).toBe(false);
     }
   });
 });

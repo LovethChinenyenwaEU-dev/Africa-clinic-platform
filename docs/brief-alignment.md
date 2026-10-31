@@ -27,7 +27,7 @@ in the repository. Update this file when a gap is closed or a decision changes.
 | Patient registration, duplicate warnings | ✅ | Deterministic matching, human confirmation, never auto-merged |
 | Consent capture | ✅ | Versioned clinic wording, patient or caregiver, withdraw keeps history |
 | Audit log | ✅ | Append-only, reads logged, entity + staff/date filters, admin screen |
-| Admin **screens** for staff, branches and consent wording | ⬜ | The API exists; admins have no screens for these yet. **Add to W11** (or earlier if a pilot needs them) |
+| Admin **screens** for staff, branches and consent wording | 🟡 | Staff ✅ (W11 Step 7a: add, switch off and on, devices, authenticator reset). Branches and consent wording: W11 Step 7b |
 
 ### Appointments and queue
 | Item | Status | Where / plan |
@@ -68,7 +68,7 @@ in the repository. Update this file when a gap is closed or a decision changes.
 | Idempotency keys | ✅ | Device-made IDs on every create, plus the `Idempotency-Key` header with stored responses for every write (W8) |
 | Adapters behind retryable interfaces | ✅ | SMS adapter with fake/none; video, payments, labs follow the same pattern later |
 | Short-lived tokens | ✅ | 30 minutes; a switched-off staff member is refused on their very next request |
-| MFA for privileged staff | ✅ | W11 Step 3: admins and billing sign in with an authenticator app (TOTP, RFC 6238, no new library): set-up screen with the key, 10 one-time backup codes shown once, no code twice, 15-minute lock after 5 wrong codes, admin reset for a lost phone (never one's own). The challenge between password and code stays in an httpOnly cookie. The secret is stored as text until the W12 key manager. |
+| MFA for privileged staff | ✅ | W11 Step 3: admins and billing sign in with an authenticator app (TOTP, RFC 6238, no new library): set-up screen with the key, 10 one-time backup codes shown once, no code twice, 15-minute lock after 5 wrong codes, admin reset for a lost phone (never one's own). Admins reset it from the Staff screen (W11 Step 7a), which shows whose app is set up. The challenge between password and code stays in an httpOnly cookie. The secret is stored as text until the W12 key manager. |
 | Device/session revocation | ✅ | Every sign-in is its own row and its token carries that row's id; every request checks the row is still open (W11). Signing out ends this device on the server at once; "My devices" lists where a person is signed in and signs any one out; an admin can end a staff member's device (API). Switching a person off still ends every device. Each end is in the audit log (`session.end`) |
 | Least-privilege RBAC | ✅ | Plus record-level rules (only the opener signs off, only the author amends) |
 | ABAC | ⬜ | Not planned for the MVP; the record-level rules cover today's needs |

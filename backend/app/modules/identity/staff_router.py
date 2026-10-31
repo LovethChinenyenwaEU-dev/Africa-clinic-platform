@@ -5,7 +5,7 @@ from sqlmodel import Session
 
 from app.core.db import get_session
 from app.modules.identity.dependencies import CurrentStaff, require
-from app.modules.identity.mfa import OwnResetError, reset_mfa
+from app.modules.identity.mfa import OwnResetError, mfa_statuses, reset_mfa
 from app.modules.identity.models import Staff
 from app.modules.identity.passwords import WeakPasswordError
 from app.modules.identity.permissions import Capability
@@ -13,6 +13,7 @@ from app.modules.identity.schemas import (
     ClinicianResponse,
     DeviceResponse,
     StaffCreate,
+    StaffListItem,
     StaffResponse,
 )
 from app.modules.identity.service import (
@@ -37,15 +38,21 @@ router = APIRouter(prefix="/staff", tags=["staff"])
 
 @router.get(
     "",
-    response_model=list[StaffResponse],
+    response_model=list[StaffListItem],
     dependencies=[Depends(require(Capability.STAFF_READ))],
 )
 def list_my_staff(
     current_staff: CurrentStaff,
     session: Session = Depends(get_session),
 ):
-    """The staff of the logged-in admin's own clinic."""
-    return list_staff(session, tenant_id=current_staff.tenant_id)
+    """The staff of the logged-in admin's own clinic, with where each one's authenticator
+    app stands."""
+    staff = list_staff(session, tenant_id=current_staff.tenant_id)
+    mfa = mfa_statuses(session, tenant_id=current_staff.tenant_id, staff=staff)
+    return [
+        StaffListItem(**StaffResponse.model_validate(person).model_dump(), mfa=mfa[person.id])
+        for person in staff
+    ]
 
 
 @router.get(

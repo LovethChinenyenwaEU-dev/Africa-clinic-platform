@@ -1,9 +1,11 @@
 import uuid
+from datetime import UTC, datetime
 
 import pytest
 from fastapi.testclient import TestClient
 
 from app.main import app
+from app.modules.identity.models import StaffMfa
 from app.modules.identity.service import create_staff, login
 from app.modules.tenancy.service import create_tenant
 
@@ -168,3 +170,30 @@ def test_an_admin_can_be_switched_off_when_another_admin_remains(client, session
     )
     assert response.status_code == 200
     assert response.json()["is_active"] is False
+
+def test_the_list_says_where_each_authenticator_app_stands(client, session, run_id, clinics):
+    """Week 11: admins and billing need an app; everyone else signs in with a password."""
+    response = client.get(STAFF_URL, headers=headers_for(session, run_id, "admin"))
+
+    mfa = {person["email"].split("@")[0]: person["mfa"] for person in response.json()}
+    assert mfa == {"admin": "waiting", "nurse": "not_needed"}
+
+
+def test_an_app_that_was_set_up_shows_as_set_up(client, session, run_id, clinics):
+    admin = clinics["admin"]
+    session.add(
+        StaffMfa(
+            staff_id=admin.id,
+            tenant_id=admin.tenant_id,
+            secret="JBSWY3DPEHPK3PXP",
+            confirmed_at=datetime.now(UTC),
+            failed_attempts=0,
+            created_at=datetime.now(UTC),
+        )
+    )
+    session.commit()
+
+    response = client.get(STAFF_URL, headers=headers_for(session, run_id, "admin"))
+
+    mine = [p for p in response.json() if p["id"] == str(admin.id)]
+    assert mine[0]["mfa"] == "set_up"
