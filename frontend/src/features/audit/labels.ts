@@ -5,6 +5,7 @@ export const ACTION_LABELS: Record<string, string> = {
   "patient.search": "Searched for patients",
   "patient.review_list": "Viewed registrations to review",
   "patient.review": "Decided on an offline registration",
+  "patient.merge": "Merged a duplicate record into the original",
   "consent.grant": "Recorded consent",
   "consent.revoke": "Withdrew consent",
   "consent.view": "Viewed consent",

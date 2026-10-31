@@ -7,8 +7,10 @@ from sqlmodel import Session
 from app.core.db import get_session
 from app.modules.identity.dependencies import CurrentStaff, require
 from app.modules.identity.permissions import Capability
+from app.modules.patients.merge import MergeTargetError, NotADuplicateError, merge_duplicate
 from app.modules.patients.phone import InvalidPhoneError
 from app.modules.patients.schemas import (
+    MergeResponse,
     PatientCreate,
     PatientResponse,
     ReviewDecision,
@@ -147,6 +149,36 @@ def decide_review(
         raise HTTPException(status_code=409, detail=str(error)) from None
     except InvalidPatientError as error:
         raise HTTPException(status_code=422, detail=str(error)) from None
+
+
+@router.post(
+    "/{patient_id}/merge",
+    response_model=MergeResponse,
+    dependencies=[Depends(require(Capability.PATIENT_WRITE))],
+)
+def merge_into_original(
+    patient_id: uuid.UUID,
+    current_staff: CurrentStaff,
+    session: Session = Depends(get_session),
+):
+    """Move every visit, record, consent and invoice of this duplicate to its original
+    (Week 11). Nothing is deleted; the duplicate is marked merged."""
+    try:
+        result = merge_duplicate(
+            session,
+            tenant_id=current_staff.tenant_id,
+            actor_id=current_staff.id,
+            duplicate_id=patient_id,
+        )
+    except LookupError:
+        raise HTTPException(status_code=404, detail="Patient not found.") from None
+    except (NotADuplicateError, MergeTargetError) as error:
+        raise HTTPException(status_code=409, detail=str(error)) from None
+    return MergeResponse(
+        original=PatientResponse.model_validate(result.original),
+        duplicate=PatientResponse.model_validate(result.duplicate),
+        moved=result.moved,
+    )
 
 
 @router.get(

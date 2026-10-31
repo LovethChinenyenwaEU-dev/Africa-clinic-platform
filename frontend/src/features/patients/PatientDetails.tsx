@@ -9,16 +9,19 @@ import { API_MESSAGES, ApiError } from "@/lib/api-client";
 import { ageFrom, formatDate } from "@/lib/format";
 
 import { getPatient } from "./api";
+import { MergeButton } from "./MergeButton";
 import { SEX_LABELS } from "./labels";
 
 export function PatientDetails({
   patientId,
   canManageConsent,
   canExportRecord = false,
+  canMerge = false,
 }: {
   patientId: string;
   canManageConsent: boolean;
   canExportRecord?: boolean;
+  canMerge?: boolean;
 }) {
   // Opening the page is one "patient.view" line in the diary.
   const patient = useQuery({
@@ -70,12 +73,24 @@ export function PatientDetails({
           </p>
         )}
         {person.review_status === "duplicate" && person.duplicate_of_id && (
+          <div className="notice grid gap-2">
+            <p className="m-0">
+              Checked: this patient was already registered. Use{" "}
+              <Link href={`/patients/${person.duplicate_of_id}`} className="text-accent underline">
+                the original record
+              </Link>
+              . This one is kept, with what was recorded on it.
+            </p>
+            {canMerge && <MergeButton duplicateId={person.id} />}
+          </div>
+        )}
+        {person.review_status === "merged" && person.duplicate_of_id && (
           <p className="notice">
-            Checked: this patient was already registered. Use{" "}
+            Merged: everything recorded here was moved to{" "}
             <Link href={`/patients/${person.duplicate_of_id}`} className="text-accent underline">
               the original record
             </Link>
-            . This one is kept, with what was recorded on it.
+            . Use that one. This record is kept so old links still lead somewhere.
           </p>
         )}
         <dl className="grid gap-x-6 gap-y-2 sm:grid-cols-[max-content_1fr]">

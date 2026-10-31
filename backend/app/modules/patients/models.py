@@ -18,6 +18,7 @@ class ReviewStatus(StrEnum):
     NEEDS_REVIEW = "needs_review"
     CONFIRMED_NEW = "confirmed_new"
     DUPLICATE = "duplicate"
+    MERGED = "merged"  # a duplicate whose records were all moved to the original (Week 11)
 
 
 def utcnow() -> datetime:

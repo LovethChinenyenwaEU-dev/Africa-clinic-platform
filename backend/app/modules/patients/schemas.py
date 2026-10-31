@@ -53,3 +53,11 @@ class ReviewDecision(BaseModel):
         if (self.decision == "duplicate") != (self.duplicate_of is not None):
             raise ValueError("Give duplicate_of only, and always, when the decision is duplicate.")
         return self
+
+
+class MergeResponse(BaseModel):
+    """The original, now holding everything, and how many rows moved from each table."""
+
+    original: PatientResponse
+    duplicate: PatientResponse
+    moved: dict[str, int]

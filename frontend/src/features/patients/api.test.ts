@@ -6,6 +6,7 @@ import {
   decideReview,
   getPatient,
   getReviewQueue,
+  mergeIntoOriginal,
   offlineRegistrationWrite,
   registerPatient,
   searchPatients,
@@ -165,5 +166,43 @@ describe("offline registration and review", () => {
       decision: "duplicate",
       duplicate_of: PATIENT.id,
     });
+  });
+});
+
+describe("mergeIntoOriginal", () => {
+  const ORIGINAL = {
+    id: "11111111-1111-4111-8111-111111111111",
+    full_name: "Ada Obi",
+    date_of_birth: "1990-05-17",
+    sex: "female",
+    phone: null,
+    review_status: null,
+    duplicate_of_id: null,
+  };
+
+  it("posts to the duplicate's merge address and reads what moved", async () => {
+    const twin = { ...ORIGINAL, id: "22222222-2222-4222-8222-222222222222" };
+    const body = {
+      original: ORIGINAL,
+      duplicate: { ...twin, review_status: "merged", duplicate_of_id: ORIGINAL.id },
+      moved: { appointment: 1, consent: 1 },
+    };
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValueOnce(
+        new Response(JSON.stringify(body), {
+          status: 200,
+          headers: { "content-type": "application/json" },
+        }),
+      ),
+    );
+
+    const result = await mergeIntoOriginal(twin.id);
+
+    expect(result.original.id).toBe(ORIGINAL.id);
+    expect(result.moved).toEqual({ appointment: 1, consent: 1 });
+    const [url, init] = vi.mocked(fetch).mock.calls[0];
+    expect(String(url)).toBe(`/api/backend/patients/${twin.id}/merge`);
+    expect(init?.method).toBe("POST");
   });
 });

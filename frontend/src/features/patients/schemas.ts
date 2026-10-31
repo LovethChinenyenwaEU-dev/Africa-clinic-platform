@@ -12,7 +12,8 @@ export const patientSchema = z.object({
   sex: z.string(),
   phone: z.string().nullable(),
   // Registered offline while a possible duplicate existed: needs_review, then
-  // confirmed_new or duplicate (of duplicate_of_id). Null for normal registrations.
+  // confirmed_new, duplicate (of duplicate_of_id), or merged into it (Week 11). Null for
+  // normal registrations.
   review_status: z.string().nullable().default(null),
   duplicate_of_id: z.string().uuid().nullable().default(null),
 });

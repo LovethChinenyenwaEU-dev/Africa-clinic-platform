@@ -23,6 +23,7 @@ export default async function PatientPage({
       patientId={patientId}
       canManageConsent={can(user.role, "manage_consent")}
       canExportRecord={can(user.role, "export_record")}
+      canMerge={can(user.role, "register_patient")}
     />
   );
 }

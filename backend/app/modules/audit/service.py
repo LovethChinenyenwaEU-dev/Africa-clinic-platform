@@ -25,6 +25,7 @@ class AuditAction(StrEnum):
     PATIENT_SEARCH = "patient.search"
     PATIENT_REVIEW_LIST = "patient.review_list"  # opened the list of registrations to review
     PATIENT_REVIEW = "patient.review"  # decided: someone new, or already registered
+    PATIENT_MERGE = "patient.merge"  # a duplicate's records moved to the original (Week 11)
     CONSENT_GRANT = "consent.grant"
     CONSENT_REVOKE = "consent.revoke"
     CONSENT_VIEW = "consent.view"

@@ -172,9 +172,19 @@ def revoke_consent(
     if consent is None:
         raise ConsentNotFoundError("No active consent to revoke.")
 
-    consent.revoked_at = datetime.now(UTC)
-    consent.revoked_by_id = actor_id
-    session.add(consent)
+    # After merging a duplicate (Week 11) a patient can hold two active consents for one
+    # purpose: withdrawing must end every one, or the "no" would not hold.
+    revoked_at = datetime.now(UTC)
+    still_active = session.exec(
+        tenant_select(Consent, tenant_id)
+        .where(col(Consent.patient_id) == patient_id)
+        .where(col(Consent.purpose) == purpose_value)
+        .where(col(Consent.revoked_at).is_(None))
+    ).all()
+    for row in still_active:
+        row.revoked_at = revoked_at
+        row.revoked_by_id = actor_id
+        session.add(row)
     add_audit_event(
         session,
         tenant_id=tenant_id,

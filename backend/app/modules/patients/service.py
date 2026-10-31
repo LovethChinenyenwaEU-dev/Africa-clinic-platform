@@ -45,12 +45,15 @@ def find_possible_duplicates(
     date_of_birth: date,
     phone: str | None,
 ) -> list[DuplicateMatch]:
-    """Look for people in THIS clinic who might be the same person."""
+    """Look for people in THIS clinic who might be the same person. Records already
+    merged into another are left out: they hold nothing now."""
     found: dict[uuid.UUID, str] = {}
 
     if phone:
         same_phone = tenant_select(Patient, tenant_id).where(col(Patient.phone) == phone)
         for patient in session.exec(same_phone).all():
+            if patient.review_status == ReviewStatus.MERGED.value:
+                continue
             found[patient.id] = "same_phone"
 
     same_person = (
@@ -59,6 +62,8 @@ def find_possible_duplicates(
         .where(col(Patient.date_of_birth) == date_of_birth)
     )
     for patient in session.exec(same_person).all():
+        if patient.review_status == ReviewStatus.MERGED.value:
+            continue
         found[patient.id] = "same_name_and_birth_date"  # the stronger reason wins
 
     return [DuplicateMatch(patient_id=pid, reason=reason) for pid, reason in found.items()]

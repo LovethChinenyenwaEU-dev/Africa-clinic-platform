@@ -69,13 +69,13 @@ def _the_patient(
     session: Session, *, tenant_id: uuid.UUID, phone: str, date_of_birth: date
 ) -> Patient | None:
     """Exactly one patient with this phone and birth date, leaving out records found
-    to be duplicates; otherwise None."""
+    to be duplicates (or merged into the original); otherwise None."""
     rows = session.exec(
         tenant_select(Patient, tenant_id)
         .where(col(Patient.phone) == phone)
         .where(col(Patient.date_of_birth) == date_of_birth)
     ).all()
-    found = [row for row in rows if row.review_status != "duplicate"]
+    found = [row for row in rows if row.review_status not in ("duplicate", "merged")]
     return found[0] if len(found) == 1 else None
 
 

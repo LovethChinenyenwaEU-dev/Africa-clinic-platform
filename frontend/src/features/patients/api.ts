@@ -80,3 +80,15 @@ export function getReviewQueue(): Promise<ReviewItem[]> {
 export function decideReview(patientId: string, decision: ReviewDecision): Promise<Patient> {
   return apiPost(`/patients/${encodeURIComponent(patientId)}/review`, decision, patientSchema);
 }
+
+const mergeSchema = z.object({
+  original: patientSchema,
+  duplicate: patientSchema,
+  moved: z.record(z.string(), z.number().int()),
+});
+export type MergeResult = z.infer<typeof mergeSchema>;
+
+/** Move everything from a duplicate record to its original (Week 11). Nothing is deleted. */
+export function mergeIntoOriginal(duplicateId: string): Promise<MergeResult> {
+  return apiPost(`/patients/${encodeURIComponent(duplicateId)}/merge`, {}, mergeSchema);
+}

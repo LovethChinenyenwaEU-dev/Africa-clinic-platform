@@ -24,7 +24,7 @@ in the repository. Update this file when a gap is closed or a decision changes.
 | Services and prices | ✅ | W10 Step 1: `billing/prices.py`, price list in kobo, admin-only changes, every change in the audit log |
 | Clinician schedules / availability | ✅ | W9: weekly hours per clinician (in person or remote), free slots; patients may only book a free slot |
 | Departments, escalation rules (onboarding) | 🟡 | Escalation built in W9 (12 danger signs: emergency on the queue, in-person care for remote visits). Departments and clinic-configurable rules not built |
-| Patient registration, duplicate warnings | ✅ | Deterministic matching, human confirmation, never auto-merged |
+| Patient registration, duplicate warnings | ✅ | Deterministic matching, human confirmation, never auto-merged. W11: a record the review found to be a duplicate can be merged into the original by a person (everything moves, nothing deleted, audited on both records) |
 | Consent capture | ✅ | Versioned clinic wording, patient or caregiver, withdraw keeps history |
 | Audit log | ✅ | Append-only, reads logged, entity + staff/date filters, admin screen |
 | Admin **screens** for staff, branches and consent wording | ✅ | W11 Step 7: Staff (add, switch off and on, devices, authenticator reset); Settings (branches; consent wording per purpose, published as new versions) |

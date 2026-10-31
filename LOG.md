@@ -39,9 +39,11 @@ Roadmap: [README](./README.md#roadmap-12-week-mvp) · Brief: [docs/product-brief
 
 - Week 11 Step 7c: **the notification console** (`/reminders`, "Reminders" in the admin menu). New backend routes, admins only (capability `notifications:manage`): `GET /notifications/reminders?from_day=&to_day=&reminder_status=` (by the Lagos day each reminder was due; 7 days by default, at most 31) answers counts by status, how many failed or were not needed for each reason, and up to 200 reminders, newest first, each with its visit time but no patient name, id or phone. `POST /notifications/reminders/{id}/retry` puts a failed reminder back in the queue (due now, attempts reset) only while its visit is still booked and ahead; otherwise 409. The worker still checks consent and the phone at send time. Opening the console (`reminder.list`) and each retry (`reminder.retry`) are in the audit log. The screen shows four count tiles, the reasons in plain words, a status filter and a "Try again" button where allowed.
 
-**Pending:** merging duplicate patients (moved to W11 from W8 in the README) is not built yet; attachments are after the MVP, as decided.
+- Week 11 Step 8: **merging duplicate patients** (the user chose to build it now). On a record the review found to be a duplicate, front desk, nurses and doctors see "Move everything to the original". `POST /patients/{id}/merge` moves, in one transaction, every row of every clinic table with a patient_id (read from the models, so a future table moves too): visits, encounters and records, consents, invoices and payments, teleconsult intakes, summaries. Nothing is deleted: the duplicate stays, marked `merged`, pointing at the original. The audit log is never rewritten (old lines keep the duplicate's id); the merge is written on both records (`patient.merge`). Unused SMS sign-in codes for the duplicate are thrown away. A merged record is no longer offered as a possible duplicate or for patient sign-in. Withdrawing a consent now ends every active consent for that purpose, since a merge can leave two. Refused (409): not a reviewed duplicate, merged already, or the original is itself a duplicate.
 
-**Next:** the user's choice: merging duplicate patients, then Week 12 (deploy, pilot feedback, restore and offline-chaos drills).
+**Finished:** Week 11 once Step 8 is green (README ticked; attachments after the MVP, as decided).
+
+**Next:** Week 12: deploy, pilot feedback, restore and offline-chaos drills.
 
 ---
 
