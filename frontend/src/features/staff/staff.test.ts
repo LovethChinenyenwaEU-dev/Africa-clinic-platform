@@ -80,7 +80,8 @@ describe("the list", () => {
 
 describe("the actions", () => {
   it("switches a person off and on with the right address", async () => {
-    fetchMock.mockResolvedValue(answer(person("Ade")));
+    // A fresh Response each time: a body can only be read once.
+    fetchMock.mockImplementation(() => Promise.resolve(answer(person("Ade"))));
 
     await setActive(ID, false);
     await setActive(ID, true);
