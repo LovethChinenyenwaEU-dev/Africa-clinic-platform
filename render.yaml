@@ -1,0 +1,87 @@
+# AfriPeak Health on Render (Week 12). A Render "Blueprint": in the Render dashboard choose
+# New > Blueprint and pick this repository. Step-by-step guide: docs/deploy-render.md
+#
+# Everything here is on Render's free plan:
+# - web services sleep after 15 minutes without visitors (the first visit then takes about
+#   a minute), and the reminder worker runs inside the API (RUN_WORKER_IN_API), because
+#   free plans have no background workers;
+# - the free database is deleted 30 days after it is made unless upgraded.
+# Frankfurt is Render's closest region to Nigeria.
+#
+# Service names become addresses: https://<name>.onrender.com. If Render adds a suffix
+# because a name is taken, change the three addresses marked "ADDRESS" to match.
+
+services:
+  - type: web
+    name: afripeak-api
+    runtime: docker
+    plan: free
+    region: frankfurt
+    dockerfilePath: ./backend/Dockerfile.prod
+    dockerContext: ./backend
+    healthCheckPath: /health
+    envVars:
+      - key: ENVIRONMENT
+        value: production
+      - key: SECRET_KEY
+        generateValue: true
+      - key: DATABASE_URL
+        fromDatabase:
+          name: afripeak-db
+          property: connectionString
+      - key: REDIS_URL
+        fromService:
+          type: keyvalue
+          name: afripeak-redis
+          property: connectionString
+      - key: CORS_ORIGINS
+        value: https://afripeak-web.onrender.com # ADDRESS of the web app
+      - key: RUN_WORKER_IN_API
+        value: "true"
+      - key: SMS_PROVIDER
+        value: none # nothing is sent until a real SMS provider is chosen
+      - key: VIDEO_PROVIDER
+        value: jitsi
+      - key: PAYMENT_GATEWAY
+        value: none # cash and transfer only; Paystack test keys can be added later
+
+  - type: web
+    name: afripeak-web
+    runtime: docker
+    plan: free
+    region: frankfurt
+    dockerfilePath: ./frontend/Dockerfile.prod
+    dockerContext: ./frontend
+    healthCheckPath: /login
+    envVars:
+      # Free web services cannot receive private-network traffic, so the web app calls
+      # the API at its public HTTPS address.
+      - key: API_INTERNAL_URL
+        value: https://afripeak-api.onrender.com # ADDRESS of the API
+      - key: LANDING_URL
+        value: https://afripeak-landing.onrender.com # ADDRESS of the landing page
+
+  - type: web
+    name: afripeak-landing
+    runtime: docker
+    plan: free
+    region: frankfurt
+    dockerfilePath: ./landing/Dockerfile.prod
+    dockerContext: ./landing
+    healthCheckPath: /
+
+  # Redis-compatible store for the worker's heartbeat. Reachable only inside Render.
+  - type: keyvalue
+    name: afripeak-redis
+    plan: free
+    region: frankfurt
+    ipAllowList: []
+    maxmemoryPolicy: noeviction
+
+databases:
+  - name: afripeak-db
+    plan: free
+    region: frankfurt
+    databaseName: afripeak
+    user: afripeak
+    postgresMajorVersion: "16"

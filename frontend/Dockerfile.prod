@@ -1,0 +1,22 @@
+# Production image (Week 12, Render): built once with `next build`, served with
+# `next start`. The dev image (Dockerfile) runs `next dev` for docker compose.
+FROM node:22-alpine AS build
+WORKDIR /app
+COPY package*.json ./
+RUN npm ci
+COPY . .
+ENV NEXT_TELEMETRY_DISABLED=1
+RUN npm run build
+
+FROM node:22-alpine
+WORKDIR /app
+ENV NODE_ENV=production     NEXT_TELEMETRY_DISABLED=1
+COPY package*.json ./
+RUN npm ci --omit=dev && npm cache clean --force
+COPY --from=build /app/.next ./.next
+COPY --from=build /app/public ./public
+COPY --from=build /app/next.config.js ./
+USER node
+EXPOSE 3000
+# Render gives the port in $PORT.
+CMD ["sh", "-c", "exec npx next start -H 0.0.0.0 -p ${PORT:-3000}"]

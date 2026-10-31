@@ -1,3 +1,6 @@
+from collections.abc import AsyncIterator
+from contextlib import asynccontextmanager
+
 import redis
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
@@ -11,7 +14,22 @@ from app.core.db import engine
 from app.core.device import DeviceMiddleware
 from app.modules.idempotency.middleware import IdempotencyMiddleware
 
-app = FastAPI(title="Clinic Platform API", version="0.1.0")
+
+@asynccontextmanager
+async def lifespan(_app: FastAPI) -> AsyncIterator[None]:
+    """On hosts without background workers (Render's free plan), the reminder worker runs
+    inside the API when RUN_WORKER_IN_API is true (Week 12)."""
+    stop = None
+    if settings.run_worker_in_api:
+        from app.worker import start_in_background
+
+        stop = start_in_background()
+    yield
+    if stop is not None:
+        stop.set()
+
+
+app = FastAPI(title="Clinic Platform API", version="0.1.0", lifespan=lifespan)
 
 app.add_middleware(
     CORSMiddleware,

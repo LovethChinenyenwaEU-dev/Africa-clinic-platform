@@ -48,16 +48,11 @@ def run_once(
     return result
 
 
-def main() -> None:
-    logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s %(message)s")
+def run_loop(stopping: threading.Event) -> None:
+    """Tick until told to stop. Used by main() and, on hosts without background
+    workers, by the API itself (settings.run_worker_in_api)."""
     adapter = make_adapter(settings.sms_provider)
     redis_client = redis.Redis.from_url(settings.redis_url)
-
-    stopping = threading.Event()
-    # Docker sends SIGTERM on `docker compose stop`; finish the current tick, then exit.
-    signal.signal(signal.SIGTERM, lambda *_: stopping.set())
-    signal.signal(signal.SIGINT, lambda *_: stopping.set())
-
     logger.info(
         "reminder worker started: provider=%s every %ss",
         settings.sms_provider,
@@ -82,6 +77,24 @@ def main() -> None:
             )
         stopping.wait(settings.reminder_interval_seconds)
     logger.info("reminder worker stopped")
+
+
+def start_in_background() -> threading.Event:
+    """Run the loop in a daemon thread of this process. Set the event to stop it."""
+    stopping = threading.Event()
+    threading.Thread(
+        target=run_loop, args=(stopping,), name="reminder-worker", daemon=True
+    ).start()
+    return stopping
+
+
+def main() -> None:
+    logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s %(message)s")
+    stopping = threading.Event()
+    # Docker sends SIGTERM on `docker compose stop`; finish the current tick, then exit.
+    signal.signal(signal.SIGTERM, lambda *_: stopping.set())
+    signal.signal(signal.SIGINT, lambda *_: stopping.set())
+    run_loop(stopping)
 
 
 if __name__ == "__main__":

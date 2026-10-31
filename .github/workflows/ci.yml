@@ -142,3 +142,17 @@ jobs:
       - name: Tear down
         if: always()
         run: docker compose down -v
+
+  production-images:
+    # Week 12: the images Render runs (Dockerfile.prod) must build too, not only the dev ones.
+    name: Production images (build)
+    needs: [backend, frontend, landing]
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        app: [backend, frontend, landing]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build ${{ matrix.app }}
+        run: docker build -f ${{ matrix.app }}/Dockerfile.prod -t afripeak-${{ matrix.app }}:ci ${{ matrix.app }}

@@ -41,9 +41,11 @@ Roadmap: [README](./README.md#roadmap-12-week-mvp) · Brief: [docs/product-brief
 
 - Week 11 Step 8: **merging duplicate patients** (the user chose to build it now). On a record the review found to be a duplicate, front desk, nurses and doctors see "Move everything to the original". `POST /patients/{id}/merge` moves, in one transaction, every row of every clinic table with a patient_id (read from the models, so a future table moves too): visits, encounters and records, consents, invoices and payments, teleconsult intakes, summaries. Nothing is deleted: the duplicate stays, marked `merged`, pointing at the original. The audit log is never rewritten (old lines keep the duplicate's id); the merge is written on both records (`patient.merge`). Unused SMS sign-in codes for the duplicate are thrown away. A merged record is no longer offered as a possible duplicate or for patient sign-in. Withdrawing a consent now ends every active consent for that purpose, since a merge can leave two. Refused (409): not a reviewed duplicate, merged already, or the original is itself a duplicate.
 
-**Finished:** Week 11 once Step 8 is green (README ticked; attachments after the MVP, as decided).
+**Finished:** Week 11 (all green; README ticked; attachments after the MVP, as decided).
 
-**Next:** Week 12: deploy, pilot feedback, restore and offline-chaos drills.
+- Week 12 Step 1: **ready for Render** (the user chose Render, free plan, no domain yet). `render.yaml` describes the whole deployment as a Render Blueprint: the API, the clinic app and the landing page as free web services in Frankfurt (closest to Nigeria), Key Value (Redis, reachable only inside Render) and PostgreSQL 16. New production images (`Dockerfile.prod` for backend, frontend and landing): no dev tools, `next build` then `next start`, not run as root, listening on Render's ``; the API runs the migrations as it starts. The dev Dockerfiles and the landing page's design are unchanged. Backend: Render's `postgres://` addresses get the psycopg driver; `RUN_WORKER_IN_API` runs the reminder worker inside the API, because free plans have no background workers. The image leaves `.env` out. CI builds the three production images. `docs/deploy-render.md` walks through it, including a check that the database user may create the row-level security role, and creating the first clinic from the Codespace.
+
+**Next:** the user deploys with the guide; then Week 12 Step 2: authenticator secrets encrypted with a key outside the database, and backups with a restore drill.
 
 ---
 
