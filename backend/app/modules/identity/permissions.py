@@ -33,6 +33,7 @@ class Capability(StrEnum):
     TAKINGS_READ = "takings:read"  # the daily takings and their export: admins and billing
     REPORT_READ = "report:read"  # the clinic dashboard: counts and sums only, admins only
     RECORD_EXPORT = "record:export"  # a patient's record as FHIR: doctors and nurses
+    NOTIFICATIONS_MANAGE = "notifications:manage"  # the reminder console: admins only
 
 
 _EVERYONE = frozenset({Capability.BRANCH_READ})
@@ -44,6 +45,7 @@ _ADMIN_ONLY = frozenset(
         Capability.CONSENT_TEXT_WRITE,
         Capability.AUDIT_READ,
         Capability.REPORT_READ,
+        Capability.NOTIFICATIONS_MANAGE,
     }
 )
 _WORDING_READERS = frozenset({Capability.CONSENT_TEXT_READ})

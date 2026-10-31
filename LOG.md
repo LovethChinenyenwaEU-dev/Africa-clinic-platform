@@ -17,7 +17,7 @@ Roadmap: [README](./README.md#roadmap-12-week-mvp) · Brief: [docs/product-brief
 
 **Hardest problem:** keeping 900 tests that sign in admins working. *Fix:* the second factor sits on the login door (start_sign_in); the plain login() stays for tests and scripts only, and its docstring says never to expose it.
 
-**Finished:** Steps 3a, 3b and 4 green on CI; Steps 5, 6 and 7a green; Step 7b awaiting the Codespace run (frontend only). Migration head: 0034.
+**Finished:** Steps 3a, 3b and 4 green on CI; Steps 5, 6, 7a and 7b green; Step 7c awaiting the Codespace run (no migration). Migration head: 0034.
 
 - Week 11 Step 3b: **the sign-in screens for the second factor.** After the password, admins and billing see either the code step (the app's code, or a backup code) or, the first time, the set-up: a button shows their key (grouped in fours, and a link that opens the app on a phone), they type the app's first code, then see their 10 backup codes once and must tick "I have kept these codes" to continue. The challenge stays in its own 5-minute httpOnly cookie, so the page's JavaScript never holds it; a new route `/api/session/mfa` swaps it for the normal session cookie. Clear messages for a wrong code, the 15-minute lock, and an expired step (with "Sign in again").
 
@@ -37,7 +37,11 @@ Roadmap: [README](./README.md#roadmap-12-week-mvp) · Brief: [docs/product-brief
 
 - Week 11 Step 7b: **Clinic settings for admins** (`/settings`, "Settings" in the admin menu). Branches: the list, and adding one (name, optional city). Consent wording: one card per purpose (treatment, reminders, online consultations, sharing records on referral) with the current wording, its version and when it was published, or a warning that staff cannot record that consent until wording exists. "Publish new wording" opens the current words to change; it becomes the next version, and consents already given keep the version the patient agreed to. Empty, too long or unchanged wording is refused on the screen. Frontend only: the backend routes already existed.
 
-**Next:** Week 11 Step 7c: the notification console (sent and failed reminders).
+- Week 11 Step 7c: **the notification console** (`/reminders`, "Reminders" in the admin menu). New backend routes, admins only (capability `notifications:manage`): `GET /notifications/reminders?from_day=&to_day=&reminder_status=` (by the Lagos day each reminder was due; 7 days by default, at most 31) answers counts by status, how many failed or were not needed for each reason, and up to 200 reminders, newest first, each with its visit time but no patient name, id or phone. `POST /notifications/reminders/{id}/retry` puts a failed reminder back in the queue (due now, attempts reset) only while its visit is still booked and ahead; otherwise 409. The worker still checks consent and the phone at send time. Opening the console (`reminder.list`) and each retry (`reminder.retry`) are in the audit log. The screen shows four count tiles, the reasons in plain words, a status filter and a "Try again" button where allowed.
+
+**Pending:** merging duplicate patients (moved to W11 from W8 in the README) is not built yet; attachments are after the MVP, as decided.
+
+**Next:** the user's choice: merging duplicate patients, then Week 12 (deploy, pilot feedback, restore and offline-chaos drills).
 
 ---
 

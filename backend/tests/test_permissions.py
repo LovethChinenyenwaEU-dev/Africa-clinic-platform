@@ -16,6 +16,7 @@ ADMIN_ONLY = [
     Capability.PRICE_WRITE,
     Capability.REFUND_APPROVE,
     Capability.REPORT_READ,
+    Capability.NOTIFICATIONS_MANAGE,
 ]
 
 

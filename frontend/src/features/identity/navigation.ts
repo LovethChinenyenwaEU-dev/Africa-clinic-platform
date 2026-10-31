@@ -12,6 +12,7 @@ export type ScreenKey =
   | "dashboard"
   | "staff"
   | "settings"
+  | "reminders"
   | "patients"
   | "queue"
   | "availability"
@@ -37,6 +38,8 @@ export const SCREENS: Record<ScreenKey, Screen> = {
   staff: { href: "/staff", label: "Staff", roles: ["admin"], inMenu: true },
   // Branches and consent wording (Week 11).
   settings: { href: "/settings", label: "Settings", roles: ["admin"], inMenu: true },
+  // The notification console: sent and failed reminders (Week 11).
+  reminders: { href: "/reminders", label: "Reminders", roles: ["admin"], inMenu: true },
   // Admins supervise through the diary and have no patient access (ADR-0003).
   patients: {
     href: "/patients",

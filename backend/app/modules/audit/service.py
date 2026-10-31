@@ -124,6 +124,8 @@ class AuditAction(StrEnum):
     TAKINGS_EXPORT = "takings.export"  # downloaded the day as CSV
     REPORT_VIEW = "report.view"  # opened the clinic dashboard
     RECORD_EXPORT = "record.export"  # a patient's record exported as FHIR (purpose: why)
+    REMINDER_LIST = "reminder.list"  # opened the reminder console
+    REMINDER_RETRY = "reminder.retry"  # put a failed reminder back in the queue
 
 def add_audit_event(
     session: Session,

@@ -36,7 +36,7 @@ in the repository. Update this file when a gap is closed or a decision changes.
 | Rescheduling | 🟡 | Backend done and tested; **no button on the screen yet** |
 | Triage | ✅ | W9: urgency and danger signs set by a clinician; the queue orders by urgency; front desk sees urgency, not the signs |
 | Reminders with retries, one SMS/WhatsApp provider | 🟡 | Queue, worker, retries, consent check all done; **real provider not plugged in** (fake/none only) |
-| Admin notification console | ⬜ | No screen showing sent/failed reminders yet. **Add to W11** |
+| Admin notification console | ✅ | W11 Step 7c: "Reminders" for admins: counts by status, why reminders did not go out, every reminder (no patient details), and "Try again" for a failed one whose visit is still booked and ahead. Viewing and retrying are audited |
 | No-show tracking | ✅ | Marking, and the no-show rate on the admin dashboard (W11 Step 5) |
 | Online / phone booking by patients | 🟡 | W9: patients book free **remote** slots on their own page. In-person online booking and self-cancel not yet |
 

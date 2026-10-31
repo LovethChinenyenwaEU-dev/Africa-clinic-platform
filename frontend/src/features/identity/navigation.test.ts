@@ -30,6 +30,7 @@ describe("navFor", () => {
       "Dashboard",
       "Staff",
       "Settings",
+      "Reminders",
       "Audit log",
       "Prices",
       "Refunds",
@@ -65,6 +66,7 @@ describe("navFor", () => {
       expect(canOpen(role, "dashboard")).toBe(false);
       expect(canOpen(role, "staff")).toBe(false);
       expect(canOpen(role, "settings")).toBe(false);
+      expect(canOpen(role, "reminders")).toBe(false);
     }
   });
 });
