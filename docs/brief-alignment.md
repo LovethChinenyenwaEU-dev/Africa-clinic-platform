@@ -37,7 +37,7 @@ in the repository. Update this file when a gap is closed or a decision changes.
 | Triage | ✅ | W9: urgency and danger signs set by a clinician; the queue orders by urgency; front desk sees urgency, not the signs |
 | Reminders with retries, one SMS/WhatsApp provider | 🟡 | Queue, worker, retries, consent check all done; **real provider not plugged in** (fake/none only) |
 | Admin notification console | ⬜ | No screen showing sent/failed reminders yet. **Add to W11** |
-| No-show tracking | 🟡 | Marking ✅; the no-show **rate report** is planned for the W11 dashboards |
+| No-show tracking | 🟡 | Marking ✅; the no-show rate is in the dashboard API (W11 Step 5a); its screen is Step 5b |
 | Online / phone booking by patients | 🟡 | W9: patients book free **remote** slots on their own page. In-person online booking and self-cancel not yet |
 
 ### Core longitudinal record
@@ -56,7 +56,7 @@ in the repository. Update this file when a gap is closed or a decision changes.
 | Billing (invoice, receipt, refunds, reconciliation, gateway + cash/transfer) | ✅ | W10: `billing/` (prices, invoices, payments, refunds, online, takings); screens under `/billing` |
 | FHIR-aligned export | ⬜ | W11. Names already follow FHIR where possible (Encounter, `entered_in_error`, problem-list vs encounter-diagnosis, ICD-10 codes) |
 | Retention settings, backup/restore, privacy/incident runbook | ⬜ | W11–W12 |
-| Dashboards (wait time, no-shows, completion, sync failures, revenue, record access) | ⬜ | W11 |
+| Dashboards (wait time, no-shows, completion, sync failures, revenue, record access) | 🟡 | W11 Step 5a: `GET /reports/dashboard` (admins only, up to 92 Lagos days) answers all six, as counts and sums with no patient details, plus a line per day; the screen is Step 5b |
 
 ## 3. Architecture and security items
 

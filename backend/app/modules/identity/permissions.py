@@ -31,6 +31,7 @@ class Capability(StrEnum):
     REFUND_REQUEST = "refund:request"  # ask for money back from a payment
     REFUND_APPROVE = "refund:approve"  # decide refunds: admins only, never their own
     TAKINGS_READ = "takings:read"  # the daily takings and their export: admins and billing
+    REPORT_READ = "report:read"  # the clinic dashboard: counts and sums only, admins only
 
 
 _EVERYONE = frozenset({Capability.BRANCH_READ})
@@ -41,6 +42,7 @@ _ADMIN_ONLY = frozenset(
         Capability.STAFF_MANAGE,
         Capability.CONSENT_TEXT_WRITE,
         Capability.AUDIT_READ,
+        Capability.REPORT_READ,
     }
 )
 _WORDING_READERS = frozenset({Capability.CONSENT_TEXT_READ})

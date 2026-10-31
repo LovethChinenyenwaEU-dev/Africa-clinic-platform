@@ -15,6 +15,7 @@ ADMIN_ONLY = [
     Capability.STAFF_MANAGE,
     Capability.PRICE_WRITE,
     Capability.REFUND_APPROVE,
+    Capability.REPORT_READ,
 ]
 
 

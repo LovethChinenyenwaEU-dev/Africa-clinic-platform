@@ -122,6 +122,7 @@ class AuditAction(StrEnum):
     ONLINE_PAYMENT_CHECK = "online_payment.check"  # staff asked the gateway; still waiting
     TAKINGS_VIEW = "takings.view"  # opened the daily takings
     TAKINGS_EXPORT = "takings.export"  # downloaded the day as CSV
+    REPORT_VIEW = "report.view"  # opened the clinic dashboard
 
 def add_audit_event(
     session: Session,
