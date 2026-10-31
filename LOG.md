@@ -17,7 +17,7 @@ Roadmap: [README](./README.md#roadmap-12-week-mvp) · Brief: [docs/product-brief
 
 **Hardest problem:** keeping 900 tests that sign in admins working. *Fix:* the second factor sits on the login door (start_sign_in); the plain login() stays for tests and scripts only, and its docstring says never to expose it.
 
-**Finished:** Steps 3a, 3b and 4 green on CI; Step 5a awaiting the Codespace run (no migration). Migration head: 0034.
+**Finished:** Steps 3a, 3b and 4 green on CI; Step 5a green; Step 5b awaiting the Codespace run (no migration). Migration head: 0034.
 
 - Week 11 Step 3b: **the sign-in screens for the second factor.** After the password, admins and billing see either the code step (the app's code, or a backup code) or, the first time, the set-up: a button shows their key (grouped in fours, and a link that opens the app on a phone), they type the app's first code, then see their 10 backup codes once and must tick "I have kept these codes" to continue. The challenge stays in its own 5-minute httpOnly cookie, so the page's JavaScript never holds it; a new route `/api/session/mfa` swaps it for the normal session cookie. Clear messages for a wrong code, the 15-minute lock, and an expired step (with "Sign in again").
 
@@ -27,7 +27,9 @@ Roadmap: [README](./README.md#roadmap-12-week-mvp) · Brief: [docs/product-brief
 
 - Week 11 Step 5a: **the clinic dashboard API (P-11).** `GET /reports/dashboard?from_day=&to_day=` (Lagos days, both included, at most 92; the last 7 days by default), for admins only (new capability `report:read`). It answers: visits (done, no-shows, cancelled, still open, walk-ins); the no-show rate (of booked patients who were due, how many never came; walk-ins cannot be no-shows) and consultation completion (of patients who checked in, how many finished); waits from check-in to consultation (median, 90th percentile, over an hour); revenue (invoices issued, payments, approved refunds, net, by method); sync problems (late offline entries, open conflicts, registrations to review, reminders sent and failed, failed online payments); and record access (staff audit lines about patients, how many patients, who wrote the most). Plus one line per day for a trend. Counts and sums only, never a patient's name or id. Opening it is written in the audit log (`report.view`). No new table.
 
-**Next:** Week 11 Step 5b: the dashboard screen.
+- Week 11 Step 5b: **the dashboard screen.** "Dashboard" in the admin menu (`/dashboard`): the last 7, 30 or 90 days, or any days up to 92 (checked on the screen before asking). Four tiles (visits, no-show rate, consultations completed, median wait with the 90th percentile), a visits-per-day bar chart (point at or Tab to a day for its numbers; the same numbers as a table underneath), money by method, sync and sending problems (an icon and words, never colour alone; "now" items say so), and who opened patient records. A "How these are counted" note under it.
+
+**Next:** Week 11 Step 6: FHIR export.
 
 ---
 

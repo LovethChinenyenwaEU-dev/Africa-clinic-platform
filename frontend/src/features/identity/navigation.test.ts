@@ -25,7 +25,14 @@ describe("navFor", () => {
   });
 
   it("gives admins the audit log, prices, refunds and takings, and no patient screens", () => {
-    expect(labels("admin")).toEqual(["Home", "Audit log", "Prices", "Refunds", "Takings"]);
+    expect(labels("admin")).toEqual([
+      "Home",
+      "Dashboard",
+      "Audit log",
+      "Prices",
+      "Refunds",
+      "Takings",
+    ]);
     expect(canOpen("admin", "billing")).toBe(false); // finding a patient needs patient access
     expect(canOpen("admin", "invoice")).toBe(true); // to decide refunds
     expect(canOpen("admin", "patients")).toBe(false);
@@ -53,6 +60,7 @@ describe("navFor", () => {
   it("never offers the audit log to anyone but admins", () => {
     for (const role of ["front_desk", "nurse", "doctor", "billing"] as const) {
       expect(canOpen(role, "audit")).toBe(false);
+      expect(canOpen(role, "dashboard")).toBe(false);
     }
   });
 });
