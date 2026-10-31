@@ -27,7 +27,7 @@ in the repository. Update this file when a gap is closed or a decision changes.
 | Patient registration, duplicate warnings | ✅ | Deterministic matching, human confirmation, never auto-merged |
 | Consent capture | ✅ | Versioned clinic wording, patient or caregiver, withdraw keeps history |
 | Audit log | ✅ | Append-only, reads logged, entity + staff/date filters, admin screen |
-| Admin **screens** for staff, branches and consent wording | 🟡 | Staff ✅ (W11 Step 7a: add, switch off and on, devices, authenticator reset). Branches and consent wording: W11 Step 7b |
+| Admin **screens** for staff, branches and consent wording | ✅ | W11 Step 7: Staff (add, switch off and on, devices, authenticator reset); Settings (branches; consent wording per purpose, published as new versions) |
 
 ### Appointments and queue
 | Item | Status | Where / plan |

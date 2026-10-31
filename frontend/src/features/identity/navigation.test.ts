@@ -29,6 +29,7 @@ describe("navFor", () => {
       "Home",
       "Dashboard",
       "Staff",
+      "Settings",
       "Audit log",
       "Prices",
       "Refunds",
@@ -63,6 +64,7 @@ describe("navFor", () => {
       expect(canOpen(role, "audit")).toBe(false);
       expect(canOpen(role, "dashboard")).toBe(false);
       expect(canOpen(role, "staff")).toBe(false);
+      expect(canOpen(role, "settings")).toBe(false);
     }
   });
 });
