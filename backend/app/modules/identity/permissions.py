@@ -32,6 +32,7 @@ class Capability(StrEnum):
     REFUND_APPROVE = "refund:approve"  # decide refunds: admins only, never their own
     TAKINGS_READ = "takings:read"  # the daily takings and their export: admins and billing
     REPORT_READ = "report:read"  # the clinic dashboard: counts and sums only, admins only
+    RECORD_EXPORT = "record:export"  # a patient's record as FHIR: doctors and nurses
 
 
 _EVERYONE = frozenset({Capability.BRANCH_READ})
@@ -52,7 +53,12 @@ _CONSENT_RECORDERS = frozenset({Capability.CONSENT_READ, Capability.CONSENT_WRIT
 _SCHEDULERS = frozenset({Capability.APPOINTMENT_READ, Capability.APPOINTMENT_WRITE})
 # Encounters, vitals, allergies, problems and notes: doctors and nurses only.
 _CLINICIANS = frozenset(
-    {Capability.APPOINTMENT_CONSULT, Capability.CLINICAL_READ, Capability.CLINICAL_WRITE}
+    {
+        Capability.APPOINTMENT_CONSULT,
+        Capability.CLINICAL_READ,
+        Capability.CLINICAL_WRITE,
+        Capability.RECORD_EXPORT,  # the whole record leaves the clinic: clinicians decide
+    }
 )
 # The price list holds no patient data: everyone who books or bills reads it.
 _PRICE_READERS = frozenset({Capability.PRICE_READ})

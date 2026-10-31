@@ -102,6 +102,7 @@ export const ACTION_LABELS: Record<string, string> = {
   "takings.view": "Viewed the daily takings",
   "takings.export": "Downloaded the daily takings",
   "report.view": "Opened the clinic dashboard",
+  "record.export": "Exported a patient's record (FHIR)",
 };
 
 /** Plain words for an action; an unknown code is shown as it is, never hidden. */

@@ -54,7 +54,7 @@ in the repository. Update this file when a gap is closed or a decision changes.
 |---|---|---|
 | Teleconsult (availability, intake, consent, chat, video, audio/text fallback, note, follow-up, referral) | ✅ | W9: all parts, with Jitsi behind a video adapter (self-hosted Jitsi recommended before going live) |
 | Billing (invoice, receipt, refunds, reconciliation, gateway + cash/transfer) | ✅ | W10: `billing/` (prices, invoices, payments, refunds, online, takings); screens under `/billing` |
-| FHIR-aligned export | ⬜ | W11. Names already follow FHIR where possible (Encounter, `entered_in_error`, problem-list vs encounter-diagnosis, ICD-10 codes) |
+| FHIR-aligned export | 🟡 | W11 Step 6a: `GET /interop/patients/{id}/fhir?reason=` gives one patient's record as a FHIR R4 bundle: Patient, Organization, Practitioner (names only), Encounter, Observation (vital signs, LOINC + UCUM), AllergyIntolerance, Condition (ICD-10), MedicationRequest and Consent. Doctors and nurses; sending it to another provider needs the patient's referral-sharing consent; every export audited with its reason. The download button is Step 6b |
 | Retention settings, backup/restore, privacy/incident runbook | ⬜ | W11–W12 |
 | Dashboards (wait time, no-shows, completion, sync failures, revenue, record access) | ✅ | W11 Step 5: `GET /reports/dashboard` (admins only, up to 92 Lagos days) answers all six as counts and sums, with no patient details; the "Dashboard" screen shows them with a visits-per-day chart (and a table view) |
 

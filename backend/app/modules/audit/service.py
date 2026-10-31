@@ -123,6 +123,7 @@ class AuditAction(StrEnum):
     TAKINGS_VIEW = "takings.view"  # opened the daily takings
     TAKINGS_EXPORT = "takings.export"  # downloaded the day as CSV
     REPORT_VIEW = "report.view"  # opened the clinic dashboard
+    RECORD_EXPORT = "record.export"  # a patient's record exported as FHIR (purpose: why)
 
 def add_audit_event(
     session: Session,
