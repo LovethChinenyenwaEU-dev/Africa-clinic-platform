@@ -4,6 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import Link from "next/link";
 
 import { ConsentPanel } from "@/features/consent/ConsentPanel";
+import { RecordExport } from "@/features/interop/RecordExport";
 import { API_MESSAGES, ApiError } from "@/lib/api-client";
 import { ageFrom, formatDate } from "@/lib/format";
 
@@ -13,9 +14,11 @@ import { SEX_LABELS } from "./labels";
 export function PatientDetails({
   patientId,
   canManageConsent,
+  canExportRecord = false,
 }: {
   patientId: string;
   canManageConsent: boolean;
+  canExportRecord?: boolean;
 }) {
   // Opening the page is one "patient.view" line in the diary.
   const patient = useQuery({
@@ -88,6 +91,8 @@ export function PatientDetails({
       </section>
 
       {canManageConsent && <ConsentPanel patientId={person.id} />}
+      {/* Doctors and nurses: the whole record as a FHIR file (Week 11). */}
+      {canExportRecord && <RecordExport patientId={person.id} />}
     </div>
   );
 }

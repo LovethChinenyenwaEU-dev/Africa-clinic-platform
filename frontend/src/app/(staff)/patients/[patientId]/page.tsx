@@ -19,6 +19,10 @@ export default async function PatientPage({
     notFound(); // not even a patient ID: no need to ask the backend
   }
   return (
-    <PatientDetails patientId={patientId} canManageConsent={can(user.role, "manage_consent")} />
+    <PatientDetails
+      patientId={patientId}
+      canManageConsent={can(user.role, "manage_consent")}
+      canExportRecord={can(user.role, "export_record")}
+    />
   );
 }

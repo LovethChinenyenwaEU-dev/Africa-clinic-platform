@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { NO_FILTERS, auditQuery } from "./api";
-import { ACTION_LABELS, describeAction, isRead } from "./labels";
+import { ACTION_LABELS, describeAction, describeExportReason, isRead } from "./labels";
 
 const PATIENT = "11111111-1111-4111-8111-111111111111";
 const STAFF = "22222222-2222-4222-8222-222222222222";
@@ -68,5 +68,13 @@ describe("labels", () => {
     expect(isRead("patient.review_list")).toBe(true);
     expect(isRead("patient.review")).toBe(false);
     expect(isRead("note.write")).toBe(false);
+  });
+});
+
+describe("export reasons", () => {
+  it("says in words why a record was exported, and shows an unknown code as it is", () => {
+    expect(describeExportReason("patient_request")).toBe("the patient asked for a copy");
+    expect(describeExportReason("referral")).toBe("for a referral");
+    expect(describeExportReason("something_new")).toBe("something_new");
   });
 });

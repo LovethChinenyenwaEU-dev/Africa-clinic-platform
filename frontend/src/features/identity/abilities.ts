@@ -12,6 +12,7 @@ export type Ability =
   | "manage_appointments"
   | "run_consultation"
   | "prescribe"
+  | "export_record"
   | "set_prices"
   | "take_payments"
   | "decide_refunds";
@@ -25,6 +26,7 @@ const ABILITIES: Record<Ability, readonly Role[]> = {
   manage_appointments: FRONT_LINE, // appointment:read and appointment:write
   run_consultation: CLINICIANS, // appointment:consult, clinical:read and clinical:write
   prescribe: ["doctor"], // clinical:prescribe
+  export_record: CLINICIANS, // record:export (the whole record as FHIR)
   set_prices: ["admin"], // price:write
   take_payments: ["front_desk", "billing"], // invoice:write, payment:record, refund:request
   decide_refunds: ["admin"], // refund:approve

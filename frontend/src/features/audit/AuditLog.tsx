@@ -16,7 +16,13 @@ import {
   getStaff,
   type AuditFilters,
 } from "./api";
-import { PATIENT_PORTAL, SYSTEM_ACTOR_ID, describeAction, isRead } from "./labels";
+import {
+  PATIENT_PORTAL,
+  SYSTEM_ACTOR_ID,
+  describeAction,
+  describeExportReason,
+  isRead,
+} from "./labels";
 
 const short = (id: string) => id.slice(0, 8);
 
@@ -199,6 +205,11 @@ export function AuditLog() {
                       </td>
                       <td className="py-2 pr-3">
                         {describeAction(event.action)}
+                        {event.action === "record.export" && event.purpose && (
+                          <span className="block text-sm">
+                            Why: {describeExportReason(event.purpose)}
+                          </span>
+                        )}
                         {isRead(event.action) && (
                           <span className="badge ml-2 bg-amber-100 text-amber-900">Look</span>
                         )}

@@ -17,7 +17,7 @@ Roadmap: [README](./README.md#roadmap-12-week-mvp) · Brief: [docs/product-brief
 
 **Hardest problem:** keeping 900 tests that sign in admins working. *Fix:* the second factor sits on the login door (start_sign_in); the plain login() stays for tests and scripts only, and its docstring says never to expose it.
 
-**Finished:** Steps 3a, 3b and 4 green on CI; Steps 5a and 5b green; Step 6a awaiting the Codespace run (no migration). Migration head: 0034.
+**Finished:** Steps 3a, 3b and 4 green on CI; Steps 5a, 5b and 6a green; Step 6b awaiting the Codespace run (no migration). Migration head: 0034.
 
 - Week 11 Step 3b: **the sign-in screens for the second factor.** After the password, admins and billing see either the code step (the app's code, or a backup code) or, the first time, the set-up: a button shows their key (grouped in fours, and a link that opens the app on a phone), they type the app's first code, then see their 10 backup codes once and must tick "I have kept these codes" to continue. The challenge stays in its own 5-minute httpOnly cookie, so the page's JavaScript never holds it; a new route `/api/session/mfa` swaps it for the normal session cookie. Clear messages for a wrong code, the 15-minute lock, and an expired step (with "Sign in again").
 
@@ -31,7 +31,9 @@ Roadmap: [README](./README.md#roadmap-12-week-mvp) · Brief: [docs/product-brief
 
 - Week 11 Step 6a: **FHIR export (FR-I1).** `GET /interop/patients/{id}/fhir?reason=patient_request|referral|transfer` answers one patient's record as an HL7 FHIR R4 `collection` bundle, written with the standard library: Patient, the clinic (Organization), the staff named in the record (Practitioner, name only), every Encounter (in person or virtual), vital signs as one Observation per reading (LOINC codes, UCUM units; blood pressure as one panel), AllergyIntolerance, Condition (ICD-10 when coded), MedicationRequest (dose, route, frequency, duration as dosage text) and every Consent (revoked ones inactive). Current versions only; entries made in error are exported marked so, not hidden. Clinical notes are left out. All references are `urn:uuid` inside the bundle, so it stands alone. Doctors and nurses only (new capability `record:export`). A patient's own copy needs nothing more; a referral or transfer needs their referral-sharing consent (409 otherwise). Each export is in the audit log with its reason (`record.export`).
 
-**Next:** Week 11 Step 6b: the export button on the patient page.
+- Week 11 Step 6b: **the export button.** Doctors and nurses see "Export the record (FHIR)" on the patient page: they choose why (the patient asked for a copy; a referral; a transfer), then "Download record (FHIR)" saves `patient-record-<first 8 characters of the id>-<day>.fhir.json` (never the patient's name in a file name). If sharing consent is missing, the backend's message says so. The page reminds them the file holds the whole record (send securely, delete afterwards). The audit log now shows why each record was exported.
+
+**Next:** Week 11 Step 7: admin screens (staff, devices, MFA reset) and the notification console.
 
 ---
 

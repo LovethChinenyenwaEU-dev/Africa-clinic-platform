@@ -49,3 +49,13 @@ describe("money", () => {
     }
   });
 });
+
+describe("export_record", () => {
+  it("is for doctors and nurses only", () => {
+    expect(can("doctor", "export_record")).toBe(true);
+    expect(can("nurse", "export_record")).toBe(true);
+    for (const role of ["front_desk", "admin", "billing"] as const) {
+      expect(can(role, "export_record")).toBe(false);
+    }
+  });
+});

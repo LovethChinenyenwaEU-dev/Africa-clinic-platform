@@ -120,3 +120,14 @@ export const SYSTEM_ACTOR_ID = "00000000-0000-0000-0000-000000000000";
 
 // The purpose on lines a patient wrote themselves, from their own web page (Week 9).
 export const PATIENT_PORTAL = "patient_portal";
+
+// Why a record was exported (Week 11): the purpose on "record.export" lines.
+export const EXPORT_REASON_LABELS: Record<string, string> = {
+  patient_request: "the patient asked for a copy",
+  referral: "for a referral",
+  transfer: "the patient is moving to another provider",
+};
+
+export function describeExportReason(reason: string): string {
+  return EXPORT_REASON_LABELS[reason] ?? reason;
+}
