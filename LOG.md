@@ -50,7 +50,12 @@ Roadmap: [README](./README.md#roadmap-12-week-mvp) · Brief: [docs/product-brief
 
 - Week 12 Step 2b: **backups and the restore drill.** Render's free database has no restorable backups, so: `scripts/backup.sh` records each clinic's audit-chain head, then dumps the Render database (`pg_dump`) with a checksum, into `backups/` (never committed). `scripts/restore_drill.sh` checks the checksum, restores into a scratch database in the local Postgres (never Render), times it, and runs `python -m app.backup_check verify`: the migration version, row counts, and every clinic's audit chain unbroken and still holding the recorded hash at the recorded line (so a rewritten audit log is caught). CI runs both scripts on every push against its own database. `docs/backup-restore.md` covers how often, what we can lose, how long to keep, and a real restore onto a new Render database. The database address is read hidden and never typed into a command.
 
-**Next:** the user runs the first real backup and drill against Render and records the time; then Week 12 Step 3: privacy and incident runbook, and the demo.
+- **First real backup and restore drill** (1 Nov, 20:10 UTC backup of the Render database): **RESTORE DRILL PASSED**: migration version current, every clinic's audit chain intact and running through the recorded heads. (Restore time to be added.) Two hiccups on the way, both fixed: the database address was pasted as a command (the guide now reads it hidden), and a pasted address with stray characters failed (the script and settings now drop spaces and quotes, and check the address without printing it).
+- Week 12 Step 3: **runbook and demo.** `docs/runbook.md`: roles, what counts as an incident, the first hour, investigating with the audit log and the chain check, NDPA 2023 notices (to be confirmed by the clinic's DPO and lawyer), and how long each kind of data is kept. `docs/demo.md`: preparing the live demo (wake the services, logins, set-up) and a 14-step walk from registration to the owner's dashboard, an optional offline demo, expected questions and the live demo's limits. README: live links and the new docs.
+
+**Pending:** the demo video (the user records it); the database password was exposed while setting up: change it before any real pilot; the free database expires on 1 December 2026; the landing-page points.
+
+**Next:** the user records the demo video; then tick W12.
 
 ---
 

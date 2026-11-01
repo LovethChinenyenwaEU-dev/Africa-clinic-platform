@@ -5,7 +5,7 @@
 
 ![status](https://img.shields.io/badge/status-in%20development-orange) ![stack](https://img.shields.io/badge/stack-FastAPI%20%7C%20Next.js%20%7C%20PostgreSQL-blue)
 
-**Live demo:** `[add link]` | **Demo video:** `[add link]` | **Docs:** [Brief](./docs/product-brief.md) · [PRD](./docs/PRD.md) · [SRS](./docs/SRS.md) · [Decisions](./docs/adr) · [Build log](./LOG.md)
+**Live demo:** [clinic app](https://afripeak-web.onrender.com/login) · [landing page](https://afripeak-landing.onrender.com) (fake data; free hosting sleeps, so the first visit takes about a minute) | **Demo video:** `[add link]` | **Docs:** [Brief](./docs/product-brief.md) · [PRD](./docs/PRD.md) · [SRS](./docs/SRS.md) · [Decisions](./docs/adr) · [Build log](./LOG.md) · [Deploy](./docs/deploy-render.md) · [Backups](./docs/backup-restore.md) · [Runbook](./docs/runbook.md) · [Demo script](./docs/demo.md)
 
 > **Important:** this is a portfolio and research project. It has not been through clinical-safety review, a privacy impact assessment, or legal review, and it must not be used with real patient data until those are done.
 
@@ -138,7 +138,7 @@ The `admin` and `billing` demo logins need an authenticator app (Google Authenti
 - [x] W9 Teleconsult flow, prescriptions, clinician-approved patient summary, clinician schedules, triage, lightweight patient web experience (prescriptions for doctors; triage with 12 danger signs ordering the queue; weekly hours and free slots; intake with consent and in-person escalation; Jitsi room behind an adapter with video→audio→text and chat; follow-up and referral letter; approved summaries; patient sign-in by SMS code to see visits and summaries, book a remote slot, answer the intake and join the consult. Patient self-cancel and caregiver access later)
 - [x] W10 Billing and one payment gateway, services and prices (price list in kobo; one invoice per visit, numbered when issued; cash and transfer payments with check-coded receipts; refunds asked by front desk or billing and decided by an admin who did not ask; Paystack behind an adapter with a signed, verified webhook that never pays twice; daily takings with flags for unusual refunds and a CSV export; billing screens for each role)
 - [x] W11 FHIR export, dashboards, admin screens and notification console, merging duplicate patients, security pass (database row-level security, tamper-evident audit, MFA, device revocation); attachments moved to after the MVP
-- [ ] W12 Deploy, backup/restore test, demo
+- [ ] W12 Deploy, backup/restore test, demo (deployed on Render; backup and restore drill passed; runbook and demo script written; demo video still to record)
 
 Update the checkboxes as you finish each week.
 
