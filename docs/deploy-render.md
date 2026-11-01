@@ -49,11 +49,15 @@ Then change the three addresses marked `ADDRESS` in `render.yaml` (or in each se
 The API runs the migrations when it starts. Migration 0032 (row-level security, Week 11)
 creates a role, `clinic_app`, and needs the database user to be allowed to create roles.
 If the API log shows `permission denied to create role`, check the user's rights from the
-Codespace (copy the **External Database URL** from `afripeak-db` > Info):
+Codespace (the **External Database URL** from `afripeak-db` > Connect, read into a
+variable as shown in section 4):
 
 ```bash
-docker compose exec db psql "<External Database URL>" -c "SELECT rolname, rolcreaterole, rolsuper FROM pg_roles WHERE rolname = current_user;"
+docker compose exec db psql "$RENDER_DB_URL" -c "SELECT rolname, rolcreaterole, rolsuper FROM pg_roles WHERE rolname = current_user;"
 ```
+
+(On the first deploy, 1 November 2026, migrations 0001 to 0034 ran on Render without this
+problem.)
 
 `rolcreaterole` must be `t`. If it is `f`, stop and tell the team: the fix is a database
 host that allows it, not removing the row-level security.
@@ -61,13 +65,28 @@ host that allows it, not removing the row-level security.
 ## 4. Create the first clinic and its admin
 
 There is no shell on free services, so run the admin tool from the Codespace against the
-Render database (External Database URL, as above):
+Render database. The External Database URL contains the database password: never paste
+it into a command line, a chat or a file. Read it into a variable without showing it
+(paste, then Enter):
 
 ```bash
-docker compose run --rm -e DATABASE_URL="<External Database URL>" -e ENVIRONMENT=production api python -m app.cli create-clinic
+read -rs RENDER_DB_URL
 ```
 
-It asks for the clinic name and the admin's name, email and password. The admin's first
+Then create the clinic (your own clinic name, admin name and email). It asks for the
+admin's password twice, hidden; at least 10 characters:
+
+```bash
+docker compose run --rm --no-deps -e DATABASE_URL="$RENDER_DB_URL" -e ENVIRONMENT=production api python -m app.cli create-clinic --clinic-name "AfriPeak Demo Clinic" --admin-name "Demo Admin" --admin-email "you@example.com"
+```
+
+```bash
+unset RENDER_DB_URL
+```
+
+The same variable works for the role check in section 3: `psql "$RENDER_DB_URL" ...`.
+
+The admin's first
 sign-in at `https://afripeak-web.onrender.com/login` sets up an authenticator app (keep the
 10 backup codes). The admin then adds staff on the **Staff** screen, branches and consent
 wording on **Settings**.
