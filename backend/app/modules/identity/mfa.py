@@ -13,8 +13,8 @@ slowed down.
 No code works twice. Five wrong codes in a row lock sign-in for 15 minutes. An admin can
 reset another person's app (lost phone): that person sets it up again.
 
-The secret is kept as text in the database for now; encrypting it with a managed key
-comes with deployment (W12). Backup codes are kept only as keyed hashes.
+The secret is stored encrypted, with a key kept outside the database (Week 12, see
+app/core/secret_box.py). Backup codes are kept only as keyed hashes.
 """
 import hashlib
 import hmac
@@ -28,6 +28,7 @@ from sqlalchemy import delete
 from sqlmodel import Session, col, select
 
 from app.core.config import settings
+from app.core.secret_box import open_value, reseal, seal
 from app.modules.audit.service import AuditAction, add_audit_event
 from app.modules.identity import totp
 from app.modules.identity.models import Role, Staff, StaffBackupCode, StaffMfa
@@ -168,9 +169,9 @@ def begin_setup(session: Session, *, challenge_token: str) -> SetUp:
         raise AlreadySetUpError("Your app is already set up. Sign in with its code.")
     secret = totp.new_secret()
     if row is None:
-        row = StaffMfa(staff_id=staff.id, tenant_id=staff.tenant_id, secret=secret)
+        row = StaffMfa(staff_id=staff.id, tenant_id=staff.tenant_id, secret=seal(secret))
     else:
-        row.secret = secret
+        row.secret = seal(secret)
         row.failed_attempts = 0
     session.add(row)
     session.commit()
@@ -196,7 +197,7 @@ def confirm_setup(
         session.rollback()
         raise AlreadySetUpError("Your app is already set up. Sign in with its code.")
     _check_lock(session, row, current)
-    step = totp.matching_step(row.secret, code, current.timestamp(), row.last_step)
+    step = totp.matching_step(open_value(row.secret), code, current.timestamp(), row.last_step)
     if step is None:
         _wrong(session, staff, row, current)
 
@@ -235,7 +236,7 @@ def verify_sign_in(
         raise ChallengeError("Set up your app first.")
     _check_lock(session, row, current)
 
-    step = totp.matching_step(row.secret, code, current.timestamp(), row.last_step)
+    step = totp.matching_step(open_value(row.secret), code, current.timestamp(), row.last_step)
     if step is not None:
         row.last_step = step
         action = AuditAction.MFA_VERIFY
@@ -255,6 +256,7 @@ def verify_sign_in(
 
     row.failed_attempts = 0
     row.locked_until = None
+    row.secret = reseal(row.secret)  # from before Week 12, or an older key: newest key now
     session.add(row)
     _audit(session, staff, action)
     session.commit()

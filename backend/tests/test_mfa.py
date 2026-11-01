@@ -19,6 +19,7 @@ from app.modules.identity.mfa import (
     start_sign_in,
     verify_sign_in,
 )
+from app.modules.identity.models import StaffMfa
 from app.modules.identity.service import create_staff, login
 from app.modules.identity.tokens import create_challenge_token
 from app.modules.tenancy.service import create_tenant
@@ -287,3 +288,34 @@ def test_the_reset_door_is_for_admins_and_not_for_ones_own_app(session, run_id, 
     assert by_nurse.status_code == 403
     assert own.status_code == 403
     assert done.status_code == 200 and done.json() == {"reset": True}
+
+
+# --- the secret is stored encrypted (Week 12) --------------------------------------
+
+
+def stored_secret(session, clinic, who="admin"):
+    session.expire_all()
+    return session.get(StaffMfa, clinic[who].id).secret
+
+
+def test_the_secret_is_never_stored_as_plain_text(session, run_id, clinic):
+    secret, _ = enrol(session, run_id)
+
+    stored = stored_secret(session, clinic)
+    assert stored.startswith("enc:v1:")
+    assert secret not in stored
+
+
+def test_a_secret_stored_before_week_12_still_works_and_is_then_sealed(session, run_id, clinic):
+    secret, _ = enrol(session, run_id)
+    row = session.get(StaffMfa, clinic["admin"].id)
+    row.secret = secret  # as it was stored before Week 12: plain text
+    session.add(row)
+    session.commit()
+    later = NOW + timedelta(minutes=2)
+
+    verify_sign_in(
+        session, challenge_token=challenge(session, run_id), code=code(secret, later), now=later
+    )
+
+    assert stored_secret(session, clinic).startswith("enc:v1:")

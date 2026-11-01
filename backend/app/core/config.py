@@ -11,6 +11,9 @@ class Settings(BaseSettings):
     redis_url: str = "redis://localhost:6379/0"
     environment: str = "development"
     secret_key: str = DEFAULT_SECRET_KEY
+    # Keys that encrypt secrets kept in the database (authenticator apps), newest first,
+    # comma separated; see app/core/secret_box.py. Required outside development (Week 12).
+    data_encryption_keys: str = ""
     cors_origins: str = "http://localhost:3000"
     sms_provider: str = "none"  # "none" sends nothing; a real provider name comes later
     reminder_interval_seconds: int = 30
