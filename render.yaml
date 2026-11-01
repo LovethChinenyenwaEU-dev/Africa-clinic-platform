@@ -73,6 +73,10 @@ services:
     dockerfilePath: ./landing/Dockerfile.prod
     dockerContext: ./landing
     healthCheckPath: /
+    envVars:
+      # "Staff sign in" on the landing page leads to the clinic app.
+      - key: APP_URL
+        value: https://afripeak-web.onrender.com # ADDRESS of the web app
 
   # Redis-compatible store for the worker's heartbeat. Reachable only inside Render.
   - type: keyvalue

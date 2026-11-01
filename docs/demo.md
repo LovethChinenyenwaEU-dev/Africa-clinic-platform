@@ -63,4 +63,3 @@ clinics lose the network; nothing typed is lost, and nothing is sent twice.
   live; show it locally with `docker compose` (the code appears in development).
 - The free database is deleted 30 days after it was made (made 1 November 2026): restore the
   latest backup into a new one before then, or upgrade.
-- The landing page has no link to the clinic app yet (an open landing-page point).

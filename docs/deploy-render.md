@@ -95,8 +95,8 @@ wording on **Settings**.
 
 - `https://afripeak-api.onrender.com/health` answers `{"status":"ok"}`.
 - `https://afripeak-api.onrender.com/health/ready` answers OK (database and Redis reachable).
-- The landing page opens. (It has no link to the clinic app yet: one of the open landing-page
-  points. Staff use `https://afripeak-web.onrender.com/login` directly.)
+- The landing page opens, and its **Staff sign in** link leads to the clinic app's sign-in page
+  (set by `APP_URL` on `afripeak-landing`).
 - The admin signs in, sees the Dashboard, and the Reminders console opens.
 
 ## Secrets

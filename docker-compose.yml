@@ -77,6 +77,9 @@ services:
   # The public landing page (AfriPeak Health), its own app: http://localhost:3001
   landing:
     build: ./landing
+    environment:
+      # Where "Staff sign in" goes (the clinic app). In Codespaces, its forwarded address.
+      APP_URL: ${APP_URL:-http://localhost:3000}
     volumes:
       - ./landing:/app
       - /app/node_modules
