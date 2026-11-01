@@ -10,3 +10,5 @@ node_modules/
 .DS_Store
 next-env.d.ts
 .env*.local
+# Database backups hold personal data: never commit them (Week 12).
+backups/

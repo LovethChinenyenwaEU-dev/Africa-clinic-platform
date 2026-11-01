@@ -135,6 +135,15 @@ jobs:
       - name: Check API readiness
         run: curl -fsS http://localhost:8000/health/ready
 
+      # Week 12: back up the stack's own (migrated) database and run the restore drill on
+      # it, so both scripts are proven on every push. Never touches Render.
+      - name: Backup and restore drill
+        env:
+          RENDER_DB_URL: postgresql://clinic:clinic@db:5432/clinic
+        run: |
+          bash scripts/backup.sh
+          bash scripts/restore_drill.sh "$(ls backups/*.dump | head -n 1)"
+
       - name: Show logs on failure
         if: failure()
         run: docker compose logs --no-color
