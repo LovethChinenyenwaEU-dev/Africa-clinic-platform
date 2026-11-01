@@ -13,6 +13,21 @@ set -euo pipefail
 
 : "${RENDER_DB_URL:?First run: read -rs RENDER_DB_URL && export RENDER_DB_URL}"
 
+# Drop spaces, line breaks and quotes that come along when copying and pasting, then check
+# it looks like a database address, without ever printing it (it holds the password).
+url="${RENDER_DB_URL//[[:space:]]/}"
+url="${url#[\"\']}"
+url="${url%[\"\']}"
+case "$url" in
+  postgres://*|postgresql://*) ;;
+  *)
+    echo "RENDER_DB_URL does not look like a database address (it should start with"
+    echo "postgresql://). Run: read -rs RENDER_DB_URL && export RENDER_DB_URL and paste it again."
+    exit 1
+    ;;
+esac
+RENDER_DB_URL="$url"
+
 mkdir -p backups
 chmod 700 backups
 stamp="$(date -u +%Y%m%dT%H%MZ)"

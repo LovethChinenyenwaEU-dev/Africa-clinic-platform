@@ -39,7 +39,9 @@ class Settings(BaseSettings):
     @classmethod
     def use_psycopg(cls, value: str) -> str:
         """Hosts such as Render give postgres:// or postgresql:// addresses; SQLAlchemy
-        needs to be told to use the psycopg driver we install."""
+        needs to be told to use the psycopg driver we install. Stray spaces or quotes
+        from copying and pasting are dropped."""
+        value = value.strip().strip("\"'").strip()
         for prefix in ("postgres://", "postgresql://"):
             if value.startswith(prefix):
                 return "postgresql+psycopg://" + value.removeprefix(prefix)

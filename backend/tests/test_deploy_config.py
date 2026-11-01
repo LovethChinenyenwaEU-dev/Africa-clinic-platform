@@ -36,3 +36,8 @@ def test_the_background_worker_stops_when_told(monkeypatch):
     worker = next(t for t in threading.enumerate() if t.name == "reminder-worker")
     worker.join(2)
     assert not worker.is_alive()
+
+
+def test_stray_spaces_and_quotes_from_pasting_are_dropped():
+    for given in (' "postgresql://u:p@host:5432/db" ', "'postgres://u:p@host:5432/db'\n"):
+        assert Settings(database_url=given).database_url == "postgresql+psycopg://u:p@host:5432/db"
