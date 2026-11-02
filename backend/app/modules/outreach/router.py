@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException, status
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 from sqlmodel import Session
 
 from app.core.db import get_session
@@ -10,6 +10,9 @@ router = APIRouter(prefix="/public", tags=["public"])
 
 class InterestCreate(BaseModel):
     """The landing page's "Register interest" form. No patient information belongs here."""
+
+    # Spaces around what was typed are dropped before the checks below (a pasted email).
+    model_config = ConfigDict(str_strip_whitespace=True)
 
     full_name: str = Field(min_length=1, max_length=120)
     email: str = Field(min_length=3, max_length=254, pattern=r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
