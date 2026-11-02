@@ -17,6 +17,9 @@ PUBLIC_OPERATIONS = {
     # Paystack tells us a payment went through. It cannot sign in; its HMAC signature
     # is checked instead, and nothing is believed until the gateway confirms (Week 10).
     ("POST", "/api/v1/billing/paystack/webhook"),
+    # The landing page's "Register interest" form: a visitor has no account. Limited per
+    # email and per hour, and it only ever saves (landing step 2).
+    ("POST", "/api/v1/public/interest"),
 }
 HTTP_METHODS = {"get", "post", "put", "patch", "delete"}
 PREFIX = "/api/v1"

@@ -7,6 +7,7 @@ from app.modules.identity.router import router as identity_router
 from app.modules.identity.staff_router import router as staff_router
 from app.modules.interop.router import router as interop_router
 from app.modules.notifications.router import router as notifications_router
+from app.modules.outreach.router import router as outreach_router
 from app.modules.patients.router import router as patients_router
 from app.modules.portal.router import router as portal_router
 from app.modules.records.router import router as records_router
@@ -27,6 +28,7 @@ api_router.include_router(identity_router)
 api_router.include_router(staff_router)
 api_router.include_router(interop_router)
 api_router.include_router(notifications_router)
+api_router.include_router(outreach_router)
 api_router.include_router(patients_router)
 api_router.include_router(portal_router)
 api_router.include_router(records_router)

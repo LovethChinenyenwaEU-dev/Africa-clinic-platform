@@ -1,12 +1,14 @@
 import argparse
 import getpass
 import sys
+from datetime import UTC, datetime, timedelta
 
 from sqlmodel import Session
 
 from app.core.db import engine
 from app.demo_data import DemoNotAllowedError, reset_demo_passwords, seed_demo
 from app.modules.identity.service import EmailAlreadyUsedError
+from app.modules.outreach.service import interest_csv
 from app.provisioning import provision_clinic
 
 
@@ -78,6 +80,15 @@ def _reset_demo_passwords(args: argparse.Namespace) -> int:
     return 0
 
 
+def _list_interest(args: argparse.Namespace) -> int:
+    """The landing page's Register interest requests, as CSV on the screen. They hold
+    people's contact details: do not save the output anywhere shared."""
+    since = datetime.now(UTC) - timedelta(days=args.days)
+    with Session(engine) as session:
+        print(interest_csv(session, since=since), end="")
+    return 0
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog="app.cli", description="Clinic Platform admin tools")
     commands = parser.add_subparsers(dest="command", required=True)
@@ -87,6 +98,11 @@ def main(argv: list[str] | None = None) -> int:
     create.add_argument("--admin-name", required=True)
     create.add_argument("--admin-email", required=True)
 
+    interest = commands.add_parser(
+        "list-interest", help="Register interest requests from the landing page, as CSV"
+    )
+    interest.add_argument("--days", type=int, default=30, help="How far back (default 30)")
+
     commands.add_parser("seed-demo", help="Development only: a demo clinic with fake people")
     commands.add_parser(
         "reset-demo-passwords", help="Development only: a new password for the demo logins"
@@ -95,6 +111,8 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
     if args.command == "create-clinic":
         return _create_clinic(args)
+    if args.command == "list-interest":
+        return _list_interest(args)
     if args.command == "seed-demo":
         return _seed_demo(args)
     if args.command == "reset-demo-passwords":

@@ -104,6 +104,7 @@ cannot happen the same way twice.
 | Offline copies on a device | until sign-out, at most 24 hours | wiped by the app |
 | Backups | the last four weekly backups | delete older ones (`docs/backup-restore.md`) |
 | Exported files (FHIR, CSV) | as short as possible | delete from the device after sending |
+| Register interest requests (landing page) | 1 year | deleted by the worker (`purge_old_interest`); read with `python -m app.cli list-interest` |
 
 Configurable retention (deleting records after N years, as a clinic's policy or the law may
 require) is not built yet: it needs the clinic's policy and legal advice first.

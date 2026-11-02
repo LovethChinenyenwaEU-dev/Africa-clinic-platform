@@ -77,6 +77,9 @@ services:
       # "Staff sign in" on the landing page leads to the clinic app.
       - key: APP_URL
         value: https://afripeak-web.onrender.com # ADDRESS of the web app
+      # The Register interest form is passed on to the API.
+      - key: API_URL
+        value: https://afripeak-api.onrender.com # ADDRESS of the API
 
   # Redis-compatible store for the worker's heartbeat. Reachable only inside Render.
   - type: keyvalue

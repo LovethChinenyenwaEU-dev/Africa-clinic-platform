@@ -4,6 +4,7 @@ from app.modules.consent import models as consent_models  # noqa: F401
 from app.modules.idempotency import models as idempotency_models  # noqa: F401
 from app.modules.identity import models as identity_models  # noqa: F401
 from app.modules.notifications import models as notifications_models  # noqa: F401
+from app.modules.outreach import models as outreach_models  # noqa: F401
 from app.modules.patients import models as patients_models  # noqa: F401
 from app.modules.portal import models as portal_models  # noqa: F401
 from app.modules.records import models as records_models  # noqa: F401

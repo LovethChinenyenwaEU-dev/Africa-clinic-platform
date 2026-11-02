@@ -25,6 +25,7 @@ from app.core.db import engine
 from app.modules.idempotency.service import purge_old_records
 from app.modules.notifications.adapters import MessageAdapter, make_adapter
 from app.modules.notifications.sender import SendRun, send_due_reminders
+from app.modules.outreach.service import purge_old_interest
 
 HEARTBEAT_KEY = "worker:reminders:last_run"
 
@@ -44,6 +45,7 @@ def run_once(
     result = send_due_reminders(session, adapter=adapter, now=current, tenant_id=tenant_id)
     # Remembered write answers can hold clinical text: keep them for a day only.
     purge_old_records(session, now=current)
+    purge_old_interest(session, now=current)  # landing-page requests: kept a year
     redis_client.set(HEARTBEAT_KEY, current.isoformat())
     return result
 
